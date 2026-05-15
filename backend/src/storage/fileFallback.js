@@ -6,7 +6,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const DATA_DIR = path.resolve(process.cwd(), 'data');
+// Vercel's runtime filesystem is read-only except `/tmp` (ephemeral per invocation).
+// Locally we use `./data/` so dev writes are persistent.
+const IS_SERVERLESS = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+const DATA_DIR = IS_SERVERLESS
+  ? '/tmp/leanhyphen-data'
+  : path.resolve(process.cwd(), 'data');
 const FILE = path.join(DATA_DIR, 'fallback.json');
 
 function load() {

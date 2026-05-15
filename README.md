@@ -2,6 +2,12 @@
 
 > Behaviour-first learning. Module 1: **Smart Spending & Money Choices** → Lesson: **Think Before You Spend**.
 
+**Live**
+- App: <https://frontend-one-kappa-15.vercel.app>
+- API: <https://backend-ten-delta-54.vercel.app/api/health>
+
+Every push to `main` auto-deploys both projects on Vercel.
+
 This repo holds the interactive lesson app (React + Tailwind) and the API (Node.js/Express + PostgreSQL). It is designed to be embedded inside the third-party LMS that the [Lean Hyphen landing page](https://lean-hyphen-user-web-4zrf.vercel.app/#home) sends users to.
 
 The current build ships **Act 1 — Story Hook & Setup**. Acts 2/3/4 are scaffolded as placeholders so they can be implemented later without touching Act 1.

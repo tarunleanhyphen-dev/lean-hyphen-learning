@@ -1,0 +1,10 @@
+node_modules
+dist
+.DS_Store
+*.log
+.env
+.env.*
+!.env.example
+
+# Backend file-store fallback (regenerable, never commit)
+backend/data/

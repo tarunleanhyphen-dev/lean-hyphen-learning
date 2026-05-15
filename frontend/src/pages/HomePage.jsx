@@ -1,0 +1,85 @@
+import { Link } from 'react-router-dom';
+import { Play, Clock, Sparkles, ShieldCheck } from 'lucide-react';
+import { lesson } from '../data/lessons/thinkBeforeYouSpend.js';
+
+export default function HomePage() {
+  return (
+    <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col px-6 py-10">
+      <header className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-white">
+          <div className="grid h-9 w-9 place-items-center rounded-xl bg-saffron-500 text-ink-900 font-extrabold">L</div>
+          <div className="text-sm font-semibold tracking-wide">Lean Hyphen</div>
+        </div>
+        <a
+          href="https://lean-hyphen-user-web-4zrf.vercel.app/#home"
+          target="_blank"
+          rel="noreferrer"
+          className="text-xs text-white/60 underline-offset-4 hover:text-white hover:underline"
+        >
+          ← back to leanhyphen.com
+        </a>
+      </header>
+
+      <main className="mt-16 flex flex-col items-start gap-8 sm:mt-24">
+        <span className="chip bg-saffron-500/15 text-saffron-400">
+          <Sparkles className="h-3 w-3" /> Module · {lesson.module}
+        </span>
+        <h1 className="text-4xl font-extrabold leading-tight text-white sm:text-5xl">
+          {lesson.title}
+        </h1>
+        <p className="max-w-2xl text-lg text-white/70">
+          {lesson.hero.tagline} Spend ~{lesson.totalMinutes} minutes walking through a
+          short story, then test what you noticed.
+        </p>
+
+        <div className="flex flex-wrap items-center gap-3 text-sm text-white/60">
+          <span className="inline-flex items-center gap-1.5">
+            <Clock className="h-4 w-4" /> {lesson.totalMinutes} min total
+          </span>
+          <span>·</span>
+          <span className="inline-flex items-center gap-1.5">
+            <ShieldCheck className="h-4 w-4" /> No login needed
+          </span>
+        </div>
+
+        <Link to={`/lesson/${lesson.id}/act1`} className="btn-primary mt-4 px-7 py-4 text-base">
+          <Play className="h-4 w-4" />
+          Start Act 1
+        </Link>
+      </main>
+
+      <section className="mt-20 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {Object.values(lesson.acts).map((act, i) => (
+          <ActCard key={act.id} act={act} index={i} />
+        ))}
+      </section>
+
+      <footer className="mt-auto pt-16 text-xs text-white/40">
+        © {new Date().getFullYear()} Lean Hyphen · Built for behaviour-first learning.
+      </footer>
+    </div>
+  );
+}
+
+function ActCard({ act, index }) {
+  const isPlayable = act.id === 'act1';
+  const body = (
+    <div className="flex h-full flex-col rounded-2xl border border-white/10 bg-white/[0.04] p-5 transition group-hover:border-saffron-500/40 group-hover:bg-white/[0.06]">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/50">
+          Act {index + 1}
+        </span>
+        <span className="text-[11px] text-white/50">{act.minutes} min</span>
+      </div>
+      <div className="mt-3 text-base font-semibold text-white">{act.title.replace(/^Act \d+ — /, '')}</div>
+      <div className="mt-auto pt-4 text-xs text-white/50">
+        {isPlayable ? 'Ready to play' : 'Coming soon'}
+      </div>
+    </div>
+  );
+  return isPlayable ? (
+    <Link to={`/lesson/${lesson.id}/${act.id}`} className="group">{body}</Link>
+  ) : (
+    <div className="group opacity-70">{body}</div>
+  );
+}

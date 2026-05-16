@@ -1,5 +1,18 @@
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Signal, Wifi, BatteryMedium } from 'lucide-react';
+
+/** Live clock that updates every 30s — same format real iPhones use. */
+function StatusBarClock() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+  const h = now.getHours() % 12 || 12;
+  const m = String(now.getMinutes()).padStart(2, '0');
+  return <span>{h}:{m}</span>;
+}
 
 /**
  * Responsive phone mockup. Scales down on mobile, up on desktop, while keeping
@@ -18,7 +31,7 @@ export default function PhoneFrame({ children, dim = false }) {
           <div className="relative overflow-hidden rounded-[34px] bg-white sm:rounded-[38px]">
             {/* Status bar */}
             <div className="flex h-9 items-center justify-between bg-white px-5 pt-2 text-[11px] font-semibold text-ink-900 sm:h-10 sm:px-6">
-              <span>9:41</span>
+              <StatusBarClock />
               <span className="flex items-center gap-1.5">
                 <Signal className="h-3 w-3" strokeWidth={2.5} />
                 <Wifi className="h-3 w-3" strokeWidth={2.5} />

@@ -4,6 +4,7 @@ import cors from 'cors';
 import { hasDb } from './db/index.js';
 import reflectionsRouter from './routes/reflections.js';
 import progressRouter from './routes/progress.js';
+import ttsRouter from './routes/tts.js';
 import { notFound, errorHandler } from './middleware/error.js';
 
 const app = express();
@@ -30,6 +31,7 @@ app.get('/api/health', (_req, res) => {
 
 app.use('/api/reflections', reflectionsRouter);
 app.use('/api/progress', progressRouter);
+app.use('/api/tts', ttsRouter);
 
 app.use(notFound);
 app.use(errorHandler);

@@ -20,14 +20,14 @@ export default function AudioConsentBanner({ onEnable, onDismiss }) {
       <span className="grid h-8 w-8 place-items-center rounded-full bg-saffron-500/20">
         <Volume2 className="h-4 w-4 text-saffron-400" />
       </span>
-      <div className="flex-1">
-        <div className="font-semibold">Want to hear the story too?</div>
-        <div className="text-xs text-white/60">Soft music + reaction sounds. Works best with the audio on.</div>
+      <div className="min-w-0 flex-1">
+        <div className="font-semibold leading-tight">Want to hear it too?</div>
+        <div className="text-xs text-white/60">Soft music + Shanaya's voice.</div>
       </div>
-      <button onClick={onEnable} className="rounded-full bg-saffron-500 px-4 py-2 text-xs font-bold text-ink-900 hover:bg-saffron-400">
+      <button onClick={onEnable} className="whitespace-nowrap rounded-full bg-saffron-500 px-3.5 py-2 text-xs font-bold text-ink-900 hover:bg-saffron-400 sm:px-4">
         Yes, audio on
       </button>
-      <button onClick={onDismiss} className="rounded-full border border-white/20 px-4 py-2 text-xs font-semibold text-white/80 hover:bg-white/10">
+      <button onClick={onDismiss} className="hidden whitespace-nowrap rounded-full border border-white/20 px-4 py-2 text-xs font-semibold text-white/80 hover:bg-white/10 sm:inline">
         Text only
       </button>
       <button onClick={onDismiss} className="rounded-full p-1.5 text-white/50 hover:text-white" aria-label="Dismiss">

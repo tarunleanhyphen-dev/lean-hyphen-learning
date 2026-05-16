@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  *  - duration: ms before auto-advancing to next phase
  *  - hold: true to pause indefinitely (waits for resume())
  */
-export function useSequencer(phases, { autoStart = true, onComplete } = {}) {
+export function useSequencer(phases, { autoStart = true, onComplete, holdWhile = false } = {}) {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(!autoStart);
   const timer = useRef(null);
@@ -50,9 +50,10 @@ export function useSequencer(phases, { autoStart = true, onComplete } = {}) {
     const phase = phases[index];
     if (!phase) return;
     if (phase.hold) return; // waits until external resume / advance
+    if (holdWhile) return;  // external hold (e.g. while TTS speech is playing)
     timer.current = setTimeout(advance, phase.duration ?? 1800);
     return clear;
-  }, [index, paused, phases, advance]);
+  }, [index, paused, phases, advance, holdWhile]);
 
   return {
     phase: phases[index],

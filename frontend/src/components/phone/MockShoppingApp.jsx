@@ -1,10 +1,10 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Search, ShoppingBag, Heart, Bell, Truck, Clock, Star, MapPin,
   ChevronRight, BadgePercent, Flame,
 } from 'lucide-react';
-import { products, freeDeliveryThreshold } from '../../data/lessons/thinkBeforeYouSpend.js';
+import { products, freeDeliveryThreshold, SHOE_GRID } from '../../data/lessons/thinkBeforeYouSpend.js';
 
 const CATEGORIES = [
   { id: 'footwear', label: 'Footwear', emoji: '👟' },
@@ -25,16 +25,88 @@ export default function MockShoppingApp({ state = {} }) {
   const cartIds = state.cart || [];
   const cartTotal = cartIds.reduce((sum, id) => sum + (products[id]?.price || 0), 0);
   const reached = state.deliveryUnlocked || cartTotal >= freeDeliveryThreshold;
+  const view = state.view || 'feed';
+
+  // Dedicated screens for payment / confirmation take over the whole phone.
+  if (view === 'payment') return <PaymentScreen total={cartTotal} ids={cartIds} tapping={state.tapTarget === 'pay'} processing={state.processing} />;
+  if (view === 'confirmation') return <ConfirmationScreen total={cartTotal} ids={cartIds} />;
+
+  /* Auto-scroll the phone container as the scene progresses.
+   * The scroller is the parent `.phone-scroll` div from <PhoneFrame>; we
+   * find it via closest() after this component mounts.  Targets we scroll
+   * to are identified by `#mock-<name>` IDs on key sections of the app. */
+  const rootRef = useRef(null);
+  useEffect(() => {
+    if (!rootRef.current) return;
+    const scroller = rootRef.current.closest('.phone-scroll');
+    if (!scroller) return;
+
+    // Two requestAnimationFrames so the DOM has settled after a phase change
+    // before we look up the target node — sometimes the new section just
+    // mounted in the same React tick and isn't measurable yet.
+    let raf1, raf2, anim;
+    raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        // Reset to top when a new full-screen view (results/detail/payment) loads.
+        if (state.view && state.view !== 'feed') {
+          scroller.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        }
+
+        // Scroll to a named section.
+        if (state.scrollTo) {
+          const target = scroller.querySelector(`#mock-${state.scrollTo}`);
+          if (target) {
+            const targetTop = target.offsetTop - 24;
+            scroller.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+            return;
+          }
+        }
+
+        // Continuous "she's scrolling" hint.
+        if (state.scrollHint) {
+          const start = scroller.scrollTop;
+          const target = Math.min(scroller.scrollHeight - scroller.clientHeight, start + 280);
+          const dur = 1800;
+          const startTime = performance.now();
+          const tick = (t) => {
+            const p = Math.min(1, (t - startTime) / dur);
+            const eased = 1 - Math.pow(1 - p, 3);
+            scroller.scrollTop = start + (target - start) * eased;
+            if (p < 1) anim = requestAnimationFrame(tick);
+          };
+          anim = requestAnimationFrame(tick);
+        }
+      });
+    });
+
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+      if (anim) cancelAnimationFrame(anim);
+    };
+  }, [state.view, state.scrollTo, state.scrollHint, state.recommendations?.length, state.deliveryBanner, state.highlight, state.flashDeal, state.showProduct, state.cartOpen]);
 
   return (
-    <div className={`relative min-h-full bg-cream-50 pb-32 ${state.silent ? 'saturate-50' : ''}`}>
-      <AppHeader cartCount={cartIds.length} />
-      <Greeting />
+    <div ref={rootRef} className={`relative min-h-full bg-cream-50 pb-32 ${state.silent ? 'saturate-50' : ''}`}>
+      <AppHeader cartCount={cartIds.length} backable={view !== 'feed'} />
+      {view === 'feed' && <Greeting />}
       <SearchBar value={state.search || ''} scrollHint={state.scrollHint} />
-      <CategoryStrip />
-      <HeroCarousel />
 
-      {state.showProduct && (
+      {view === 'feed' && <>
+        <CategoryStrip />
+        <HeroCarousel />
+      </>}
+
+      {view === 'results' && (
+        <SearchResultsGrid query={state.search} hoverId={state.hover} />
+      )}
+
+      {view === 'detail' && state.showProduct && (
+        <ProductDetail id={state.showProduct} badge={state.badge} tapping={state.tapTarget === 'primary-cta'} />
+      )}
+
+      {view === 'feed' && state.showProduct && (
         <FeaturedProduct id={state.showProduct} badge={state.badge} tapping={state.tapTarget === 'primary-cta'} />
       )}
 
@@ -42,7 +114,7 @@ export default function MockShoppingApp({ state = {} }) {
         <DeliveryBanner total={cartTotal} reached={reached} />
       )}
 
-      {state.showProduct && <CouponStrip />}
+      {state.showProduct && view !== 'results' && <CouponStrip />}
 
       {state.recommendations?.length > 0 && (
         <RecommendationRow
@@ -55,27 +127,269 @@ export default function MockShoppingApp({ state = {} }) {
         />
       )}
 
-      {/* Always-on filler so the screen never feels empty */}
-      <FlashSaleStrip />
-      <ReviewsSnippet />
+      {view !== 'results' && <FlashSaleStrip />}
+      {view === 'feed' && <ReviewsSnippet />}
 
       <FloatPlusOne id={state.floatAdd} />
+      <Toast message={state.toast} />
 
       <AnimatePresence>
         {state.cartOpen && (
-          <CartDrawer ids={cartIds} total={cartTotal} reveal={state.revealTotal} />
+          <CartDrawer ids={cartIds} total={cartTotal} reveal={state.revealTotal} placeOrderTap={state.tapTarget === 'place-order'} />
         )}
       </AnimatePresence>
     </div>
   );
 }
 
+/* =================== Reusable product image helper =================== */
+
+/* =================== Per-product size / parameter selector =================== */
+
+function SizeSelector({ options, size = 'lg' }) {
+  if (!options || !options.values?.length) return null;
+  const big = size === 'lg';
+  const defaultIdx = options.defaultIndex ?? 0;
+
+  // Chip dimensions differ per kind — "S/M/L" stays small, "44mm GPS+Cellular"
+  // and "5-piece premium" need wider chips.
+  const widthClass = options.kind === 'watch' || options.kind === 'kit'
+    ? 'px-2.5 min-w-[5.5rem]'
+    : big ? 'w-8' : 'w-7';
+  const heightClass = big ? 'h-8' : 'h-7';
+
+  return (
+    <div className="mt-3">
+      <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-ink-500">{options.label}</div>
+      <div className="flex flex-wrap gap-1.5">
+        {options.values.map((s, idx) => (
+          <span
+            key={s}
+            className={`grid place-items-center rounded-md ring-1 text-center text-[11px] font-bold ${heightClass} ${widthClass} ${
+              idx === defaultIdx
+                ? 'bg-ink-900 text-white ring-ink-900'
+                : 'bg-white text-ink-700 ring-ink-300/30'
+            }`}
+          >
+            {s}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* =================== Reusable product image helper =================== */
+
+function ProductImage({ id, className = '', size = 'cover' }) {
+  const p = products[id];
+  if (!p) return null;
+  return (
+    <div className={`relative h-full w-full overflow-hidden bg-gradient-to-br from-cream-100 to-cream-200 ${className}`}>
+      {p.image ? (
+        <img
+          src={p.image}
+          alt={p.name}
+          loading="lazy"
+          className={`absolute inset-0 h-full w-full ${size === 'contain' ? 'object-contain' : 'object-cover'}`}
+        />
+      ) : (
+        <div className="absolute inset-0 grid place-items-center text-4xl">{p.emoji}</div>
+      )}
+    </div>
+  );
+}
+
+/* =================== Search results grid =================== */
+
+function SearchResultsGrid({ query, hoverId }) {
+  return (
+    <div className="px-4 pt-3">
+      <div className="mb-2 flex items-center justify-between">
+        <div className="text-[12px] font-bold text-ink-700">
+          Results for <span className="text-coral-500">“{query || 'shoes'}”</span>
+        </div>
+        <div className="flex items-center gap-1.5 text-[10px] font-semibold text-ink-500">
+          <span className="rounded-full bg-cream-100 px-2 py-0.5">Filter</span>
+          <span className="rounded-full bg-cream-100 px-2 py-0.5">Sort</span>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        {SHOE_GRID.map((p, i) => {
+          const highlighted = hoverId === p.key || (hoverId === 'shoes' && p.key === 'shoes');
+          return (
+            <motion.div
+              key={p.key}
+              initial={{ opacity: 0, y: 14 }}
+              animate={highlighted
+                ? { opacity: 1, y: 0, boxShadow: ['0 0 0 0 rgba(255,159,28,0)', '0 0 0 6px rgba(255,159,28,0.30)', '0 0 0 0 rgba(255,159,28,0)'] }
+                : { opacity: 1, y: 0 }}
+              transition={highlighted
+                ? { duration: 1.3, repeat: Infinity }
+                : { duration: 0.35, delay: i * 0.05 }}
+              className={`relative overflow-hidden rounded-xl bg-white p-2 ring-1 ${highlighted ? 'ring-saffron-500' : 'ring-ink-300/10'}`}
+            >
+              <div className="relative aspect-square overflow-hidden rounded-lg bg-cream-100">
+                <img
+                  src={p.image}
+                  alt={p.name}
+                  loading="lazy"
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+                <span className="absolute right-1 top-1 z-10 grid h-5 w-5 place-items-center rounded-full bg-white/90 text-ink-700 shadow">
+                  <Heart className="h-3 w-3" />
+                </span>
+                {i === 1 && <span className="absolute left-1.5 top-1.5 z-10 chip bg-coral-500 text-white">⚡ 30% off</span>}
+              </div>
+              <div className="mt-1.5 line-clamp-1 text-[12px] font-semibold text-ink-900">{p.name}</div>
+              <div className="flex items-center gap-1 text-[10px] text-ink-500">
+                <Star className="h-2.5 w-2.5 fill-saffron-500 text-saffron-500" /> {p.rating} · {p.tagline}
+              </div>
+              <div className="mt-1 text-[13px] font-extrabold text-ink-900">₹{p.price.toLocaleString('en-IN')}</div>
+            </motion.div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* =================== Product detail view =================== */
+
+function ProductDetail({ id, badge, tapping }) {
+  const p = products[id];
+  if (!p) return null;
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="px-3 pt-2"
+    >
+      <div className="overflow-hidden rounded-2xl bg-white shadow ring-1 ring-ink-300/10">
+        <div className="relative aspect-[4/3] overflow-hidden">
+          <motion.div
+            initial={{ scale: 1.05, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            className="absolute inset-0"
+          >
+            <ProductImage id={id} />
+          </motion.div>
+          <div className="absolute left-3 top-3 chip bg-coral-500 text-white">
+            <Star className="h-3 w-3 fill-current" /> Trending
+          </div>
+          <div className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-white/90 text-ink-700 shadow">
+            <Heart className="h-4 w-4" />
+          </div>
+          <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1">
+            <span className="h-1.5 w-4 rounded-full bg-white" />
+            <span className="h-1.5 w-1.5 rounded-full bg-white/60" />
+            <span className="h-1.5 w-1.5 rounded-full bg-white/60" />
+            <span className="h-1.5 w-1.5 rounded-full bg-white/60" />
+          </div>
+        </div>
+
+        <div className="p-3">
+          <div className="text-[14px] font-bold text-ink-900">{p.name}</div>
+          <div className="mt-0.5 flex items-center gap-1 text-[11px] text-ink-500">
+            <Star className="h-3 w-3 fill-saffron-500 text-saffron-500" />
+            {p.rating} · 1,283 reviews · 4.6k sold this month
+          </div>
+
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-xl font-extrabold text-ink-900">₹{p.price.toLocaleString('en-IN')}</span>
+            <span className="text-[11px] text-ink-500 line-through">₹2,199</span>
+            <span className="text-[10px] font-bold text-coral-500">32% off</span>
+          </div>
+
+          {/* Colour dots (visual variety per product kind) */}
+          {p.sizeOptions?.kind !== 'kit' && p.sizeOptions?.kind !== 'watch' && (
+            <div className="mt-3">
+              <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-ink-500">Colour</div>
+              <div className="flex gap-2">
+                <span className="h-6 w-6 rounded-full bg-white ring-2 ring-ink-900" />
+                <span className="h-6 w-6 rounded-full bg-ink-900 ring-1 ring-ink-300/40" />
+                <span className="h-6 w-6 rounded-full bg-coral-500 ring-1 ring-ink-300/40" />
+                <span className="h-6 w-6 rounded-full bg-teal-500 ring-1 ring-ink-300/40" />
+              </div>
+            </div>
+          )}
+
+          {/* Size / parameter selector — product-aware */}
+          <SizeSelector options={p.sizeOptions} size="lg" />
+
+          {/* Delivery */}
+          <div className="mt-3 rounded-xl bg-cream-50 px-3 py-2 text-[11px] text-ink-700 ring-1 ring-ink-300/15">
+            <div className="flex items-center gap-1.5">
+              <Truck className="h-3.5 w-3.5 text-teal-500" />
+              FREE delivery by <strong>Sat, 17 May</strong>
+            </div>
+            <div className="mt-0.5 inline-flex items-center gap-1 text-[10px] text-ink-500">
+              <MapPin className="h-3 w-3" /> Deliver to 110001 · Delhi
+            </div>
+          </div>
+
+          <div className="relative">
+            <button className="mt-3 w-full rounded-xl bg-coral-500 py-3 text-sm font-bold text-white shadow-sm">
+              Add to Cart · ₹{p.price.toLocaleString('en-IN')}
+            </button>
+            {tapping && <TapPulse />}
+          </div>
+
+          <AnimatePresence>
+            {badge && (
+              <motion.div
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ delay: 0.2 }}
+                className="mt-2 rounded-lg bg-teal-500/10 px-3 py-1.5 text-[11px] font-semibold text-teal-500"
+              >
+                {badge}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+/* =================== Toast =================== */
+
+function Toast({ message }) {
+  return (
+    <AnimatePresence>
+      {message && (
+        <motion.div
+          key={message}
+          initial={{ opacity: 0, y: 16, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 16, scale: 0.96 }}
+          transition={{ duration: 0.35 }}
+          className="pointer-events-none absolute bottom-24 left-1/2 z-30 -translate-x-1/2 rounded-full bg-ink-900 px-4 py-2 text-[12px] font-bold text-white shadow-2xl ring-1 ring-white/10"
+        >
+          <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-teal-400 align-middle" />
+          {message}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 /* =================== Top chrome =================== */
 
-function AppHeader({ cartCount }) {
+function AppHeader({ cartCount, backable = false }) {
   return (
     <header className="sticky top-0 z-20 flex items-center justify-between bg-white/95 px-4 py-3 backdrop-blur ring-1 ring-ink-300/10">
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-2">
+        {backable && (
+          <span className="grid h-7 w-7 place-items-center rounded-full bg-cream-100 text-ink-700">
+            <ChevronRight className="h-4 w-4 rotate-180" />
+          </span>
+        )}
         <span className="grid h-6 w-6 place-items-center rounded-md bg-coral-500 text-[10px] font-extrabold text-white">S</span>
         <span className="text-[15px] font-extrabold tracking-tight text-coral-500">
           spree<span className="text-ink-900">.</span>
@@ -236,19 +550,19 @@ function FeaturedProduct({ id, badge, tapping }) {
       transition={{ duration: 0.4 }}
       className="mx-4 mt-3 overflow-hidden rounded-2xl bg-white shadow ring-1 ring-ink-300/10"
     >
-      <div className="relative aspect-[4/3] bg-gradient-to-br from-cream-100 to-cream-200">
+      <div className="relative aspect-[4/3] overflow-hidden">
         <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
+          initial={{ scale: 1.05, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.6 }}
-          className="absolute inset-0 grid place-items-center text-[72px]"
+          className="absolute inset-0"
         >
-          {p.emoji}
+          <ProductImage id={id} />
         </motion.div>
-        <div className="absolute left-3 top-3 chip bg-coral-500 text-white">
+        <div className="absolute left-3 top-3 z-10 chip bg-coral-500 text-white">
           <Star className="h-3 w-3 fill-current" /> Trending Now
         </div>
-        <div className="absolute right-3 top-3 grid h-7 w-7 place-items-center rounded-full bg-white/90 text-ink-700 shadow">
+        <div className="absolute right-3 top-3 z-10 grid h-7 w-7 place-items-center rounded-full bg-white/90 text-ink-700 shadow">
           <Heart className="h-3.5 w-3.5" />
         </div>
         <div className="absolute bottom-2 left-3 flex gap-1">
@@ -272,24 +586,7 @@ function FeaturedProduct({ id, badge, tapping }) {
           </div>
         </div>
 
-        {/* Size selector */}
-        <div className="mt-2">
-          <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-ink-500">Select size · UK</div>
-          <div className="flex gap-1.5">
-            {['6', '7', '8', '9', '10'].map((s, idx) => (
-              <span
-                key={s}
-                className={`grid h-7 w-7 place-items-center rounded-md text-[11px] font-bold ring-1 ${
-                  idx === 1
-                    ? 'bg-ink-900 text-white ring-ink-900'
-                    : 'bg-white text-ink-700 ring-ink-300/30'
-                }`}
-              >
-                {s}
-              </span>
-            ))}
-          </div>
-        </div>
+        <SizeSelector options={p.sizeOptions} size="sm" />
 
         {/* Delivery row */}
         <div className="mt-2 flex items-center gap-1.5 text-[11px] text-ink-700">
@@ -343,7 +640,7 @@ function CouponStrip() {
 
 function RecommendationRow({ label, ids, socialProofId, flashId, highlightId, tapTarget }) {
   return (
-    <div className="mt-4 px-4">
+    <div id="mock-recommendations" className="mt-4 px-4">
       <div className="mb-2 flex items-center justify-between">
         <div className="text-[12px] font-bold uppercase tracking-wider text-ink-700">✨ {label}</div>
         <span className="inline-flex items-center text-[11px] font-semibold text-coral-500">
@@ -373,9 +670,9 @@ function RecommendationRow({ label, ids, socialProofId, flashId, highlightId, ta
                 isHighlighted ? 'ring-saffron-500' : 'ring-ink-300/10'
               }`}
             >
-              <div className="relative aspect-square overflow-hidden rounded-lg bg-gradient-to-br from-cream-100 to-cream-200">
-                <div className="absolute inset-0 grid place-items-center text-4xl">{p.emoji}</div>
-                <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-white/90 text-ink-700 shadow">
+              <div className="relative aspect-square overflow-hidden rounded-lg">
+                <ProductImage id={id} />
+                <span className="absolute right-1 top-1 z-10 grid h-5 w-5 place-items-center rounded-full bg-white/90 text-ink-700 shadow">
                   <Heart className="h-3 w-3" />
                 </span>
                 {isFlash && <FlashCountdown />}
@@ -384,9 +681,9 @@ function RecommendationRow({ label, ids, socialProofId, flashId, highlightId, ta
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="absolute bottom-1.5 left-1.5 chip bg-black/70 text-white"
+                    className="absolute bottom-1.5 left-1.5 z-10 chip bg-black/70 text-white"
                   >
-                    🔥 10k+ bought
+                    🔥 12k+ bought
                   </motion.div>
                 )}
               </div>
@@ -460,7 +757,7 @@ function FloatPlusOne({ id }) {
 
 function FlashSaleStrip() {
   return (
-    <div className="mx-4 mt-4 overflow-hidden rounded-2xl bg-gradient-to-r from-burgundy-500 to-coral-500 p-3 text-white">
+    <div id="mock-flash-strip" className="mx-4 mt-4 overflow-hidden rounded-2xl bg-gradient-to-r from-burgundy-500 to-coral-500 p-3 text-white">
       <div className="flex items-center gap-2">
         <Flame className="h-4 w-4" />
         <div className="text-[12px] font-extrabold uppercase tracking-wider">Flash sale · live now</div>
@@ -519,6 +816,7 @@ function DeliveryBanner({ total, reached }) {
   const pct = Math.min(100, (total / freeDeliveryThreshold) * 100);
   return (
     <motion.div
+      id="mock-delivery"
       initial={{ y: -10, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.5 }}
@@ -553,7 +851,7 @@ function DeliveryBanner({ total, reached }) {
   );
 }
 
-function CartDrawer({ ids, total, reveal }) {
+function CartDrawer({ ids, total, reveal, placeOrderTap = false }) {
   return (
     <motion.div
       initial={{ y: '100%' }}
@@ -580,7 +878,9 @@ function CartDrawer({ ids, total, reveal }) {
               transition={{ delay: 0.12 + i * 0.1 }}
               className="flex items-center gap-3 rounded-xl bg-cream-50 p-2"
             >
-              <div className="grid h-10 w-10 place-items-center rounded-lg bg-white text-2xl ring-1 ring-ink-300/10">{p.emoji}</div>
+              <div className="h-10 w-10 overflow-hidden rounded-lg ring-1 ring-ink-300/10">
+                <ProductImage id={id} />
+              </div>
               <div className="flex-1">
                 <div className="text-[12px] font-semibold text-ink-900">{p.name}</div>
                 <div className="text-[10px] text-ink-500">Qty 1 · ₹{p.price.toLocaleString('en-IN')}</div>
@@ -596,9 +896,12 @@ function CartDrawer({ ids, total, reveal }) {
           <span className="font-semibold text-ink-700">Total</span>
           <CountUpTotal target={total} reveal={reveal} />
         </div>
-        <button className="mt-3 w-full rounded-xl bg-coral-500 py-2.5 text-sm font-bold text-white">
-          Place Order
-        </button>
+        <div className="relative">
+          <button className="mt-3 w-full rounded-xl bg-coral-500 py-2.5 text-sm font-bold text-white">
+            Place Order
+          </button>
+          {placeOrderTap && <TapPulse />}
+        </div>
       </div>
     </motion.div>
   );
@@ -628,5 +931,172 @@ function CountUpTotal({ target, reveal }) {
     >
       ₹{val.toLocaleString('en-IN')}
     </motion.span>
+  );
+}
+
+/* =================== Payment screen =================== */
+
+function PaymentScreen({ total, ids, tapping, processing }) {
+  return (
+    <div className="relative flex min-h-full flex-col bg-white">
+      <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-ink-300/10 bg-white px-4 py-3">
+        <span className="grid h-7 w-7 place-items-center rounded-full bg-cream-100 text-ink-700">
+          <ChevronRight className="h-4 w-4 rotate-180" />
+        </span>
+        <div className="text-[15px] font-extrabold text-ink-900">Checkout</div>
+        <span className="ml-auto rounded-full bg-teal-500/15 px-2 py-0.5 text-[10px] font-bold text-teal-500">Secure</span>
+      </header>
+
+      <div className="px-4 py-3">
+        <div className="text-[11px] font-bold uppercase tracking-wider text-ink-500">Deliver to</div>
+        <div className="mt-1 flex items-start gap-2 rounded-xl bg-cream-50 p-2 ring-1 ring-ink-300/10">
+          <MapPin className="h-4 w-4 mt-0.5 text-coral-500" />
+          <div className="text-[12px] leading-snug">
+            <div className="font-bold text-ink-900">Shanaya · 110001</div>
+            <div className="text-ink-500">12 Park Road, New Delhi</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="px-4">
+        <div className="text-[11px] font-bold uppercase tracking-wider text-ink-500">Payment method</div>
+        <div className="mt-1 space-y-2">
+          <PaymentRow icon="📱" label="UPI · paytm@upi"        selected />
+          <PaymentRow icon="💳" label="Credit / Debit card" />
+          <PaymentRow icon="🪙" label="Cash on Delivery"      disabled />
+        </div>
+      </div>
+
+      <div className="mt-3 mx-4 rounded-xl bg-cream-50 p-3 ring-1 ring-ink-300/10">
+        <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-ink-500">Order summary</div>
+        <div className="space-y-1 text-[11px] text-ink-700">
+          <div className="flex justify-between"><span>Items ({ids.length})</span><span>₹{total.toLocaleString('en-IN')}</span></div>
+          <div className="flex justify-between"><span>Delivery</span><span className="font-bold text-teal-500">FREE</span></div>
+          <div className="flex justify-between"><span>Coupon LH200</span><span>− ₹200</span></div>
+          <div className="my-1 h-px bg-ink-300/20" />
+          <div className="flex justify-between text-[14px] font-extrabold text-ink-900">
+            <span>Pay now</span><span>₹{(total - 200).toLocaleString('en-IN')}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-auto px-4 pb-6 pt-4">
+        <div className="relative">
+          <button className={`w-full rounded-xl py-3 text-sm font-bold text-white shadow-sm ${processing ? 'bg-coral-500/70' : 'bg-coral-500'}`}>
+            {processing ? (
+              <span className="inline-flex items-center justify-center gap-2">
+                <motion.span
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 0.9, repeat: Infinity, ease: 'linear' }}
+                  className="grid h-4 w-4 place-items-center"
+                >
+                  <span className="block h-3 w-3 rounded-full border-2 border-white border-t-transparent" />
+                </motion.span>
+                Processing payment…
+              </span>
+            ) : (
+              <>Pay ₹{(total - 200).toLocaleString('en-IN')} · UPI</>
+            )}
+          </button>
+          {tapping && !processing && <TapPulse />}
+        </div>
+        <p className="mt-2 text-center text-[10px] text-ink-500">By placing this order you agree to the terms.</p>
+      </div>
+    </div>
+  );
+}
+
+function PaymentRow({ icon, label, selected = false, disabled = false }) {
+  return (
+    <div className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 ${
+      disabled ? 'border-ink-300/20 bg-cream-50 opacity-50'
+      : selected ? 'border-coral-500 bg-coral-500/5'
+      : 'border-ink-300/30 bg-white'
+    }`}>
+      <span className="text-base">{icon}</span>
+      <span className="flex-1 text-[12px] font-semibold text-ink-900">{label}</span>
+      <span className={`grid h-4 w-4 place-items-center rounded-full ring-2 ${selected ? 'ring-coral-500' : 'ring-ink-300/40'}`}>
+        {selected && <span className="block h-1.5 w-1.5 rounded-full bg-coral-500" />}
+      </span>
+    </div>
+  );
+}
+
+/* =================== Order-placed confirmation =================== */
+
+function ConfirmationScreen({ total, ids }) {
+  return (
+    <div className="relative flex min-h-full flex-col items-center bg-gradient-to-b from-cream-50 to-white px-6 pt-12 text-center">
+      <motion.div
+        initial={{ scale: 0.4, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 280, damping: 16 }}
+        className="grid h-24 w-24 place-items-center rounded-full bg-teal-500 text-white shadow-2xl"
+      >
+        <motion.svg
+          width="48" height="48" viewBox="0 0 24 24" fill="none"
+          initial={{ pathLength: 0 }}
+          animate={{ pathLength: 1 }}
+          transition={{ duration: 0.6, delay: 0.25, ease: 'easeOut' }}
+        >
+          <motion.path
+            d="M5 12.5l4.5 4.5L19 7"
+            stroke="white"
+            strokeWidth="3.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            initial={{ pathLength: 0 }}
+            animate={{ pathLength: 1 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+          />
+        </motion.svg>
+      </motion.div>
+
+      <motion.h2
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        className="mt-6 text-2xl font-extrabold text-ink-900"
+      >
+        Order placed!
+      </motion.h2>
+
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.55 }}
+        className="mt-1 text-[13px] text-ink-700"
+      >
+        ₹{(total - 200).toLocaleString('en-IN')} paid via UPI · Order #LH{Math.floor(100000 + (total % 899999))}
+      </motion.p>
+
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.7 }}
+        className="mt-5 w-full rounded-2xl bg-white p-3 text-left shadow ring-1 ring-ink-300/10"
+      >
+        <div className="text-[11px] font-bold uppercase tracking-wider text-ink-500">Arriving</div>
+        <div className="mt-0.5 inline-flex items-center gap-1.5 text-[14px] font-bold text-ink-900">
+          <Truck className="h-4 w-4 text-teal-500" /> By Sat, 17 May
+        </div>
+        <div className="mt-3 flex gap-1.5 overflow-x-auto">
+          {ids.map((id) => (
+            <div key={id} className="h-12 w-12 shrink-0 overflow-hidden rounded-lg ring-1 ring-ink-300/10">
+              <ProductImage id={id} />
+            </div>
+          ))}
+        </div>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.1 }}
+        className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-saffron-500/15 px-3 py-1 text-[11px] font-semibold text-saffron-600"
+      >
+        <span>🎉</span> Thank you for shopping with spree.
+      </motion.div>
+    </div>
   );
 }

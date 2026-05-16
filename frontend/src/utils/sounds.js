@@ -13,8 +13,8 @@ let master = null;
 let musicGain = null;
 let muted = true;
 
-const MASTER_VOLUME = 0.9;
-const MUSIC_VOLUME = 0.45;
+const MASTER_VOLUME = 0.85;
+const MUSIC_VOLUME = 0.32; // more atmospheric, less foreground
 
 function ensureCtx() {
   if (ctx) return ctx;
@@ -104,77 +104,77 @@ let currentBar = 0;
 let nextBarTime = 0;
 let lowPassFilter = null;
 
-const BPM = 76;
+// Mature lo-fi feel for class 7–9 students: slow tempo, minor-leaning vi-iii-IV-I
+// progression (Am-Em-F-C), bass + atmospheric pad only — no bell melody.
+const BPM = 64;
 const BEAT = 60 / BPM;
 const BAR = BEAT * 4;
 
 const progression = [
-  { notes: [261.63, 329.63, 392.00], bass: 130.81, melodyIdx: 0 }, // C  major
-  { notes: [220.00, 261.63, 329.63], bass: 110.00, melodyIdx: 1 }, // A  minor
-  { notes: [174.61, 220.00, 261.63], bass: 87.31,  melodyIdx: 2 }, // F  major
-  { notes: [196.00, 246.94, 293.66], bass: 98.00,  melodyIdx: 3 }, // G  major
-];
-
-const melodies = [
-  // C major bar:   C5, E5, G5
-  [[0, 523.25, 1.0], [1.5, 659.25, 1.0], [3, 783.99, 1.0]],
-  // A minor bar:   A4, C5, E5
-  [[0, 440.00, 1.0], [1.5, 523.25, 1.0], [3, 659.25, 1.0]],
-  // F major bar:   F4, A4, C5
-  [[0, 349.23, 1.0], [1.5, 440.00, 1.0], [3, 523.25, 1.0]],
-  // G major bar:   G4, B4, D5
-  [[0, 392.00, 1.0], [1.5, 493.88, 1.0], [3, 587.33, 1.0]],
+  { notes: [220.00, 261.63, 329.63], bass: 110.00 }, // A minor
+  { notes: [164.81, 196.00, 246.94], bass: 82.41  }, // E minor
+  { notes: [174.61, 220.00, 261.63], bass: 87.31  }, // F major
+  { notes: [196.00, 246.94, 293.66], bass: 98.00  }, // G major (resolves back to Am)
 ];
 
 function schedulePad(freq, start, dur) {
+  // Warm sustained chord tone — slightly detuned, slow attack/release.
   const o = ctx.createOscillator();
   const g = ctx.createGain();
   o.type = 'sine';
   o.frequency.value = freq;
-  o.detune.value = Math.random() * 6 - 3;
+  o.detune.value = Math.random() * 8 - 4;
   g.gain.setValueAtTime(0, start);
-  g.gain.linearRampToValueAtTime(0.05, start + 0.8);
-  g.gain.setValueAtTime(0.05, start + dur - 0.4);
+  g.gain.linearRampToValueAtTime(0.045, start + 1.2);
+  g.gain.setValueAtTime(0.045, start + dur - 0.6);
   g.gain.linearRampToValueAtTime(0, start + dur);
   o.connect(g).connect(lowPassFilter);
   o.start(start);
-  o.stop(start + dur + 0.1);
+  o.stop(start + dur + 0.2);
 }
 
 function scheduleBass(freq, start, dur) {
+  // Low pluck on beat 1 of each bar — half-decay then quiet.
   const o = ctx.createOscillator();
   const g = ctx.createGain();
   o.type = 'sine';
   o.frequency.value = freq;
   g.gain.setValueAtTime(0, start);
-  g.gain.linearRampToValueAtTime(0.18, start + 0.04);
-  g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+  g.gain.linearRampToValueAtTime(0.16, start + 0.05);
+  g.gain.exponentialRampToValueAtTime(0.0001, start + dur * 0.7);
   o.connect(g).connect(musicGain);
   o.start(start);
   o.stop(start + dur + 0.1);
 }
 
-function scheduleMelody(freq, start, dur) {
-  // Bell-ish: triangle with quick attack + medium decay
-  const o = ctx.createOscillator();
+function scheduleShaker(start) {
+  // Subtle hi-hat tick on beat 3 — short white noise burst through high-pass.
+  const dur = 0.06;
+  const buffer = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < data.length; i += 1) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+  const src = ctx.createBufferSource();
+  src.buffer = buffer;
+  const hp = ctx.createBiquadFilter();
+  hp.type = 'highpass';
+  hp.frequency.value = 6000;
   const g = ctx.createGain();
-  o.type = 'triangle';
-  o.frequency.value = freq;
-  g.gain.setValueAtTime(0, start);
-  g.gain.linearRampToValueAtTime(0.14, start + 0.02);
+  g.gain.setValueAtTime(0.06, start);
   g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
-  o.connect(g).connect(musicGain);
-  o.start(start);
-  o.stop(start + dur + 0.1);
+  src.connect(hp).connect(g).connect(musicGain);
+  src.start(start);
+  src.stop(start + dur + 0.02);
 }
 
 function scheduleBar(barIdx, startTime) {
   const chord = progression[barIdx % progression.length];
   chord.notes.forEach((freq) => schedulePad(freq, startTime, BAR));
-  scheduleBass(chord.bass, startTime, BAR);
-  melodies[chord.melodyIdx].forEach(([beatOff, freq, durBeats]) => {
-    scheduleMelody(freq, startTime + beatOff * BEAT, durBeats * BEAT);
-  });
+  // Bass on beats 1 and 3 of each bar.
+  scheduleBass(chord.bass, startTime, BAR / 2);
+  scheduleBass(chord.bass, startTime + BAR / 2, BAR / 2);
+  // Subtle shaker on the off-beats for lo-fi feel.
+  scheduleShaker(startTime + BEAT * 1);
+  scheduleShaker(startTime + BEAT * 3);
 }
 
 export function startMusic() {
@@ -184,8 +184,8 @@ export function startMusic() {
     musicGain.gain.value = 0;
     lowPassFilter = ctx.createBiquadFilter();
     lowPassFilter.type = 'lowpass';
-    lowPassFilter.frequency.value = 1800;
-    lowPassFilter.Q.value = 0.7;
+    lowPassFilter.frequency.value = 1100; // warmer / less bright than before
+    lowPassFilter.Q.value = 0.65;
     lowPassFilter.connect(musicGain);
     musicGain.connect(master);
   }
@@ -224,6 +224,25 @@ export function stopMusic() {
   }
 }
 
+/** Soft duck — used when the sequencer pauses. Keeps the loop scheduled but mutes the bus. */
+export function pauseMusic() {
+  if (!musicGain || !ctx) return;
+  const t = ctx.currentTime;
+  musicGain.gain.cancelScheduledValues(t);
+  musicGain.gain.setValueAtTime(musicGain.gain.value, t);
+  musicGain.gain.linearRampToValueAtTime(0, t + 0.25);
+}
+
+/** Counterpart to pauseMusic — fades the bus back to MUSIC_VOLUME. */
+export function resumeMusic() {
+  if (muted) return;
+  if (!musicGain || !ctx) { startMusic(); return; }
+  const t = ctx.currentTime;
+  musicGain.gain.cancelScheduledValues(t);
+  musicGain.gain.setValueAtTime(musicGain.gain.value, t);
+  musicGain.gain.linearRampToValueAtTime(MUSIC_VOLUME, t + 0.6);
+}
+
 export function setMusicMood(mood) {
   // Soft tone shift for silent/reflective scenes.
   if (!lowPassFilter || !ctx) return;
@@ -233,77 +252,141 @@ export function setMusicMood(mood) {
 }
 
 /* ============== Speech (TTS) ==============
- * Reads Shanaya's bubbles + narrator lines aloud via Web Speech API.
+ * Reads Shanaya's bubbles + narrator lines aloud via the /api/tts proxy
+ * (cloud TTS over <audio>). Web Speech is no longer used — it's silently
+ * broken in some Chrome versions on macOS.
  */
 
-let preferredShanayaVoice = null;
-let preferredNarratorVoice = null;
-let voicesReady = false;
+let speakStartHandler = null;
+let speakEndHandler = null;
+let speakBoundaryHandler = null;
+let activeUtterances = 0;
 
-function pickVoices() {
-  if (!('speechSynthesis' in window)) return;
-  const voices = speechSynthesis.getVoices();
-  if (voices.length === 0) return;
-  voicesReady = true;
-
-  // Shanaya: prefer Indian English female, fall back to other female-leaning EN voices.
-  const shanayaPrefs = [
-    /Veena/i,                       // macOS — en-IN female
-    /Lekha/i,                       // macOS — Indian
-    /en-IN.*female/i,
-    /Samantha/i,                    // macOS — clear female
-    /Tessa|Karen|Moira|Fiona/i,     // other Mac/EN female
-    /Google.*US English/i,          // Chrome female default
-    /Google.*Female/i,
-  ];
-  for (const re of shanayaPrefs) {
-    const v = voices.find((x) => re.test(x.name) || (re.test(x.lang || '')));
-    if (v) { preferredShanayaVoice = v; break; }
-  }
-
-  // Narrator: prefer male-leaning EN voice
-  const narratorPrefs = [
-    /Rishi/i,                       // macOS — en-IN male
-    /Daniel/i,                      // macOS — en-GB
-    /Alex/i,                        // macOS — en-US
-    /Google.*UK English Male/i,
-  ];
-  for (const re of narratorPrefs) {
-    const v = voices.find((x) => re.test(x.name));
-    if (v) { preferredNarratorVoice = v; break; }
-  }
-
-  if (!preferredShanayaVoice) {
-    preferredShanayaVoice = voices.find((v) => /^en/.test(v.lang)) || voices[0];
-  }
-  if (!preferredNarratorVoice) preferredNarratorVoice = preferredShanayaVoice;
+/** Register callbacks so the avatar can mouth-animate while speaking.
+ *  onWord fires roughly per word for lip-sync. */
+export function setSpeechCallbacks(callbacks) {
+  speakStartHandler = callbacks?.onStart || null;
+  speakEndHandler = callbacks?.onEnd || null;
+  speakBoundaryHandler = callbacks?.onWord || null;
 }
 
-if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-  pickVoices();
-  // Voices load asynchronously in Chrome — listen for the event.
-  window.speechSynthesis.onvoiceschanged = pickVoices;
-}
-
-export function speak(text, { who = 'shanaya', rate, pitch, volume = 1 } = {}) {
-  if (muted || !('speechSynthesis' in window) || !text) return;
-  if (!voicesReady) pickVoices();
-  const utter = new SpeechSynthesisUtterance(stripEmoji(text));
-  const isShanaya = who === 'shanaya';
-  utter.voice = isShanaya ? preferredShanayaVoice : preferredNarratorVoice;
-  utter.rate = rate ?? (isShanaya ? 0.98 : 0.96);
-  utter.pitch = pitch ?? (isShanaya ? 1.15 : 0.95);
-  utter.volume = volume;
-  speechSynthesis.speak(utter);
+export function speak(text, opts = {}) {
+  if (!text) return;
+  if (muted) {
+    // eslint-disable-next-line no-console
+    console.warn('[speak] muted — turn on Audio to hear:', text.slice(0, 50));
+    return;
+  }
+  // Use the cloud TTS proxy — Chrome's local Web Speech is unreliable on
+  // some macOS versions, the proxy streams Google Translate's TTS MP3 instead.
+  cloudSpeak(text, opts);
 }
 
 export function cancelSpeech() {
   if ('speechSynthesis' in window) {
     try { speechSynthesis.cancel(); } catch {}
   }
+  cancelCloudSpeech();
+  activeUtterances = 0;
+  speakEndHandler?.();
+}
+
+/* ============== Cloud TTS path (bypasses broken Web Speech) ==============
+ * Uses the /api/tts proxy on the backend, which streams MP3 audio from
+ * Google Translate's TTS endpoint. Works regardless of Chrome's local
+ * speech engine being silent.
+ *
+ * We chunk the text by sentence (~180 chars max per call) and play each
+ * chunk via a real <audio> element. `audio.ontimeupdate` is used to fake
+ * word-boundary ticks for lip-sync.
+ */
+
+let currentCloudAudio = null;
+const CLOUD_TTS_BASE = import.meta.env?.VITE_API_BASE_URL || '';
+
+function chunkForTTS(text, max = 180) {
+  const sentences = text.match(/[^.!?]+[.!?]+\s*|[^.!?]+$/g) || [text];
+  const chunks = [];
+  let cur = '';
+  for (const s of sentences) {
+    if ((cur + s).length > max && cur.length) {
+      chunks.push(cur.trim());
+      cur = s;
+    } else {
+      cur += s;
+    }
+  }
+  if (cur.trim()) chunks.push(cur.trim());
+  return chunks;
+}
+
+export function cancelCloudSpeech() {
+  if (currentCloudAudio) {
+    try {
+      currentCloudAudio.pause();
+      currentCloudAudio.src = '';
+      currentCloudAudio.load();
+    } catch {}
+    currentCloudAudio = null;
+  }
+}
+
+export function cloudSpeak(text, { who = 'shanaya', volume = 1 } = {}) {
+  if (muted || !text) return;
+  cancelCloudSpeech();
+  const chunks = chunkForTTS(stripEmoji(text));
+  playChunkSequence(chunks, 0, who, volume);
+}
+
+function playChunkSequence(chunks, i, who, volume) {
+  if (i >= chunks.length) {
+    activeUtterances = Math.max(0, activeUtterances - 1);
+    if (activeUtterances === 0) speakEndHandler?.();
+    return;
+  }
+  const url = `${CLOUD_TTS_BASE}/api/tts?voice=${encodeURIComponent(who)}&text=${encodeURIComponent(chunks[i])}`;
+  const audio = new Audio(url);
+  currentCloudAudio = audio;
+  audio.volume = volume;
+  audio.preservesPitch = false;
+  // Shanaya is 12–13: speed/pitch up the youthful Google Translate voice.
+  audio.playbackRate = who === 'shanaya' ? 1.15 : 1.0;
+  audio.crossOrigin = 'anonymous';
+
+  if (i === 0) {
+    activeUtterances += 1;
+    speakStartHandler?.();
+    if (import.meta.env?.DEV) {
+      // eslint-disable-next-line no-console
+      console.log('[cloudSpeak] 🔊', who, 'rate=', audio.playbackRate, '→', text(chunks));
+    }
+  }
+
+  let lastTick = -1;
+  audio.ontimeupdate = () => {
+    // Emit a "word boundary" every ~280ms of playback for lip-sync.
+    if (audio.currentTime - lastTick >= 0.28) {
+      lastTick = audio.currentTime;
+      speakBoundaryHandler?.();
+    }
+  };
+  audio.onended = () => playChunkSequence(chunks, i + 1, who, volume);
+  audio.onerror = () => {
+    // eslint-disable-next-line no-console
+    console.warn('[cloudSpeak] audio error on chunk', i, '— skipping');
+    playChunkSequence(chunks, i + 1, who, volume);
+  };
+  audio.play().catch((err) => {
+    // eslint-disable-next-line no-console
+    console.warn('[cloudSpeak] play() rejected', err.message);
+    playChunkSequence(chunks, i + 1, who, volume);
+  });
+}
+
+function text(chunks) {
+  return (chunks[0] || '').slice(0, 60) + (chunks.length > 1 ? ` (+${chunks.length - 1} more)` : '');
 }
 
 function stripEmoji(s) {
-  // Speech engines stumble over emojis — strip them for narration.
   return s.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '').replace(/\s+/g, ' ').trim();
 }

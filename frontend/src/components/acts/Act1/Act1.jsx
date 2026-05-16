@@ -2,10 +2,12 @@ import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PauseCircle, PlayCircle, RotateCcw, ChevronRight, Sparkles } from 'lucide-react';
 import PhoneFrame from '../../shared/PhoneFrame.jsx';
-import SpeechBubble from '../../shared/SpeechBubble.jsx';
-import CharacterSpotlight from '../../shared/CharacterSpotlight.jsx';
+import ThoughtBubble from '../../shared/ThoughtBubble.jsx';
+import ShanayaAvatar from '../../shared/ShanayaAvatar.jsx';
+import LiveStatus from '../../shared/LiveStatus.jsx';
 import SceneProgress from '../../shared/SceneProgress.jsx';
 import ReflectionPrompt from '../../shared/ReflectionPrompt.jsx';
+import MultipleChoice from '../../shared/MultipleChoice.jsx';
 import AudioToggle from '../../shared/AudioToggle.jsx';
 import AudioConsentBanner from '../../shared/AudioConsentBanner.jsx';
 import InsightCallout from '../../shared/InsightCallout.jsx';
@@ -15,17 +17,16 @@ import { lesson, intendedBudget, products } from '../../../data/lessons/thinkBef
 import { useSequencer } from '../../../hooks/useSequencer.js';
 import { useLesson } from '../../../context/LessonContext.jsx';
 import { api } from '../../../utils/api.js';
-import { sounds, unlockAudio, startMusic, stopMusic, setMusicMood } from '../../../utils/sounds.js';
+import {
+  sounds, unlockAudio, startMusic, stopMusic, pauseMusic, resumeMusic, setMusicMood,
+  speak, cancelSpeech, setSpeechCallbacks,
+} from '../../../utils/sounds.js';
 
-/**
- * Derive a finer-grained emotion per phase id so Shanaya keeps changing
- * expression instead of holding one face per scene.
- */
 function emotionFor(phase, sceneEmotion) {
   if (!phase?.id) return sceneEmotion;
   if (phase.emotion) return phase.emotion;
   const id = phase.id;
-  if (id === 's1-search') return 'curious';
+  if (id === 's1-search' || id.includes('results')) return 'curious';
   if (id === 's1-show-shoes') return 'excited';
   if (id === 's1-add-shoes' || id === 's1-validate') return 'happy';
   if (id.startsWith('s2-w1-bubble')) return 'tempted';
@@ -39,7 +40,7 @@ function emotionFor(phase, sceneEmotion) {
   if (id === 's4-freeze' || id === 's4-cart-open' || id === 's4-total-build') return 'shocked';
   if (id === 's4-gap') return 'unsettled';
   if (id.startsWith('s4-realisation')) return 'guilty';
-  if (id === 's4-reflect') return 'realised';
+  if (id === 's4-reflect' || id === 's4-mcq') return 'realised';
   return sceneEmotion;
 }
 
@@ -55,7 +56,14 @@ export default function Act1({ onComplete }) {
     return { phases: flat, phaseToScene: map };
   }, [act.scenes]);
 
-  const seq = useSequencer(phases);
+  const [saving, setSaving] = useState(false);
+  const [completedHolds, setCompletedHolds] = useState(() => new Set());
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [wordTick, setWordTick] = useState(0);
+
+  // Hold auto-advance while Shanaya / the narrator is still speaking so the
+  // student hears the full line before the next phase appears.
+  const seq = useSequencer(phases, { holdWhile: isSpeaking });
   const sceneIdx = phaseToScene[seq.index] ?? 0;
   const scene = act.scenes[sceneIdx];
   const phase = seq.phase;
@@ -69,6 +77,14 @@ export default function Act1({ onComplete }) {
   }, [seq.index, phases]);
   const activeBubbles = phase?.bubbles || [];
 
+  // Live "Now: …" status — carry forward the most recent non-empty status.
+  const liveStatus = useMemo(() => {
+    for (let i = seq.index; i >= 0; i -= 1) {
+      if (phases[i]?.status) return phases[i].status;
+    }
+    return '';
+  }, [seq.index, phases]);
+
   const timeline = useMemo(() => {
     const trail = [];
     for (let i = 0; i <= seq.index; i += 1) {
@@ -78,17 +94,40 @@ export default function Act1({ onComplete }) {
     return trail;
   }, [seq.index, phases]);
 
-  const [saving, setSaving] = useState(false);
-  const [showAudioConsent, setShowAudioConsent] = useState(true);
   const { sessionId, audioEnabled, setAudioEnabled, setReflection, setActStatus } = useLesson();
 
-  /* -------- Audio (music + cues only — no TTS) -------- */
+  /* -------- Audio: music + cues + TTS w/ mouth events -------- */
+
+  useEffect(() => {
+    setSpeechCallbacks({
+      onStart: () => setIsSpeaking(true),
+      onEnd:   () => setIsSpeaking(false),
+      onWord:  () => setWordTick((t) => t + 1),
+    });
+    return () => setSpeechCallbacks(null);
+  }, []);
+
   const lastCuePhaseId = useRef(null);
   useEffect(() => {
     if (!phase) return;
     if (lastCuePhaseId.current === phase.id) return;
     lastCuePhaseId.current = phase.id;
     if (audioEnabled && phase.cue && sounds[phase.cue]) sounds[phase.cue]();
+  }, [phase, audioEnabled]);
+
+  // Speak new bubbles + narration, deduped by text.
+  const spokenTexts = useRef(new Set());
+  useEffect(() => {
+    if (!audioEnabled || !phase) return;
+    (phase.bubbles || []).forEach((b) => {
+      if (!b?.text || spokenTexts.current.has(b.text)) return;
+      spokenTexts.current.add(b.text);
+      speak(b.text, { who: 'shanaya' });
+    });
+    if (phase.narration && !spokenTexts.current.has(phase.narration)) {
+      spokenTexts.current.add(phase.narration);
+      speak(phase.narration, { who: 'narrator' });
+    }
   }, [phase, audioEnabled]);
 
   useEffect(() => {
@@ -100,51 +139,95 @@ export default function Act1({ onComplete }) {
     );
   }, [audioEnabled, scene.ambience]);
 
-  useEffect(() => () => stopMusic(), []);
+  useEffect(() => () => { stopMusic(); cancelSpeech(); }, []);
 
   useEffect(() => {
     unlockAudio(audioEnabled);
     if (audioEnabled) startMusic();
-    else stopMusic();
+    else { stopMusic(); cancelSpeech(); }
   }, [audioEnabled]);
+
+  // When the user pauses, mute the music bus + kill in-flight speech.
+  // When they resume, fade the music back in.
+  useEffect(() => {
+    if (!audioEnabled) return;
+    if (seq.paused) {
+      cancelSpeech();
+      pauseMusic();
+    } else {
+      resumeMusic();
+    }
+  }, [seq.paused, audioEnabled]);
 
   const enableAudio = useCallback(async () => {
     await unlockAudio(true);
     setAudioEnabled(true);
-    setShowAudioConsent(false);
     startMusic();
   }, [setAudioEnabled]);
 
-  const dismissAudio = useCallback(() => setShowAudioConsent(false), []);
+  const dismissAudio = useCallback(() => setAudioEnabled(false), [setAudioEnabled]);
 
-  /* -------- Reflection -------- */
+  /* -------- Reflections + MCQs (chained — last phase = act complete) -------- */
+
+  const markHoldDone = useCallback((id) => {
+    setCompletedHolds((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+  }, []);
+
+  const advanceOrFinish = useCallback((payload) => {
+    if (seq.isLast) {
+      setActStatus(lesson.id, 'act1', 'completed');
+      onComplete?.(payload);
+    } else {
+      seq.advance();
+    }
+  }, [seq, onComplete, setActStatus]);
+
   const handleReflectionSubmit = useCallback(async (response) => {
     setSaving(true);
     setReflection(lesson.id, 'act1', response);
     try {
       await api.saveReflection({
         lessonId: lesson.id,
-        actId: 'act1',
+        actId: `act1:${phase.id}`,
         prompt: phase.reflection?.prompt || '',
         response,
         sessionId,
       });
     } catch { /* non-blocking */ }
     setSaving(false);
-    setActStatus(lesson.id, 'act1', 'completed');
-    onComplete?.({ response });
-  }, [phase, onComplete, sessionId, setReflection, setActStatus]);
+    markHoldDone(phase.id);
+    advanceOrFinish({ kind: 'reflection', phaseId: phase.id, response });
+  }, [phase, sessionId, setReflection, markHoldDone, advanceOrFinish]);
 
   const handleSkipReflection = useCallback(() => {
-    setActStatus(lesson.id, 'act1', 'completed');
-    onComplete?.({ response: null, skipped: true });
-  }, [onComplete, setActStatus]);
+    markHoldDone(phase.id);
+    advanceOrFinish({ kind: 'reflection', phaseId: phase.id, response: null, skipped: true });
+  }, [phase, markHoldDone, advanceOrFinish]);
+
+  const handleMcqContinue = useCallback(async ({ selected, correct }) => {
+    try {
+      await api.saveReflection({
+        lessonId: lesson.id,
+        actId: `act1:${phase.id}`,
+        prompt: phase.mcq?.prompt || '',
+        response: `kind=${phase.mcq?.kind || 'single'} selected=${JSON.stringify(selected)} correct=${correct}`,
+        sessionId,
+      });
+    } catch { /* non-blocking */ }
+    markHoldDone(phase.id);
+    advanceOrFinish({ kind: 'mcq', phaseId: phase.id, selected, correct });
+  }, [phase, sessionId, markHoldDone, advanceOrFinish]);
 
   const replayScene = () => {
     let first = 0;
     for (let i = 0; i < phaseToScene.length; i += 1) {
       if (phaseToScene[i] === sceneIdx) { first = i; break; }
     }
+    spokenTexts.current.clear();
     seq.goTo(first);
     seq.resume();
   };
@@ -167,7 +250,6 @@ export default function Act1({ onComplete }) {
           <button
             onClick={seq.paused ? seq.resume : seq.pause}
             className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-2.5 py-2 text-[11px] font-semibold text-white/85 hover:bg-white/10 sm:px-3 sm:text-xs"
-            aria-label={seq.paused ? 'Resume' : 'Pause'}
           >
             {seq.paused ? <PlayCircle className="h-4 w-4" /> : <PauseCircle className="h-4 w-4" />}
             <span className="hidden sm:inline">{seq.paused ? 'Resume' : 'Pause'}</span>
@@ -175,7 +257,6 @@ export default function Act1({ onComplete }) {
           <button
             onClick={replayScene}
             className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-2.5 py-2 text-[11px] font-semibold text-white/85 hover:bg-white/10 sm:px-3 sm:text-xs"
-            aria-label="Replay this scene"
           >
             <RotateCcw className="h-4 w-4" />
             <span className="hidden sm:inline">Replay</span>
@@ -183,40 +264,58 @@ export default function Act1({ onComplete }) {
         </div>
       </header>
 
+      {/* Audio banner — sticks around as long as audio is OFF so the user
+         always has a one-tap way to turn voice + lip-sync on. The Web
+         Speech API needs that tap to satisfy the browser autoplay policy. */}
       <AnimatePresence>
-        {showAudioConsent && !audioEnabled && (
+        {!audioEnabled && (
           <AudioConsentBanner onEnable={enableAudio} onDismiss={dismissAudio} />
         )}
       </AnimatePresence>
 
-      {/* Progress + meta */}
-      <div className="flex flex-wrap items-end justify-between gap-3 sm:gap-4">
-        <SceneProgress current={seq.index} total={phases.length} label={scene.title} />
-      </div>
+      <SceneProgress current={seq.index} total={phases.length} label={scene.title} />
 
       {/* Stage */}
       <div className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-[1.05fr_0.95fr] lg:gap-6">
-        {/* LEFT: Spotlight + room + bubbles + timeline */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#FCE7C0] via-[#FBEFDC] to-[#FFE3D3] p-4 ring-1 ring-cream-200/40 sm:p-6 lg:p-7">
+        {/* LEFT */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#F8EFE0] via-[#FBF4E6] to-[#FFE9D9] p-4 ring-1 ring-ink-300/15 sm:p-6 lg:p-7">
           <RoomBackdrop ambience={scene.ambience} />
-          <div className="relative flex h-full min-h-[560px] flex-col sm:min-h-[640px]">
-            {/* Spotlight + scene tag */}
-            <div className="flex flex-wrap items-center gap-4">
-              <CharacterSpotlight emotion={currentEmotion} />
-              <div className="flex-1 min-w-[140px]">
-                <div className="text-[11px] font-bold uppercase tracking-widest text-ink-500">
-                  Scene {sceneIdx + 1} of {act.scenes.length}
+
+          <div className="relative flex h-full min-h-[640px] flex-col">
+            {/* Scene tag */}
+            <div className="flex items-center justify-between">
+              <div className="text-[11px] font-bold uppercase tracking-widest text-ink-500">
+                Scene {sceneIdx + 1} of {act.scenes.length}
+              </div>
+              <div className="hidden text-right sm:block">
+                <div className="text-[11px] text-ink-500">Plan ₹{intendedBudget.toLocaleString('en-IN')}</div>
+              </div>
+            </div>
+
+            {/* AVATAR (left) + thought clouds (right) — side-by-side */}
+            <div className="mt-2 flex flex-col">
+              <div className="flex items-start gap-3 sm:gap-5">
+                <div className="shrink-0">
+                  <ShanayaAvatar emotion={currentEmotion} speaking={isSpeaking} wordTick={wordTick} size="xl" />
                 </div>
-                <div className="text-xl font-extrabold leading-tight text-ink-900 sm:text-2xl">
+                <div className="min-w-0 flex-1 pt-2 sm:pt-4">
+                  <ThoughtBubble bubbles={activeBubbles} position="left" />
+                </div>
+              </div>
+
+              <LiveStatus text={liveStatus} />
+
+              <div className="mt-4 text-center sm:mt-5">
+                <div className="text-2xl font-extrabold leading-tight text-ink-900 sm:text-3xl">
                   {scene.title}
                 </div>
                 <div className="mt-1 text-[12px] text-ink-700 sm:text-sm">
-                  Birthday {lesson.hero.character.birthday} · Plan ₹{intendedBudget.toLocaleString('en-IN')}
+                  Birthday {lesson.hero.character.birthday} · plan ₹{intendedBudget.toLocaleString('en-IN')}
                 </div>
               </div>
             </div>
 
-            {/* Narration */}
+            {/* Narration card — text from the narrator, not Shanaya */}
             <AnimatePresence mode="wait">
               {phase?.narration && (
                 <motion.p
@@ -225,30 +324,27 @@ export default function Act1({ onComplete }) {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.45 }}
-                  className="mt-5 rounded-2xl bg-white/75 px-4 py-3 text-[15px] leading-relaxed text-ink-700 ring-1 ring-ink-300/15 sm:text-base"
+                  className="mt-5 rounded-2xl bg-white/80 px-4 py-3 text-[14px] leading-relaxed text-ink-700 ring-1 ring-ink-300/15 sm:text-[15px]"
                 >
-                  {phase.narration}
+                  <span className="mr-1 text-ink-500">🎙️</span>{phase.narration}
                 </motion.p>
               )}
             </AnimatePresence>
 
-            {/* Speech */}
-            <div className="mt-5 min-h-[120px]">
-              <SpeechBubble bubbles={activeBubbles} speaker={lesson.hero.character} />
-            </div>
-
+            {/* Spend tracker — below the avatar block */}
             <SpendTracker total={cartTotal} showGap={phoneState.showGap} />
 
+            {/* Decision trail */}
             <div className="mt-4">
               <DecisionTimeline entries={timeline} />
             </div>
           </div>
         </div>
 
-        {/* RIGHT: Insight + phone */}
-        <div className="relative flex flex-col items-stretch py-2">
+        {/* RIGHT — top-aligned with left column */}
+        <div className="relative flex flex-col items-stretch">
           <InsightCallout insight={phase?.insight} />
-          <div className="flex justify-center">
+          <div className="-mt-2 flex justify-center">
             <PhoneFrame dim={phoneState.dim}>
               <MockShoppingApp state={phoneState} />
             </PhoneFrame>
@@ -256,8 +352,9 @@ export default function Act1({ onComplete }) {
         </div>
       </div>
 
+      {/* Reflection (free text) */}
       <AnimatePresence>
-        {phase?.reflection && (
+        {phase?.reflection && !completedHolds.has(phase.id) && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -279,16 +376,37 @@ export default function Act1({ onComplete }) {
         )}
       </AnimatePresence>
 
-      {!phase?.reflection && seq.isLast === false && seq.paused && (
+      {/* MCQ (after free text) */}
+      <AnimatePresence>
+        {phase?.mcq && !completedHolds.has(phase.id) && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-40 grid place-items-center bg-ink-900/70 px-4 backdrop-blur-sm"
+          >
+            <MultipleChoice
+              prompt={phase.mcq.prompt}
+              options={phase.mcq.options}
+              explanation={phase.mcq.explanation}
+              kind={phase.mcq.kind || 'single'}
+              continueLabel={phase.mcq.continueLabel || 'Continue'}
+              onContinue={handleMcqContinue}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {!phase?.reflection && !phase?.mcq && seq.isLast === false && seq.paused && (
         <div className="text-center text-xs text-white/50">Paused — press Resume to continue</div>
       )}
 
       <div className="flex justify-end">
         <button
           onClick={seq.advance}
-          className="inline-flex items-center gap-1 text-[11px] font-semibold text-white/40 hover:text-white/80"
+          className="inline-flex items-center gap-2 rounded-full bg-saffron-500 px-5 py-2.5 text-xs font-bold text-ink-900 shadow-lg shadow-saffron-500/30 transition hover:bg-saffron-400 active:scale-[0.98]"
         >
-          Next <ChevronRight className="h-3 w-3" />
+          Next <ChevronRight className="h-4 w-4" />
         </button>
       </div>
     </div>
@@ -301,7 +419,7 @@ function SpendTracker({ total, showGap }) {
   const pct = Math.min(100, (total / intendedBudget) * 100);
   const over = total > intendedBudget;
   return (
-    <div className="mt-4 rounded-2xl bg-white/75 px-4 py-3 ring-1 ring-ink-300/15">
+    <div className="mt-5 rounded-2xl bg-white/80 px-4 py-3 ring-1 ring-ink-300/15">
       <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-widest text-ink-500">
         <span>Spend so far</span>
         <span className={over ? 'text-burgundy-500' : 'text-ink-700'}>
@@ -337,13 +455,18 @@ function RoomBackdrop({ ambience }) {
   const dim = ambience === 'silent';
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0">
-      <motion.div animate={{ opacity: dim ? 0.15 : 0.5 }} transition={{ duration: 1.2 }} className="absolute -right-12 -top-10 h-56 w-56 rounded-full bg-saffron-400/55 blur-3xl" />
-      <motion.div animate={{ opacity: dim ? 0.1 : 0.45 }} transition={{ duration: 1.2 }} className="absolute -bottom-16 -left-10 h-56 w-56 rounded-full bg-coral-400/45 blur-3xl" />
+      <motion.div animate={{ opacity: dim ? 0.18 : 0.4 }} transition={{ duration: 1.2 }} className="absolute -right-16 -top-12 h-64 w-64 rounded-full bg-saffron-400/45 blur-[80px]" />
+      <motion.div animate={{ opacity: dim ? 0.12 : 0.36 }} transition={{ duration: 1.2 }} className="absolute -bottom-20 -left-10 h-64 w-64 rounded-full bg-coral-400/40 blur-[80px]" />
       <FloatingMotes />
-      <span className="absolute right-6 top-6 text-2xl opacity-60">🎂</span>
-      <span className="absolute left-6 bottom-8 text-xl opacity-50">🪞</span>
-      <span className="absolute right-8 bottom-32 text-xl opacity-50">🛏️</span>
-      <span className="absolute left-1/3 top-1/2 text-base opacity-40">💡</span>
+      {/* Subtle grid pattern for a more grown-up backdrop */}
+      <svg className="absolute inset-0 h-full w-full opacity-[0.06]" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern id="lh-grid" width="28" height="28" patternUnits="userSpaceOnUse">
+            <path d="M28 0H0V28" fill="none" stroke="#1A1426" strokeWidth="0.6" />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#lh-grid)" />
+      </svg>
     </div>
   );
 }

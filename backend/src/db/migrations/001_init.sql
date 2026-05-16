@@ -1,5 +1,6 @@
--- Lean Hyphen — initial schema
--- One source of truth. Extend by adding new numbered migration files.
+-- Lean Hyphen — initial schema (migration 001).
+-- Idempotent: every statement uses IF NOT EXISTS so it can be re-run safely.
+-- Extend by adding new numbered migration files; do not modify this one.
 
 CREATE TABLE IF NOT EXISTS sessions (
   id            TEXT PRIMARY KEY,
@@ -29,3 +30,6 @@ CREATE TABLE IF NOT EXISTS act_progress (
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   PRIMARY KEY (session_id, lesson_id, act_id)
 );
+
+-- For analytics queries (completion rate, drop-off per act).
+CREATE INDEX IF NOT EXISTS idx_progress_lesson_status ON act_progress(lesson_id, status);

@@ -42,10 +42,19 @@ export default function HomePage() {
           </span>
         </div>
 
-        <Link to={`/lesson/${lesson.id}/act1`} className="btn-primary mt-4 px-7 py-4 text-base">
-          <Play className="h-4 w-4" />
-          Start Act 1
-        </Link>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <Link to={`/lesson/${lesson.id}/act1`} className="btn-primary px-7 py-4 text-base">
+            <Play className="h-4 w-4" />
+            Start Act 1
+          </Link>
+          <Link
+            to={`/lesson/${lesson.id}/act2`}
+            className="inline-flex items-center gap-2 rounded-full border border-saffron-500/50 bg-saffron-500/10 px-6 py-4 text-base font-semibold text-saffron-400 transition hover:bg-saffron-500/20 hover:text-saffron-300"
+          >
+            <Play className="h-4 w-4" />
+            Start Act 2
+          </Link>
+        </div>
       </main>
 
       <section className="mt-20 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -62,7 +71,7 @@ export default function HomePage() {
 }
 
 function ActCard({ act, index }) {
-  const isPlayable = act.id === 'act1';
+  const isPlayable = act.id === 'act1' || act.id === 'act2';
   const body = (
     <div className="flex h-full flex-col rounded-2xl border border-white/10 bg-white/[0.04] p-5 transition group-hover:border-saffron-500/40 group-hover:bg-white/[0.06]">
       <div className="flex items-center justify-between">

@@ -38,7 +38,13 @@ export const lesson = {
       kind: 'cinematic',
       scenes: act1Scenes(),
     },
-    act2: { id: 'act2', title: 'Act 2 — Understanding Impulse Buying', minutes: 5, kind: 'interactive-cards', status: 'coming-soon' },
+    act2: {
+      id: 'act2',
+      title: 'Act 2 — Understanding Impulse Buying',
+      minutes: 5,
+      kind: 'interactive-cards',
+      scenes: act2Scenes(),
+    },
     act3: { id: 'act3', title: 'Act 3 — Four Real-life Simulations', minutes: 9, kind: 'scenarios', status: 'coming-soon' },
     act4: { id: 'act4', title: 'Act 4 — Reflect & Realise', minutes: 3, kind: 'impulse-meter', status: 'coming-soon' },
   },
@@ -666,6 +672,207 @@ function act1Scenes() {
             explanation: 'There is no single right answer — different students pick different ones. That is the whole point: every purchase felt justified in the moment. The trap works because the brain accepts "this is reasonable" one item at a time.',
             continueLabel: 'Finish Act 1',
           },
+        },
+      ],
+    },
+  ];
+}
+
+/* ============================================================================
+ * Act 2 — Understanding Impulse Buying
+ * Three short scenes that decode what just happened in Act 1.
+ *   Scene 6 — "What Just Happened?"   ↔ DragMatchBoard
+ *   Scene 7 — "Connecting the Dots"   ↔ DefinitionPuzzle
+ *   Scene 8 — "Pause & Think"          ↔ FrameworkCard
+ * Activities are gated with `hold: true` and an `activity` descriptor that
+ * Act2.jsx renders. When the activity fires onComplete it advances the seq.
+ * ========================================================================== */
+
+export const act2Activities = {
+  match: {
+    title: 'Match each cart trigger to the right reason',
+    instruction: 'Tap a trigger, then tap the reason that explains it. Correct matches glow green.',
+    pairs: [
+      {
+        id: 'urgency',
+        trigger: '"Only a few minutes left!"',
+        category: 'FOMO',
+        insight: {
+          label: 'Fear of Missing Out',
+          detail: 'Time pressure replaces thinking. You act fast so you don\'t "lose" the deal — even when you never planned to buy it.',
+        },
+      },
+      {
+        id: 'social',
+        trigger: '"People also bought this…"',
+        category: 'Suggestions & Recommendations',
+        insight: {
+          label: 'Suggestion bias',
+          detail: 'The app makes the choice for you. Borrowing the crowd\'s decision feels easier than making your own.',
+        },
+      },
+      {
+        id: 'pairing',
+        trigger: '"This would go perfectly with my shoes."',
+        category: 'Emotional Justification',
+        insight: {
+          label: 'Emotional logic',
+          detail: 'Feelings dressed up as reasons. "It just goes with…" lets you spend without admitting it was unplanned.',
+        },
+      },
+      {
+        id: 'free-delivery',
+        trigger: '"You\'re close to free delivery!"',
+        category: 'Spending More to "Save"',
+        insight: {
+          label: 'The save-by-spending trap',
+          detail: 'You spend ₹400 extra to "save" ₹40 of delivery. The cost of saving was more than the saving itself.',
+        },
+      },
+    ],
+  },
+  puzzle: {
+    title: 'Build the definition',
+    instruction: 'Tap tiles to fill the sentence in order. Two tiles are decoys — leave them out.',
+    leadIn: 'Impulse buying is',
+    slots: 4,
+    tiles: [
+      { id: 't1', label: 'buying something',         correctIndex: 0 },
+      { id: 't2', label: 'carefully planned',         correctIndex: null },
+      { id: 't3', label: 'you didn\'t plan to buy',   correctIndex: 1 },
+      { id: 't4', label: 'after comparing everything', correctIndex: null },
+      { id: 't5', label: 'because it feels right',    correctIndex: 2 },
+      { id: 't6', label: 'in the moment',             correctIndex: 3 },
+    ],
+    finalLine: 'Impulse buying is buying something you didn\'t plan to buy because it feels right in the moment.',
+  },
+  framework: {
+    title: 'The Pause & Think framework',
+    intro: 'Five quick questions to ask before you tap "Buy".',
+    bullets: [
+      { id: 'plan',     emoji: '📋', label: 'Plan',      question: 'Did I plan to buy this?',                  detail: 'If it wasn\'t on your list five minutes ago, that\'s a sign.' },
+      { id: 'need',     emoji: '🎯', label: 'Need',      question: 'Do I need it — or just want it right now?', detail: 'Wants fade in 24 hours. Needs don\'t.' },
+      { id: 'budget',   emoji: '₹',  label: 'Budget',    question: 'Is this within the money I set aside?',    detail: 'Numbers don\'t care about feelings.' },
+      { id: 'wait',     emoji: '⏳', label: 'Wait',      question: 'Can it wait until tomorrow?',              detail: 'Most "limited" offers come back. Most cravings don\'t.' },
+      { id: 'tradeoff', emoji: '⚖️', label: 'Trade-off', question: 'What else could I do with this money?',    detail: 'Every ₹ spent here is a ₹ not spent on something else.' },
+    ],
+    closer: 'Next, you\'ll face four real-life money choices. Use the framework — see how it feels.',
+  },
+};
+
+function act2Scenes() {
+  return [
+    /* ============================================================
+     * SCENE 6 — WHAT JUST HAPPENED?
+     * ============================================================ */
+    {
+      id: 'scene-6',
+      title: 'What Just Happened?',
+      ambience: 'reflective',
+      emotion: 'curious',
+      phases: [
+        {
+          id: 's6-open',
+          duration: 9500,
+          status: 'Looking back at the cart',
+          emotion: 'realised',
+          narration: 'Five items. ₹3,795. None of it was on the plan. So what actually made each one slip in?',
+        },
+        {
+          id: 's6-setup',
+          duration: 8000,
+          status: 'Four triggers from the cart',
+          emotion: 'curious',
+          bubbles: [
+            { side: 'right', type: 'thought', text: 'Each item came with a different reason. Let\'s name them.' },
+          ],
+        },
+        {
+          id: 's6-activity',
+          hold: true,
+          status: 'Matching triggers to reasons',
+          emotion: 'curious',
+          activity: { kind: 'match', id: 'match-triggers' },
+        },
+        {
+          id: 's6-close',
+          duration: 8000,
+          status: 'All four named',
+          emotion: 'realised',
+          bubbles: [
+            { side: 'right', type: 'thought', text: 'Same brain, four different tricks. No wonder it felt normal.' },
+          ],
+        },
+      ],
+    },
+
+    /* ============================================================
+     * SCENE 7 — CONNECTING THE DOTS
+     * ============================================================ */
+    {
+      id: 'scene-7',
+      title: 'Connecting the Dots',
+      ambience: 'reflective',
+      emotion: 'curious',
+      phases: [
+        {
+          id: 's7-open',
+          duration: 8000,
+          status: 'Naming what just happened',
+          emotion: 'curious',
+          narration: 'These tricks have a name. Build the definition — two tiles are decoys, leave them out.',
+        },
+        {
+          id: 's7-activity',
+          hold: true,
+          status: 'Building the definition',
+          emotion: 'curious',
+          activity: { kind: 'puzzle', id: 'definition-puzzle' },
+        },
+        {
+          id: 's7-close',
+          duration: 8500,
+          status: 'Definition unlocked',
+          emotion: 'realised',
+          bubbles: [
+            { side: 'right', type: 'thought', text: 'So that\'s what I did. Five times in one afternoon.' },
+          ],
+        },
+      ],
+    },
+
+    /* ============================================================
+     * SCENE 8 — PAUSE & THINK FRAMEWORK
+     * ============================================================ */
+    {
+      id: 'scene-8',
+      title: 'Pause & Think',
+      ambience: 'reflective',
+      emotion: 'happy',
+      phases: [
+        {
+          id: 's8-open',
+          duration: 8000,
+          status: 'Learning the framework',
+          emotion: 'curious',
+          narration: 'Knowing the trick is half the answer. Here is a five-question pause that beats it.',
+        },
+        {
+          id: 's8-framework',
+          hold: true,
+          status: 'Five questions to pause',
+          emotion: 'happy',
+          activity: { kind: 'framework', id: 'pause-and-think' },
+        },
+        {
+          id: 's8-bridge',
+          duration: 9500,
+          status: 'Ready for the real world',
+          emotion: 'excited',
+          bubbles: [
+            { side: 'right', type: 'thought', text: 'Plan. Need. Budget. Wait. Trade-off. I can remember that.' },
+          ],
+          narration: 'Next, four real-life money moments. Use the pause — and see how it feels in practice.',
         },
       ],
     },

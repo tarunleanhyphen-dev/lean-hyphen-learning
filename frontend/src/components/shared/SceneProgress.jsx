@@ -1,8 +1,8 @@
-export default function SceneProgress({ current, total, label }) {
+export default function SceneProgress({ current, total, label, actLabel = 'Act 1' }) {
   return (
     <div className="flex w-full max-w-md flex-col gap-2">
       <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.18em] text-white/50">
-        <span>Act 1 · {label}</span>
+        <span>{actLabel} · {label}</span>
         <span>{current + 1} / {total}</span>
       </div>
       <div className="flex gap-1.5">

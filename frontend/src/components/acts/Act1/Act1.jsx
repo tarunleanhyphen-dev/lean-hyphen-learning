@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PauseCircle, PlayCircle, RotateCcw, ChevronRight, Sparkles } from 'lucide-react';
 import PhoneFrame from '../../shared/PhoneFrame.jsx';
 import ThoughtBubble from '../../shared/ThoughtBubble.jsx';
+import ThoughtImagery from '../../shared/ThoughtImagery.jsx';
 import ShanayaAvatar from '../../shared/ShanayaAvatar.jsx';
 import LiveStatus from '../../shared/LiveStatus.jsx';
 import SceneProgress from '../../shared/SceneProgress.jsx';
@@ -317,9 +318,13 @@ export default function Act1({ onComplete }) {
 
             {/* AVATAR (left) + thought clouds (right) — side-by-side */}
             <div className="mt-2 flex flex-col">
-              <div className="flex items-start gap-3 sm:gap-5">
-                <div className="shrink-0">
+              <div className="relative flex items-start gap-3 sm:gap-5">
+                <div className="relative shrink-0">
                   <ShanayaAvatar emotion={currentEmotion} speaking={isSpeaking} wordTick={wordTick} size="xl" />
+                  {/* Imagination clouds — only render when the current phase
+                     supplies imagery (used by Scene 0's "she's picturing
+                     birthday at the café / friends / outfits" beats). */}
+                  <ThoughtImagery items={phase?.imagery || []} />
                 </div>
                 <div className="min-w-0 flex-1 pt-2 sm:pt-4">
                   <ThoughtBubble bubbles={activeBubbles} position="left" />
@@ -382,7 +387,7 @@ export default function Act1({ onComplete }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 grid place-items-center bg-ink-900/70 px-4 backdrop-blur-sm"
+            className="fixed inset-0 z-40 overflow-y-auto grid place-items-center bg-ink-900/70 px-4 py-4 backdrop-blur-sm"
           >
             <ReflectionPrompt
               prompt={phase.reflection.prompt}
@@ -406,7 +411,7 @@ export default function Act1({ onComplete }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 grid place-items-center bg-ink-900/70 px-4 backdrop-blur-sm"
+            className="fixed inset-0 z-40 overflow-y-auto grid place-items-center bg-ink-900/70 px-4 py-4 backdrop-blur-sm"
           >
             <MultipleChoice
               prompt={phase.mcq.prompt}
@@ -415,6 +420,7 @@ export default function Act1({ onComplete }) {
               kind={phase.mcq.kind || 'single'}
               continueLabel={phase.mcq.continueLabel || 'Continue'}
               onContinue={handleMcqContinue}
+              onSpeakTip={(tip) => audioEnabled && speak(tip, { who: 'shanaya' })}
             />
           </motion.div>
         )}

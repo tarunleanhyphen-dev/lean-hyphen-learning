@@ -263,6 +263,8 @@ export default function Act2({ onComplete }) {
                 onCueClick={onCueClick}
                 onCueCorrect={onCueCorrect}
                 onCueWrong={onCueWrong}
+                onSpeakInsight={(pair) => audioEnabled && speak(`${pair.insight.label}. ${pair.insight.detail}`, { who: 'shanaya' })}
+                onSpeakDefinition={(line) => audioEnabled && speak(line, { who: 'shanaya' })}
                 onRevealBullet={(b) => audioEnabled && speak(`${b.label}. ${b.question}. ${b.detail}`, { who: 'shanaya' })}
                 speakingDone={!isSpeaking}
                 onComplete={(payload) => handleActivityComplete(activity.kind, payload || {})}
@@ -301,7 +303,7 @@ export default function Act2({ onComplete }) {
 
 /* =================== Activity router =================== */
 
-function ActivityRenderer({ kind, onCueClick, onCueCorrect, onCueWrong, onRevealBullet, speakingDone, onComplete }) {
+function ActivityRenderer({ kind, onCueClick, onCueCorrect, onCueWrong, onSpeakInsight, onSpeakDefinition, onRevealBullet, speakingDone, onComplete }) {
   if (kind === 'match') {
     return (
       <DragMatchBoard
@@ -309,6 +311,7 @@ function ActivityRenderer({ kind, onCueClick, onCueCorrect, onCueWrong, onReveal
         onCueClick={onCueClick}
         onCueCorrect={onCueCorrect}
         onCueWrong={onCueWrong}
+        onSpeakInsight={onSpeakInsight}
         onComplete={() => onComplete({ activity: 'match' })}
       />
     );
@@ -320,6 +323,7 @@ function ActivityRenderer({ kind, onCueClick, onCueCorrect, onCueWrong, onReveal
         onCueClick={onCueClick}
         onCueCorrect={onCueCorrect}
         onCueWrong={onCueWrong}
+        onSpeakDefinition={onSpeakDefinition}
         onComplete={() => onComplete({ activity: 'puzzle' })}
       />
     );

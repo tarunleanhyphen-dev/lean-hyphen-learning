@@ -442,8 +442,13 @@ export function speak(text, opts = {}) {
     console.warn('[speak] muted — turn on Audio to hear:', text.slice(0, 50));
     return;
   }
-  // Use the cloud TTS proxy — Chrome's local Web Speech is unreliable on
-  // some macOS versions, the proxy streams Google Translate's TTS MP3 instead.
+  // Fire the start handler SYNCHRONOUSLY before the network round-trip.
+  // Otherwise the sequencer (which uses `isSpeaking` as a hold) starts its
+  // auto-advance timer during the 200–500 ms it takes to fetch + play() the
+  // MP3, and short phases can advance before TTS even begins — which is
+  // exactly the "text not read fully" symptom the user reported.
+  activeUtterances += 1;
+  speakStartHandler?.();
   cloudSpeak(text, opts);
 }
 
@@ -499,7 +504,10 @@ export function cancelCloudSpeech() {
 export function cloudSpeak(text, { who = 'shanaya', volume = 1 } = {}) {
   if (muted || !text) return;
   cancelCloudSpeech();
-  const chunks = chunkForTTS(stripEmoji(text));
+  // Expand prices/digits into English words BEFORE stripping emoji + chunking.
+  // Without this, hi-IN Swara/Madhur read "3,596" with Hindi number prosody
+  // inside an English sentence — which is exactly what the user wants gone.
+  const chunks = chunkForTTS(stripEmoji(expandNumbersForTTS(text)));
   playChunkSequence(chunks, 0, who, volume);
 }
 
@@ -529,14 +537,15 @@ function playChunkSequence(chunks, i, who, volume) {
   audio.playbackRate = who === 'shanaya' ? 1.0 : 0.92;
   audio.crossOrigin = 'anonymous';
 
-  if (i === 0) {
-    activeUtterances += 1;
-    speakStartHandler?.();
-    if (import.meta.env?.DEV) {
-      // eslint-disable-next-line no-console
-      console.log('[cloudSpeak] 🔊', who, 'rate=', audio.playbackRate, '→', text(chunks));
-    }
+  if (i === 0 && import.meta.env?.DEV) {
+    // eslint-disable-next-line no-console
+    console.log('[cloudSpeak] 🔊', who, 'rate=', audio.playbackRate, '→', text(chunks));
   }
+  // NB: `speak()` is now the canonical place that increments activeUtterances
+  // + fires speakStartHandler — we don't do it again on chunk 0 here. That
+  // change makes isSpeaking flip true synchronously when speak() is called,
+  // closing the network-load window where short phases auto-advanced before
+  // TTS even began.
 
   let lastTick = -1;
   audio.ontimeupdate = () => {
@@ -565,4 +574,66 @@ function text(chunks) {
 
 function stripEmoji(s) {
   return s.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '').replace(/\s+/g, ' ').trim();
+}
+
+/* ============== Number → English-words pre-processor ==============
+ * The Hindi-speaker Swara/Madhur voices read raw digit strings ("3596") in
+ * Hindi, which sounds wrong inside English narration. So before sending the
+ * text to TTS we replace numeric prices / counts with their English-word
+ * form: "₹3,596" → "three thousand five hundred ninety six rupees",
+ * "12K" → "twelve thousand", "₹1,499" → "one thousand four hundred ninety
+ * nine rupees". The mp3 cache key is still the same since the same source
+ * text always produces the same expanded string. */
+
+const ONES = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine',
+              'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen',
+              'seventeen', 'eighteen', 'nineteen'];
+const TENS = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+
+function intToWords(n) {
+  if (n < 0) return 'minus ' + intToWords(-n);
+  if (n < 20) return ONES[n];
+  if (n < 100) {
+    return TENS[Math.floor(n / 10)] + (n % 10 ? ' ' + ONES[n % 10] : '');
+  }
+  if (n < 1000) {
+    const r = n % 100;
+    return ONES[Math.floor(n / 100)] + ' hundred' + (r ? ' ' + intToWords(r) : '');
+  }
+  if (n < 100000) {
+    const r = n % 1000;
+    return intToWords(Math.floor(n / 1000)) + ' thousand' + (r ? ' ' + intToWords(r) : '');
+  }
+  if (n < 10000000) {
+    const r = n % 100000;
+    return intToWords(Math.floor(n / 100000)) + ' lakh' + (r ? ' ' + intToWords(r) : '');
+  }
+  const r = n % 10000000;
+  return intToWords(Math.floor(n / 10000000)) + ' crore' + (r ? ' ' + intToWords(r) : '');
+}
+
+export function expandNumbersForTTS(text) {
+  if (!text) return text;
+  let out = text;
+
+  // ₹3,596  or  ₹3596  → "three thousand five hundred ninety six rupees"
+  out = out.replace(/₹\s?([\d,]+)/g, (_m, digits) => {
+    const n = parseInt(digits.replace(/,/g, ''), 10);
+    if (Number.isNaN(n)) return _m;
+    return intToWords(n) + ' rupees';
+  });
+
+  // 12K / 12k → "twelve thousand"
+  out = out.replace(/\b(\d+)([Kk])\b/g, (_m, d) => `${intToWords(parseInt(d, 10))} thousand`);
+
+  // Bare comma-grouped numbers like "1,499" or "3,795" (no rupee sign)
+  out = out.replace(/\b\d{1,2},\d{3}\b/g, (m) => {
+    const n = parseInt(m.replace(/,/g, ''), 10);
+    return Number.isNaN(n) ? m : intToWords(n);
+  });
+
+  // Standalone 4-digit numbers (e.g. 1499 in a sentence)
+  out = out.replace(/(?<!\d)\d{3,5}(?!\d)/g, (m) => intToWords(parseInt(m, 10)));
+
+  return out;
 }

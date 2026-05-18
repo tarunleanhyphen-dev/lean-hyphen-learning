@@ -55,6 +55,88 @@ function act1Scenes() {
 
   return [
     /* ============================================================
+     * SCENE 0 — OPENING CONTEXT
+     * Fast emotional setup before the simulation starts: who is Shanaya,
+     * why does her birthday matter, what is she imagining. The phone shows
+     * the shopping app's home feed throughout (it's the constant the
+     * student is about to spend the next 18 minutes inside), while the
+     * left side carries the narrative montage in narration + thought
+     * bubbles. Slightly upbeat cosy ambience.
+     * ============================================================ */
+    {
+      id: 'scene-0',
+      title: 'Opening Context',
+      ambience: 'cosy',
+      emotion: 'happy',
+      phases: [
+        {
+          id: 's0-intro',
+          duration: 12000,
+          status: 'Meet Shanaya',
+          emotion: 'happy',
+          narration: 'Shanaya is 13, super social, and always excited about making memories with her friends.',
+          phone: { view: 'feed' },
+          imagery: [
+            { id: 'friends-1', emoji: '👯‍♀️', caption: 'her crew',     pos: 'tr', delay: 0.1 },
+            { id: 'selfie',    emoji: '🤳',  caption: 'selfies',     pos: 'br', delay: 0.4 },
+          ],
+        },
+        {
+          id: 's0-birthday',
+          duration: 12000,
+          status: 'Birthday is two days away',
+          emotion: 'excited',
+          narration: 'Her birthday is just two days away — her group is planning to celebrate at a cute café nearby.',
+          phone: { view: 'feed' },
+          imagery: [
+            { id: 'cake',  emoji: '🎂',  caption: 'in 2 days',   pos: 'tr', delay: 0.1 },
+            { id: 'cafe',  emoji: '☕️', caption: 'cute café',   pos: 'br', delay: 0.45 },
+          ],
+        },
+        {
+          id: 's0-group-chat',
+          duration: 11000,
+          status: 'Group chat is going wild',
+          emotion: 'tempted',
+          bubbles: [
+            { side: 'right', type: 'thought', text: 'Birthday fit checkkk 👀' },
+            { side: 'right', type: 'thought', text: 'We need pics!! Dress extra cool 😎' },
+          ],
+          phone: { view: 'feed' },
+          imagery: [
+            { id: 'chat',  emoji: '💬', caption: 'group chat',  pos: 'tr', delay: 0.1 },
+            { id: 'phone', emoji: '📱', caption: 'pinging',     pos: 'br', delay: 0.4 },
+          ],
+        },
+        {
+          id: 's0-vision',
+          duration: 13000,
+          status: 'Imagining the day',
+          emotion: 'happy',
+          narration: 'She already knows the kind of birthday she wants — fun photos, matching vibes, good food, and an outfit that makes her feel confident.',
+          phone: { view: 'feed' },
+          imagery: [
+            { id: 'fit',     emoji: '👗', caption: 'the outfit', pos: 'tr', delay: 0.1 },
+            { id: 'camera',  emoji: '📸', caption: 'fun photos', pos: 'br', delay: 0.4 },
+            { id: 'sparkle', emoji: '✨', caption: 'confidence', pos: 'tl', delay: 0.7 },
+          ],
+        },
+        {
+          id: 's0-app-open',
+          duration: 11000,
+          status: 'Opening the shopping app',
+          emotion: 'curious',
+          narration: 'So she opens her favourite shopping app, planning to quickly buy one pair of shoes to complete her birthday look and log off.',
+          phone: { view: 'feed' },
+          imagery: [
+            { id: 'shoes',   emoji: '👟', caption: 'just shoes', pos: 'tr', delay: 0.1 },
+            { id: 'plan',    emoji: '📝', caption: 'one item',   pos: 'br', delay: 0.4 },
+          ],
+        },
+      ],
+    },
+
+    /* ============================================================
      * SCENE 1 — THE PLAN  +  PREDICTION MCQ
      * ============================================================ */
     {
@@ -65,9 +147,9 @@ function act1Scenes() {
       phases: [
         {
           id: 's1-open',
-          duration: 14000,                      // ~30 words, give TTS room to finish + 1.5s tail
-          status: 'Opening shopping app',
-          narration: 'It is a quiet afternoon. Shanaya is in her room. Her birthday is in two days, and she opens her favourite shopping app with a clear plan.',
+          duration: 9000,
+          status: 'Browsing on the app',
+          narration: 'It is a quiet afternoon. Shanaya is in her room. She has a clear plan.',
           phone: { view: 'feed' },
         },
         {
@@ -99,16 +181,16 @@ function act1Scenes() {
         },
         {
           id: 's1-results',
-          duration: 4400,
+          duration: 6500,
           status: 'Browsing results',
-          phone: { search: 'shoes', view: 'results' },
+          phone: { search: 'shoes', view: 'results', scrollHint: true },
           narration: 'A grid of options appears. She scrolls — there are dozens.',
         },
         {
           id: 's1-results-scan',
-          duration: 4000,
+          duration: 5500,
           status: 'Spotting the white sneakers',
-          phone: { search: 'shoes', view: 'results', hover: 'shoes' },
+          phone: { search: 'shoes', view: 'results', hover: 'shoes', scrollHint: true },
           bubbles: [
             { side: 'right', type: 'thought', text: 'White sneakers. ₹1,499 — that is on budget.' },
           ],
@@ -143,9 +225,9 @@ function act1Scenes() {
           status: 'On plan: ₹1,499 of ₹1,500',
           phone: { search: 'shoes', view: 'detail', showProduct: 'shoes', cart: ['shoes'], badge: 'Smart budget pick ✓' },
           bubbles: [
-            { side: 'right', type: 'thought', text: 'Okay, done. That was easy. ₹1,499 out of ₹1,500 — I am right on plan.' },
+            { side: 'right', type: 'thought', text: 'These look perfect.' },
+            { side: 'right', type: 'thought', text: 'Good price, nice style… this is exactly what I needed. Okay, done. That was easy.' },
           ],
-          insight: { label: 'Micro-validation', detail: 'Apps reward you the moment you act — to lower your guard.', type: 'fact' },
         },
 
         /* ---- ENGAGEMENT POP-UP #1 — PREDICTION ---- */
@@ -163,8 +245,9 @@ function act1Scenes() {
               { id: 'c', label: 'She removes the shoes',                correct: null },
               { id: 'd', label: 'She compares prices on another app',   correct: null },
             ],
-            explanation: 'Most of us keep scrolling once we are in the app — that is exactly what the app is designed to do. The trap starts the moment we stop being purposeful and start "just looking".',
-            continueLabel: 'See what happens',
+            // No explanation: the user wants the next scene to be the answer,
+            // not an interstitial insight. Continue button leads straight on.
+            continueLabel: 'See what happens next',
           },
         },
       ],
@@ -192,16 +275,26 @@ function act1Scenes() {
         /* --- Wave 1: Cross-sell — socks --- */
         {
           id: 's2-w1-card',
-          duration: 4000,
+          duration: 5000,
           status: '"Complete the Look" appears',
-          phone: after(['shoes'], { recommendations: ['socks'], rowLabel: 'Complete the Look', scrollTo: 'recommendations' }),
+          phone: after(['shoes'], {
+            recommendations: ['socks'],
+            rowLabel: 'Complete the Look',
+            scrollTo: 'recommendations',
+            pairNudge: { title: 'Complete the Look', subtitle: 'Pair your shoes with a beautiful pair of matching socks' },
+          }),
           insight: { label: 'Cross-sell', detail: 'Pairing suggestions feel like completing one decision, not making a new one.' },
         },
         {
           id: 's2-w1-tap-rec',
           duration: 1600,
           status: 'Tapping the socks',
-          phone: after(['shoes'], { recommendations: ['socks'], rowLabel: 'Complete the Look', tapTarget: 'rec-socks' }),
+          phone: after(['shoes'], {
+            recommendations: ['socks'],
+            rowLabel: 'Complete the Look',
+            pairNudge: { title: 'Complete the Look', subtitle: 'Pair your shoes with a beautiful pair of matching socks' },
+            tapTarget: 'rec-socks',
+          }),
           cue: 'tap',
         },
         {
@@ -238,13 +331,15 @@ function act1Scenes() {
           addedItem: { id: 'socks', trigger: 'cross-sell' },
         },
 
-        /* --- Wave 2: Social proof — smartwatch --- */
+        /* --- Wave 2: Social proof — smartwatch.
+         * Socks is already in the cart so we DON'T re-list it in the
+         * recommendations row — only the new pick (smartwatch) shows. */
         {
           id: 's2-w2-card',
-          duration: 4200,
+          duration: 4500,
           status: '"Customers Also Bought"',
           phone: after(['shoes', 'socks'], {
-            recommendations: ['socks', 'smartwatch'],
+            recommendations: ['smartwatch'],
             rowLabel: 'Customers Also Bought',
             socialProof: 'smartwatch',
             scrollTo: 'recommendations',
@@ -256,7 +351,7 @@ function act1Scenes() {
           duration: 1600,
           status: 'Tapping the smartwatch',
           phone: after(['shoes', 'socks'], {
-            recommendations: ['socks', 'smartwatch'],
+            recommendations: ['smartwatch'],
             rowLabel: 'Customers Also Bought',
             socialProof: 'smartwatch',
             tapTarget: 'rec-smartwatch',
@@ -267,7 +362,7 @@ function act1Scenes() {
           id: 's2-w2-detail',
           duration: 5400,
           status: 'Reading smartwatch details',
-          phone: { cart: ['shoes', 'socks'], view: 'detail', showProduct: 'smartwatch' },
+          phone: { cart: ['shoes', 'socks'], view: 'detail', showProduct: 'smartwatch', socialProofBadge: '12K bought this week' },
           bubbles: [
             { side: 'right', type: 'thought', text: 'Whoa. This smartwatch looks really cool.' },
           ],
@@ -276,7 +371,7 @@ function act1Scenes() {
           id: 's2-w2-bubble2',
           duration: 4600,
           status: 'Reading smartwatch details',
-          phone: { cart: ['shoes', 'socks'], view: 'detail', showProduct: 'smartwatch' },
+          phone: { cart: ['shoes', 'socks'], view: 'detail', showProduct: 'smartwatch', socialProofBadge: '12K bought this week' },
           bubbles: [
             { side: 'right', type: 'thought', text: 'And if 12K people are buying it this week… maybe it is actually worth it?' },
           ],
@@ -285,7 +380,7 @@ function act1Scenes() {
           id: 's2-w2-tap-add',
           duration: 1600,
           status: 'Tapping Add to Cart',
-          phone: { cart: ['shoes', 'socks'], view: 'detail', showProduct: 'smartwatch', tapTarget: 'primary-cta' },
+          phone: { cart: ['shoes', 'socks'], view: 'detail', showProduct: 'smartwatch', socialProofBadge: '12K bought this week', tapTarget: 'primary-cta' },
           cue: 'tap',
         },
         {
@@ -303,15 +398,21 @@ function act1Scenes() {
           addedItem: { id: 'smartwatch', trigger: 'social-proof' },
         },
 
-        /* --- Wave 3: Urgency / scarcity — hoodie --- */
+        /* --- Wave 3: Urgency / scarcity — hoodie.
+         * The screen now shows a prominent FlashDealAlert banner at the top
+         * of the phone PLUS the hoodie in the recommendations row, matching
+         * the script's "Pause for 2 seconds as 'Flash Deal — Ends Soon!'
+         * pulses/glows" beat. The hoodie product detail also carries an
+         * `urgencyMinutes` countdown + an "Only 2 left" badge. */
         {
           id: 's2-w3-card',
-          duration: 4400,
+          duration: 6000,
           status: 'Flash Deal flashes in',
           phone: after(['shoes', 'socks', 'smartwatch'], {
-            recommendations: ['socks', 'smartwatch', 'hoodie'],
+            recommendations: ['hoodie'],
             rowLabel: 'Trending Now',
             flashDeal: 'hoodie',
+            flashAlert: { label: 'Flash Deal Alert', product: 'Trending Now → Birthday Hoodie · ₹999', mins: 7 },
             scrollTo: 'recommendations',
           }),
           insight: { label: 'Urgency design', detail: 'Countdown timers and "only X left" shrink decision time on purpose.' },
@@ -322,9 +423,10 @@ function act1Scenes() {
           duration: 1600,
           status: 'Tapping the hoodie',
           phone: after(['shoes', 'socks', 'smartwatch'], {
-            recommendations: ['socks', 'smartwatch', 'hoodie'],
+            recommendations: ['hoodie'],
             rowLabel: 'Trending Now',
             flashDeal: 'hoodie',
+            flashAlert: { label: 'Flash Deal Alert', product: 'Trending Now → Birthday Hoodie · ₹999', mins: 7 },
             tapTarget: 'rec-hoodie',
           }),
           cue: 'tap',
@@ -333,7 +435,7 @@ function act1Scenes() {
           id: 's2-w3-detail',
           duration: 5400,
           status: 'Reading hoodie details',
-          phone: { cart: ['shoes', 'socks', 'smartwatch'], view: 'detail', showProduct: 'hoodie' },
+          phone: { cart: ['shoes', 'socks', 'smartwatch'], view: 'detail', showProduct: 'hoodie', urgencyMinutes: 7, onlyXLeft: 2 },
           bubbles: [
             { side: 'right', type: 'thought', text: 'This hoodie is so nice…' },
           ],
@@ -342,7 +444,7 @@ function act1Scenes() {
           id: 's2-w3-bubble2',
           duration: 4800,
           status: 'Reading hoodie details',
-          phone: { cart: ['shoes', 'socks', 'smartwatch'], view: 'detail', showProduct: 'hoodie' },
+          phone: { cart: ['shoes', 'socks', 'smartwatch'], view: 'detail', showProduct: 'hoodie', urgencyMinutes: 7, onlyXLeft: 2 },
           bubbles: [
             { side: 'right', type: 'thought', text: 'It would actually look great in my birthday photos.' },
           ],
@@ -351,7 +453,7 @@ function act1Scenes() {
           id: 's2-w3-bubble3',
           duration: 4800,
           status: 'Reading hoodie details',
-          phone: { cart: ['shoes', 'socks', 'smartwatch'], view: 'detail', showProduct: 'hoodie' },
+          phone: { cart: ['shoes', 'socks', 'smartwatch'], view: 'detail', showProduct: 'hoodie', urgencyMinutes: 7, onlyXLeft: 2 },
           bubbles: [
             { side: 'right', type: 'thought', text: 'I did not plan this… but it kind of fits the whole vibe.' },
           ],
@@ -360,7 +462,7 @@ function act1Scenes() {
           id: 's2-w3-tap-add',
           duration: 1600,
           status: 'Tapping Add to Cart',
-          phone: { cart: ['shoes', 'socks', 'smartwatch'], view: 'detail', showProduct: 'hoodie', tapTarget: 'primary-cta' },
+          phone: { cart: ['shoes', 'socks', 'smartwatch'], view: 'detail', showProduct: 'hoodie', urgencyMinutes: 7, onlyXLeft: 2, tapTarget: 'primary-cta' },
           cue: 'tap',
         },
         {
@@ -414,82 +516,78 @@ function act1Scenes() {
       ambience: 'app-tempo',
       emotion: 'excited',
       phases: [
+        /* Scene 3 lives in `cart-focus`: from here on the phone shows the
+         * full cart (items + total + timer + free-delivery banner + the FBT
+         * cleaning-kit nudge), so every line of narration has a matching
+         * visual. The user feedback called out repeated narration↔screen
+         * mismatches in this scene — this view is the fix. */
         {
           id: 's3-banner-in',
-          duration: 4200,
+          duration: 5500,
           status: 'Free-delivery banner appears',
-          phone: after(['shoes', 'socks', 'smartwatch', 'hoodie'], {
-            recommendations: ['socks', 'smartwatch', 'hoodie'],
-            rowLabel: 'Trending Now',
-            flashDeal: 'hoodie',
-            deliveryBanner: true,
-            scrollTo: 'delivery',
-          }),
+          phone: {
+            cart: ['shoes', 'socks', 'smartwatch', 'hoodie'],
+            view: 'cart-focus',
+            freeDeliveryBanner: true,
+            highlightPrice: true,
+            timerMinutes: 5,
+          },
           narration: 'A new banner slides in across the screen.',
           cue: 'ding',
           insight: { label: 'Threshold trap', detail: 'Free-delivery thresholds make you add more to "save" — net result is you spend more.' },
         },
         {
           id: 's3-think-1',
-          duration: 4800,
+          duration: 5000,
           status: '₹3 from free delivery',
-          phone: after(['shoes', 'socks', 'smartwatch', 'hoodie'], {
-            recommendations: ['socks', 'smartwatch', 'hoodie'],
-            rowLabel: 'Trending Now',
-            flashDeal: 'hoodie',
-            deliveryBanner: true,
-          }),
+          phone: {
+            cart: ['shoes', 'socks', 'smartwatch', 'hoodie'],
+            view: 'cart-focus',
+            freeDeliveryBanner: true,
+            highlightPrice: true,
+            timerMinutes: 5,
+          },
           bubbles: [
             { side: 'right', type: 'thought', text: 'Wait — my cart is already ₹3,596. I am just ₹3 away from free delivery.' },
           ],
         },
         {
           id: 's3-think-2',
-          duration: 5200,
+          duration: 5400,
           status: 'Tempted to add one more',
-          phone: after(['shoes', 'socks', 'smartwatch', 'hoodie'], {
-            recommendations: ['socks', 'smartwatch', 'hoodie'],
-            rowLabel: 'Trending Now',
-            flashDeal: 'hoodie',
-            deliveryBanner: true,
-          }),
+          phone: {
+            cart: ['shoes', 'socks', 'smartwatch', 'hoodie'],
+            view: 'cart-focus',
+            freeDeliveryBanner: true,
+            timerMinutes: 5,
+          },
           bubbles: [
             { side: 'right', type: 'thought', text: 'If I just add one more thing, I will not have to pay for delivery. I am basically saving money.' },
           ],
         },
         {
           id: 's3-fbt-card',
-          duration: 4200,
-          status: '"Frequently Bought Together"',
-          phone: after(['shoes', 'socks', 'smartwatch', 'hoodie'], {
-            recommendations: ['socks', 'smartwatch', 'hoodie', 'cleaning-kit'],
-            rowLabel: 'Frequently Bought Together',
-            flashDeal: 'hoodie',
-            deliveryBanner: true,
-            highlight: 'cleaning-kit',
-            scrollTo: 'recommendations',
-          }),
+          duration: 5000,
+          status: '"Frequently Bought Together" appears',
+          phone: {
+            cart: ['shoes', 'socks', 'smartwatch', 'hoodie'],
+            view: 'cart-focus',
+            freeDeliveryBanner: true,
+            freqBought: 'cleaning-kit',
+            timerMinutes: 5,
+          },
           insight: { label: 'Useful + nudged', detail: 'The most dangerous add-on is the one that is actually useful — that is what kills the doubt.' },
         },
         {
-          id: 's3-fbt-tap-rec',
-          duration: 1600,
-          status: 'Tapping the cleaning kit',
-          phone: after(['shoes', 'socks', 'smartwatch', 'hoodie'], {
-            recommendations: ['socks', 'smartwatch', 'hoodie', 'cleaning-kit'],
-            rowLabel: 'Frequently Bought Together',
-            flashDeal: 'hoodie',
-            deliveryBanner: true,
-            highlight: 'cleaning-kit',
-            tapTarget: 'rec-cleaning-kit',
-          }),
-          cue: 'tap',
-        },
-        {
-          id: 's3-fbt-detail',
-          duration: 5400,
-          status: 'Reading cleaning-kit details',
-          phone: { cart: ['shoes', 'socks', 'smartwatch', 'hoodie'], view: 'detail', showProduct: 'cleaning-kit', deliveryBanner: true },
+          id: 's3-fbt-bubble1',
+          duration: 4800,
+          status: 'Eyeing the cleaning kit',
+          phone: {
+            cart: ['shoes', 'socks', 'smartwatch', 'hoodie'],
+            view: 'cart-focus',
+            freeDeliveryBanner: true,
+            freqBought: 'cleaning-kit',
+          },
           bubbles: [
             { side: 'right', type: 'thought', text: 'New shoes need cleaning anyway. This is honestly useful.' },
           ],
@@ -497,32 +595,42 @@ function act1Scenes() {
         {
           id: 's3-fbt-bubble2',
           duration: 4800,
-          status: 'Reading cleaning-kit details',
-          phone: { cart: ['shoes', 'socks', 'smartwatch', 'hoodie'], view: 'detail', showProduct: 'cleaning-kit', deliveryBanner: true },
+          status: 'Justifying the add-on',
+          phone: {
+            cart: ['shoes', 'socks', 'smartwatch', 'hoodie'],
+            view: 'cart-focus',
+            freeDeliveryBanner: true,
+            freqBought: 'cleaning-kit',
+          },
           bubbles: [
             { side: 'right', type: 'thought', text: 'Better to buy it now than to come back for it later, right?' },
           ],
         },
         {
           id: 's3-fbt-tap-add',
-          duration: 1600,
-          status: 'Tapping Add to Cart',
-          phone: { cart: ['shoes', 'socks', 'smartwatch', 'hoodie'], view: 'detail', showProduct: 'cleaning-kit', deliveryBanner: true, tapTarget: 'primary-cta' },
+          duration: 1800,
+          status: 'Tapping Add on the cleaning kit',
+          phone: {
+            cart: ['shoes', 'socks', 'smartwatch', 'hoodie'],
+            view: 'cart-focus',
+            freeDeliveryBanner: true,
+            freqBought: 'cleaning-kit',
+            tapTarget: 'rec-cleaning-kit',
+          },
           cue: 'tap',
         },
         {
           id: 's3-unlock',
           duration: 5400,
           status: '🎉 Free delivery unlocked',
-          phone: after(['shoes', 'socks', 'smartwatch', 'hoodie', 'cleaning-kit'], {
-            recommendations: ['socks', 'smartwatch', 'hoodie', 'cleaning-kit'],
-            rowLabel: 'Frequently Bought Together',
-            flashDeal: 'hoodie',
-            deliveryBanner: true,
+          phone: {
+            cart: ['shoes', 'socks', 'smartwatch', 'hoodie', 'cleaning-kit'],
+            view: 'cart-focus',
+            freeDeliveryBanner: true,
             deliveryUnlocked: true,
             floatAdd: 'cleaning-kit',
             toast: 'Shoe Cleaning Kit · ₹399',
-          }),
+          },
           cue: 'ding',
           addedItem: { id: 'cleaning-kit', trigger: 'threshold' },
           bubbles: [
@@ -641,6 +749,40 @@ function act1Scenes() {
           cue: 'ding',
           insight: { label: 'Done — she actually paid', detail: 'The trap closes when "I will think about it" becomes "I already bought it". The ₹3,795 is gone.', type: 'fact' },
         },
+        /* Beat with the receipt visible on screen — gives the student a
+         * moment to see exactly what was bought + what was paid before the
+         * reflection prompt steals their attention. */
+        {
+          id: 's4-order-summary',
+          duration: 8500,
+          status: 'Reading the receipt',
+          phone: {
+            cart: ['shoes', 'socks', 'smartwatch', 'hoodie', 'cleaning-kit'],
+            view: 'order-summary',
+          },
+          narration: 'Five items. ₹3,795 paid. Almost three times what she planned.',
+        },
+
+        /* ---- BRIDGE INTO ACT 2 ----
+         * The "sitting with the receipt" thought bubbles. These play
+         * BEFORE the reflections so the MCQ's "Move to Act 2" button is the
+         * actual last phase — clicking it navigates straight to Act 2 with
+         * no extra beat after. */
+        {
+          id: 's4-bridge',
+          duration: 14000,
+          status: 'Sitting with the receipt',
+          emotion: 'realised',
+          phone: {
+            cart: ['shoes', 'socks', 'smartwatch', 'hoodie', 'cleaning-kit'],
+            view: 'order-summary',
+            dim: true,
+          },
+          bubbles: [
+            { side: 'right', type: 'thought', text: "This didn't feel like a bad decision while I was making it — each step seemed perfectly reasonable. So why does it now feel like I've gone overboard? What does this say about my spending habits?" },
+            { side: 'right', type: 'thought', text: "Let's figure it out." },
+          ],
+        },
 
         /* ---- REFLECTION 1 — FREE TEXT ---- */
         {
@@ -654,23 +796,45 @@ function act1Scenes() {
           },
         },
 
-        /* ---- REFLECTION 2 — OPINION MCQ ---- */
+        /* ---- REFLECTION 2 — OPINION MCQ with per-option tips ----
+         * Each option has its own takeaway. The component reads `tip` and
+         * shows / speaks the selected option's takeaway instead of a single
+         * generic explanation. */
         {
           id: 's4-reflect-2',
           hold: true,
           status: 'One more',
           phone: { cart: ['shoes', 'socks', 'smartwatch', 'hoodie', 'cleaning-kit'], cartOpen: true, revealTotal: true, dim: true },
           mcq: {
-            kind: 'opinion',
+            kind: 'opinion-multi',
             prompt: 'Which purchase felt MOST justified to you?',
             options: [
-              { id: 'socks',   label: '🧦 Branded Socks — "completes the look"',  correct: null },
-              { id: 'watch',   label: '⌚ Smartwatch — "everyone is buying it"',  correct: null },
-              { id: 'hoodie',  label: '👕 Birthday Hoodie — "flash deal"',         correct: null },
-              { id: 'kit',     label: '🧴 Cleaning Kit — "useful + free delivery"', correct: null },
+              {
+                id: 'socks',
+                label: '🧦 Branded Socks — "completes the look"',
+                correct: null,
+                tip: 'The socks felt reasonable because they matched the shoes. When something "completes the look", it can feel more necessary than it really is.',
+              },
+              {
+                id: 'watch',
+                label: '⌚ Smartwatch — "everyone is buying it"',
+                correct: null,
+                tip: 'The smartwatch felt valuable because it was popular and exciting. Sometimes we confuse "everyone wants it" with "I need it".',
+              },
+              {
+                id: 'hoodie',
+                label: '👕 Birthday Hoodie — "flash deal"',
+                correct: null,
+                tip: 'The hoodie connected to emotions and imagination — birthday photos, confidence, looking good. Emotional purchases often feel the most convincing in the moment.',
+              },
+              {
+                id: 'kit',
+                label: '🧴 Cleaning Kit — "useful + free delivery"',
+                correct: null,
+                tip: 'The cleaning kit felt practical and responsible. Impulse buying is not always about fun things — even "useful" items can become unnecessary add-ons.',
+              },
             ],
-            explanation: 'There is no single right answer — different students pick different ones. That is the whole point: every purchase felt justified in the moment. The trap works because the brain accepts "this is reasonable" one item at a time.',
-            continueLabel: 'Finish Act 1',
+            continueLabel: 'Move to Act 2 →',
           },
         },
       ],
@@ -900,7 +1064,7 @@ const SIZE_PRESETS = {
 export const products = {
   shoes:          { id: 'shoes',        emoji: '👟', image: UN('1622760806364-5ccac8096b59'), name: 'White Sneakers',    tagline: 'Trending pick',              price: 1499, rating: 4.5, sizeOptions: SIZE_PRESETS.shoeUK },
   socks:          { id: 'socks',        emoji: '🧦', image: UN('1615486364462-ef6363adbc18'), name: 'Branded Socks',     tagline: 'Goes with sneakers',         price: 299,  rating: 4.3, sizeOptions: SIZE_PRESETS.apparel },
-  smartwatch:     { id: 'smartwatch',   emoji: '⌚', image: UN('1546868871-7041f2a55e12'), name: 'Smartwatch X1',     tagline: '12,000+ bought this week',   price: 799,  rating: 4.4, sizeOptions: SIZE_PRESETS.watch },
+  smartwatch:     { id: 'smartwatch',   emoji: '⌚', image: UN('1546868871-7041f2a55e12'), name: 'Smartwatch X1',     tagline: '12K bought this week',       price: 799,  rating: 4.4, sizeOptions: SIZE_PRESETS.watch },
   hoodie:         { id: 'hoodie',       emoji: '👕', image: UN('1620799140188-3b2a02fd9a77'), name: 'Birthday Hoodie',   tagline: 'Only 2 left',                price: 999,  rating: 4.6, sizeOptions: SIZE_PRESETS.apparel },
   'cleaning-kit': { id: 'cleaning-kit', emoji: '🧴', image: UN('1636262899511-dc5865c774dc'), name: 'Shoe Cleaning Kit', tagline: 'Frequently bought together', price: 399,  rating: 4.2, sizeOptions: SIZE_PRESETS.kit },
 };

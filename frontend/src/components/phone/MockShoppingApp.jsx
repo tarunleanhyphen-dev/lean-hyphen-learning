@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import {
   Search, ShoppingBag, Heart, Bell, Truck, Clock, Star, MapPin,
-  ChevronRight, BadgePercent, Flame,
+  ChevronRight, BadgePercent, Flame, Check,
 } from 'lucide-react';
 import { products, freeDeliveryThreshold, SHOE_GRID } from '../../data/lessons/thinkBeforeYouSpend.js';
 
@@ -27,9 +27,12 @@ export default function MockShoppingApp({ state = {} }) {
   const reached = state.deliveryUnlocked || cartTotal >= freeDeliveryThreshold;
   const view = state.view || 'feed';
 
-  // Dedicated screens for payment / confirmation take over the whole phone.
+  // Dedicated screens for payment / confirmation / cart / order summary
+  // take over the whole phone.
   if (view === 'payment') return <PaymentScreen total={cartTotal} ids={cartIds} tapping={state.tapTarget === 'pay'} processing={state.processing} />;
   if (view === 'confirmation') return <ConfirmationScreen total={cartTotal} ids={cartIds} />;
+  if (view === 'order-summary') return <OrderSummaryScreen total={cartTotal} ids={cartIds} />;
+  if (view === 'cart-focus') return <CartFocusView total={cartTotal} ids={cartIds} reached={reached} highlightPrice={state.highlightPrice} timerMinutes={state.timerMinutes} freqBought={state.freqBought} freeDeliveryBanner={state.freeDeliveryBanner} cleaningKitTap={state.tapTarget === 'rec-cleaning-kit'} />;
 
   /* Auto-scroll the phone container as the scene progresses.
    * The scroller is the parent `.phone-scroll` div from <PhoneFrame>; we
@@ -63,15 +66,23 @@ export default function MockShoppingApp({ state = {} }) {
           }
         }
 
-        // Continuous "she's scrolling" hint.
+        // Continuous "she's scrolling" hint — drives the phone scroller
+        // through the full content over ~4s, with a brief pause near the
+        // bottom + a snap back to highlight the next recommendation. The
+        // user feedback called out that when narration says "she scrolls",
+        // the phone barely moved; this makes the scroll obvious.
         if (state.scrollHint) {
           const start = scroller.scrollTop;
-          const target = Math.min(scroller.scrollHeight - scroller.clientHeight, start + 280);
-          const dur = 1800;
+          const maxScroll = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
+          const target = Math.min(maxScroll, start + Math.max(720, maxScroll * 0.85));
+          const dur = 3600;
           const startTime = performance.now();
           const tick = (t) => {
             const p = Math.min(1, (t - startTime) / dur);
-            const eased = 1 - Math.pow(1 - p, 3);
+            // ease-in-out cubic — slow start, fast middle, gentle finish
+            const eased = p < 0.5
+              ? 4 * p * p * p
+              : 1 - Math.pow(-2 * p + 2, 3) / 2;
             scroller.scrollTop = start + (target - start) * eased;
             if (p < 1) anim = requestAnimationFrame(tick);
           };
@@ -103,7 +114,32 @@ export default function MockShoppingApp({ state = {} }) {
       )}
 
       {view === 'detail' && state.showProduct && (
-        <ProductDetail id={state.showProduct} badge={state.badge} tapping={state.tapTarget === 'primary-cta'} />
+        <ProductDetail
+          id={state.showProduct}
+          badge={state.badge}
+          tapping={state.tapTarget === 'primary-cta'}
+          urgencyMinutes={state.urgencyMinutes}
+          onlyXLeft={state.onlyXLeft}
+          socialProofBadge={state.socialProofBadge}
+        />
+      )}
+
+      {/* Flash-deal alert that slides across the top of the phone whenever
+         state.flashAlert is set. Matches the script's "Pause for 2 seconds
+         as 'Flash Deal — Ends Soon!' pulses/glows" beat. */}
+      {state.flashAlert && (
+        <FlashDealAlert
+          label={state.flashAlert.label || 'Flash Deal'}
+          product={state.flashAlert.product}
+          mins={state.flashAlert.mins}
+        />
+      )}
+
+      {/* "Complete the Look — pair your shoes with…" banner before the
+         recommendations row. The user feedback called out that pairing
+         suggestions had no visible nudge — this is the nudge. */}
+      {state.pairNudge && (
+        <PairNudgeBanner title={state.pairNudge.title} subtitle={state.pairNudge.subtitle} />
       )}
 
       {view === 'feed' && state.showProduct && (
@@ -256,7 +292,7 @@ function SearchResultsGrid({ query, hoverId }) {
 
 /* =================== Product detail view =================== */
 
-function ProductDetail({ id, badge, tapping }) {
+function ProductDetail({ id, badge, tapping, urgencyMinutes, onlyXLeft, socialProofBadge }) {
   const p = products[id];
   if (!p) return null;
   return (
@@ -267,6 +303,21 @@ function ProductDetail({ id, badge, tapping }) {
       transition={{ duration: 0.4 }}
       className="px-3 pt-2"
     >
+      {/* Urgency banner above the product card — only renders when the
+         lesson data sets `urgencyMinutes` on this phase (used on the hoodie
+         product detail per script: "Only 7 minutes left!"). */}
+      {urgencyMinutes && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0, scale: [1, 1.02, 1] }}
+          transition={{ duration: 0.5, scale: { duration: 1.4, repeat: Infinity, repeatType: 'mirror' } }}
+          className="mb-2 flex items-center gap-2 rounded-xl bg-coral-500/15 px-3 py-2 text-[11px] font-bold text-coral-500 ring-1 ring-coral-500/40"
+        >
+          <Clock className="h-3.5 w-3.5" />
+          <CountdownText minutes={urgencyMinutes} />
+          <span className="ml-auto text-[10px] uppercase tracking-widest">flash deal</span>
+        </motion.div>
+      )}
       <div className="overflow-hidden rounded-2xl bg-white shadow ring-1 ring-ink-300/10">
         <div className="relative aspect-[4/3] overflow-hidden">
           <motion.div
@@ -280,14 +331,33 @@ function ProductDetail({ id, badge, tapping }) {
           <div className="absolute left-3 top-3 chip bg-coral-500 text-white">
             <Star className="h-3 w-3 fill-current" /> Trending
           </div>
+          {socialProofBadge && (
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="absolute right-3 bottom-3 z-10 chip bg-black/75 text-white shadow"
+            >
+              🔥 {socialProofBadge}
+            </motion.div>
+          )}
+          {onlyXLeft && (
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="absolute left-3 bottom-3 z-10 chip bg-burgundy-500 text-white shadow"
+            >
+              ⚡ Only {onlyXLeft} left
+            </motion.div>
+          )}
           <div className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-white/90 text-ink-700 shadow">
             <Heart className="h-4 w-4" />
           </div>
-          <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1">
-            <span className="h-1.5 w-4 rounded-full bg-white" />
-            <span className="h-1.5 w-1.5 rounded-full bg-white/60" />
-            <span className="h-1.5 w-1.5 rounded-full bg-white/60" />
-            <span className="h-1.5 w-1.5 rounded-full bg-white/60" />
+          {/* Premium badge on the PDP — replaces the misleading multi-image
+             dots that suggested 4 gallery photos when only one renders. */}
+          <div className="absolute bottom-2 left-3 inline-flex items-center gap-1 rounded-full bg-white/95 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-widest text-ink-900 shadow ring-1 ring-ink-300/15">
+            ★ Premium pick
           </div>
         </div>
 
@@ -295,7 +365,7 @@ function ProductDetail({ id, badge, tapping }) {
           <div className="text-[14px] font-bold text-ink-900">{p.name}</div>
           <div className="mt-0.5 flex items-center gap-1 text-[11px] text-ink-500">
             <Star className="h-3 w-3 fill-saffron-500 text-saffron-500" />
-            {p.rating} · 1,283 reviews · 4.6k sold this month
+            {p.rating} · 1,283 reviews · 46k sold this month
           </div>
 
           <div className="mt-2 flex items-baseline gap-2">
@@ -683,7 +753,7 @@ function RecommendationRow({ label, ids, socialProofId, flashId, highlightId, ta
                     transition={{ delay: 0.2 }}
                     className="absolute bottom-1.5 left-1.5 z-10 chip bg-black/70 text-white"
                   >
-                    🔥 12k+ bought
+                    🔥 12K bought this week
                   </motion.div>
                 )}
               </div>
@@ -1097,6 +1167,271 @@ function ConfirmationScreen({ total, ids }) {
       >
         <span>🎉</span> Thank you for shopping with spree.
       </motion.div>
+    </div>
+  );
+}
+
+/* =================== Cart-focus full-screen view ===================
+ * Used from Scene 3 onwards: the cart becomes the dominant phone screen so
+ * narration about "look at my cart" / "₹3 from free delivery" actually has a
+ * matching visual. Items, totals (with optional highlight), countdown timer,
+ * free-delivery banner, and a "Frequently Bought Together" recommendation
+ * are all stacked here. */
+function CartFocusView({ total, ids, reached, highlightPrice, timerMinutes, freqBought, freeDeliveryBanner, cleaningKitTap }) {
+  return (
+    <div className="relative min-h-full bg-cream-50 pb-24">
+      <AppHeader cartCount={ids.length} backable />
+      <div className="bg-white px-4 py-3 ring-1 ring-ink-300/10">
+        <div className="text-[15px] font-extrabold text-ink-900">Your cart</div>
+        <div className="text-[11px] text-ink-500">{ids.length} item{ids.length === 1 ? '' : 's'} · ready for checkout</div>
+      </div>
+
+      {freeDeliveryBanner && (
+        <div className="px-4 pt-3">
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`flex items-center gap-2 rounded-2xl px-3 py-2.5 text-[12px] font-bold ring-1 ${
+              reached
+                ? 'bg-teal-500/10 text-teal-500 ring-teal-500/30'
+                : 'bg-saffron-500/10 text-saffron-600 ring-saffron-500/30'
+            }`}
+          >
+            <span className="text-base">🎉</span>
+            {reached
+              ? 'FREE delivery unlocked!'
+              : `Unlock FREE Delivery on orders above ₹${freeDeliveryThreshold.toLocaleString('en-IN')}`}
+          </motion.div>
+        </div>
+      )}
+
+      <ul className="px-4 pt-3 space-y-2">
+        {ids.map((id, i) => {
+          const p = products[id];
+          if (!p) return null;
+          return (
+            <motion.li
+              key={id}
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.05 + i * 0.06 }}
+              className="flex items-center gap-3 rounded-xl bg-white p-2 ring-1 ring-ink-300/10"
+            >
+              <div className="h-12 w-12 overflow-hidden rounded-lg ring-1 ring-ink-300/10">
+                <ProductImage id={id} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="line-clamp-1 text-[13px] font-bold text-ink-900">{p.name}</div>
+                <div className="text-[10px] text-ink-500">Qty 1</div>
+              </div>
+              <div className="text-[13px] font-extrabold text-ink-900">₹{p.price.toLocaleString('en-IN')}</div>
+            </motion.li>
+          );
+        })}
+      </ul>
+
+      {/* Subtotal block */}
+      <div className="mx-4 mt-3 rounded-2xl bg-white p-3 ring-1 ring-ink-300/10">
+        <div className="flex items-center justify-between text-[12px]">
+          <span className="font-semibold text-ink-700">Cart total</span>
+          <motion.span
+            animate={highlightPrice ? { scale: [1, 1.08, 1] } : { scale: 1 }}
+            transition={{ duration: 0.7, repeat: highlightPrice ? Infinity : 0, repeatDelay: 1.2 }}
+            className={`text-xl font-extrabold ${highlightPrice ? 'text-burgundy-500' : 'text-ink-900'}`}
+          >
+            ₹{total.toLocaleString('en-IN')}
+          </motion.span>
+        </div>
+
+        {timerMinutes && (
+          <div className="mt-2 flex items-center gap-2 rounded-xl bg-coral-500/10 px-2.5 py-1.5 text-[11px] font-bold text-coral-500 ring-1 ring-coral-500/30">
+            <Clock className="h-3.5 w-3.5" />
+            <CountdownText minutes={timerMinutes} />
+            <span className="ml-auto text-[10px] uppercase tracking-widest opacity-80">offer ends</span>
+          </div>
+        )}
+      </div>
+
+      {/* Frequently bought together — single product nudge (the cleaning kit) */}
+      {freqBought && (
+        <div className="mx-4 mt-4 rounded-2xl bg-white p-3 ring-1 ring-ink-300/10">
+          <div className="mb-2 flex items-center justify-between">
+            <div className="text-[12px] font-bold uppercase tracking-wider text-ink-700">🧴 Frequently Bought Together</div>
+          </div>
+          <FreqBoughtCard id={freqBought} tapping={cleaningKitTap} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FreqBoughtCard({ id, tapping }) {
+  const p = products[id];
+  if (!p) return null;
+  return (
+    <div className="flex items-center gap-3 rounded-xl bg-cream-50 p-2 ring-1 ring-ink-300/10">
+      <div className="h-14 w-14 overflow-hidden rounded-lg ring-1 ring-ink-300/10">
+        <ProductImage id={id} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="line-clamp-1 text-[12px] font-bold text-ink-900">{p.name}</div>
+        <div className="text-[10px] text-ink-500">{p.tagline}</div>
+        <div className="mt-0.5 text-[13px] font-extrabold text-ink-900">₹{p.price.toLocaleString('en-IN')}</div>
+      </div>
+      <div className="relative">
+        <button className="rounded-md bg-coral-500 px-3 py-1.5 text-[11px] font-bold text-white shadow-sm">
+          Add
+        </button>
+        {tapping && <TapPulse small />}
+      </div>
+    </div>
+  );
+}
+
+function CountdownText({ minutes }) {
+  const [secs, setSecs] = useState(Math.max(1, minutes) * 60);
+  useEffect(() => {
+    const t = setInterval(() => setSecs((s) => (s > 1 ? s - 1 : minutes * 60)), 1000);
+    return () => clearInterval(t);
+  }, [minutes]);
+  const m = String(Math.floor(secs / 60)).padStart(2, '0');
+  const s = String(secs % 60).padStart(2, '0');
+  return <span>Offer ends in {m}:{s}</span>;
+}
+
+/* =================== Flash deal alert banner ===================
+ * Slides in across the top of the phone whenever the lesson data triggers a
+ * `flashAlert`. Pulses + glows for ~2s to grab attention before students see
+ * the product itself. */
+function FlashDealAlert({ label, product, mins = 7 }) {
+  return (
+    <motion.div
+      key={label + product}
+      initial={{ y: -40, opacity: 0 }}
+      animate={{ y: 0, opacity: 1, scale: [1, 1.02, 1] }}
+      transition={{ duration: 0.6, scale: { duration: 1.6, repeat: Infinity, repeatType: 'mirror' } }}
+      className="mx-4 mt-3 overflow-hidden rounded-2xl bg-gradient-to-r from-burgundy-500 via-coral-500 to-saffron-500 p-3 text-white shadow-lg ring-1 ring-white/20"
+    >
+      <div className="flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-widest">
+        <span className="text-base">⏳</span> {label}
+      </div>
+      <div className="mt-1 text-[14px] font-extrabold leading-tight">
+        {product}
+      </div>
+      <div className="mt-0.5 inline-flex items-center gap-1 text-[12px] font-bold">
+        <span>⚡</span> Only {mins} minutes left!
+      </div>
+    </motion.div>
+  );
+}
+
+/* =================== Pair-your-shoes / Complete the Look nudge =================== */
+function PairNudgeBanner({ title = 'Complete the Look', subtitle = 'Pair your shoes with a beautiful pair of matching socks' }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -16 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.45 }}
+      className="mx-4 mt-3 flex items-center gap-3 rounded-2xl bg-gradient-to-r from-saffron-500/15 to-coral-500/15 p-3 ring-1 ring-saffron-500/30"
+    >
+      <span className="grid h-8 w-8 place-items-center rounded-full bg-saffron-500 text-white">
+        <Sparkle />
+      </span>
+      <div className="min-w-0">
+        <div className="text-[12px] font-extrabold uppercase tracking-widest text-saffron-600">{title}</div>
+        <div className="text-[12.5px] font-semibold leading-snug text-ink-900">{subtitle}</div>
+      </div>
+    </motion.div>
+  );
+}
+
+function Sparkle() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" />
+    </svg>
+  );
+}
+
+/* =================== Order summary (post-payment standalone) ===================
+ * Lives behind state.view === 'order-summary'. Shows everything one last time —
+ * items, line totals, delivery, coupon, the amount paid — so the student
+ * physically sees the receipt before Act 1 closes. */
+function OrderSummaryScreen({ total, ids }) {
+  const paid = Math.max(0, total - 200);
+  return (
+    <div className="relative min-h-full bg-cream-50 pb-12">
+      <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-ink-300/10 bg-white px-4 py-3">
+        <span className="grid h-7 w-7 place-items-center rounded-full bg-teal-500 text-white">
+          <Check className="h-4 w-4" />
+        </span>
+        <div className="text-[15px] font-extrabold text-ink-900">Order summary</div>
+        <span className="ml-auto rounded-full bg-teal-500/15 px-2 py-0.5 text-[10px] font-bold text-teal-500">Paid</span>
+      </header>
+
+      <div className="px-4 pt-3">
+        <div className="rounded-2xl bg-white p-3 ring-1 ring-ink-300/10">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-ink-500">Items ({ids.length})</div>
+          <ul className="mt-2 space-y-2">
+            {ids.map((id) => {
+              const p = products[id];
+              if (!p) return null;
+              return (
+                <li key={id} className="flex items-center gap-3">
+                  <div className="h-10 w-10 overflow-hidden rounded-lg ring-1 ring-ink-300/10">
+                    <ProductImage id={id} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="line-clamp-1 text-[12px] font-bold text-ink-900">{p.name}</div>
+                    <div className="text-[10px] text-ink-500">Qty 1</div>
+                  </div>
+                  <div className="text-[12px] font-extrabold text-ink-900">₹{p.price.toLocaleString('en-IN')}</div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+
+        <div className="mt-3 rounded-2xl bg-white p-3 ring-1 ring-ink-300/10">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-ink-500">Bill details</div>
+          <div className="mt-2 space-y-1 text-[12px]">
+            <Row label="Items subtotal" value={`₹${total.toLocaleString('en-IN')}`} />
+            <Row label="Delivery" value="FREE" valueClass="text-teal-500 font-bold" />
+            <Row label="Coupon (LH200)" value="− ₹200" valueClass="text-teal-500" />
+            <div className="my-1 h-px bg-ink-300/15" />
+            <div className="flex items-center justify-between text-[14px] font-extrabold text-ink-900">
+              <span>Total paid</span>
+              <motion.span
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.3 }}
+                className="text-burgundy-500"
+              >
+                ₹{paid.toLocaleString('en-IN')}
+              </motion.span>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-3 rounded-2xl bg-gradient-to-br from-saffron-500/15 to-coral-500/10 p-3 ring-1 ring-saffron-500/30">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-saffron-600">Original plan</div>
+          <div className="mt-0.5 text-[13px] leading-snug text-ink-900">
+            <strong>₹1,500</strong> — for one good pair of shoes.
+          </div>
+          <div className="mt-0.5 text-[12px] font-bold text-burgundy-500">
+            Actual: ₹{paid.toLocaleString('en-IN')} · {Math.round((paid / 1500 - 1) * 100)}% over plan
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Row({ label, value, valueClass = 'text-ink-900' }) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-ink-700">{label}</span>
+      <span className={valueClass}>{value}</span>
     </div>
   );
 }

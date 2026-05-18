@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, Pencil } from 'lucide-react';
 
-export default function ReflectionPrompt({ prompt, placeholder, onSubmit, onSkip }) {
+export default function ReflectionPrompt({ prompt, placeholder, onSubmit, onSkip, allowSkip = false }) {
   const [value, setValue] = useState('');
   const canSubmit = value.trim().length > 0;
 
@@ -38,13 +38,15 @@ export default function ReflectionPrompt({ prompt, placeholder, onSubmit, onSkip
       />
 
       <div className="mt-5 flex flex-col-reverse items-stretch justify-between gap-3 sm:flex-row sm:items-center">
-        <button
-          type="button"
-          onClick={onSkip}
-          className="text-sm font-medium text-ink-500 underline-offset-4 hover:text-ink-900 hover:underline"
-        >
-          Skip for now
-        </button>
+        {allowSkip ? (
+          <button
+            type="button"
+            onClick={onSkip}
+            className="text-sm font-medium text-ink-500 underline-offset-4 hover:text-ink-900 hover:underline"
+          >
+            Skip for now
+          </button>
+        ) : <span />}
         <button
           type="button"
           disabled={!canSubmit}

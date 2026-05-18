@@ -10,7 +10,7 @@ import { X, Sparkles } from 'lucide-react';
  *
  * `data`: { title, instruction, leadIn, slots, tiles: [{id, label, correctIndex|null}], finalLine }
  */
-export default function DefinitionPuzzle({ data, onCueClick, onCueCorrect, onCueWrong, onComplete }) {
+export default function DefinitionPuzzle({ data, onCueClick, onCueCorrect, onCueWrong, onSpeakDefinition, onComplete }) {
   const { tiles, leadIn, slots: slotCount, finalLine } = data;
 
   const [placed, setPlaced] = useState(() => Array(slotCount).fill(null)); // tile ids
@@ -62,14 +62,17 @@ export default function DefinitionPuzzle({ data, onCueClick, onCueCorrect, onCue
     onCueClick?.();
   }, [done, onCueClick]);
 
-  // When all 4 slots filled correctly, fire complete after a beat.
+  // When all 4 slots filled correctly, speak the full definition aloud (so
+  // students hear it in their ear, not just see it), then fire complete after
+  // enough time for the line + a beat of silence.
   useEffect(() => {
     if (placed.every((id) => id !== null)) {
       setDone(true);
-      const t = setTimeout(() => onComplete?.(), 1800);
+      onSpeakDefinition?.(data.finalLine);
+      const t = setTimeout(() => onComplete?.(), 6500);
       return () => clearTimeout(t);
     }
-  }, [placed, onComplete]);
+  }, [placed, onComplete, onSpeakDefinition, data.finalLine]);
 
   return (
     <div className="flex flex-col gap-4">

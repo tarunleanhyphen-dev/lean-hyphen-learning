@@ -12,7 +12,7 @@ import { Check, Sparkles } from 'lucide-react';
  * Drag-and-drop was considered, but tap-to-match is more accessible on
  * mobile/tablet, doesn't fight scroll, and works with keyboard naturally.
  */
-export default function DragMatchBoard({ data, onCueClick, onCueCorrect, onCueWrong, onComplete }) {
+export default function DragMatchBoard({ data, onCueClick, onCueCorrect, onCueWrong, onSpeakInsight, onComplete }) {
   const pairs = data.pairs;
   const [matched, setMatched] = useState({});             // { pairId: true }
   const [pickedTrigger, setPickedTrigger] = useState(null);
@@ -52,6 +52,8 @@ export default function DragMatchBoard({ data, onCueClick, onCueCorrect, onCueWr
       setOpenInsight(id);
       setPickedTrigger(null);
       onCueCorrect?.();
+      const matchedPair = pairs.find((p) => p.id === id);
+      if (matchedPair) onSpeakInsight?.(matchedPair);
     } else {
       setWrongPulse(`${pickedTrigger}-${id}`);
       onCueWrong?.();
@@ -68,25 +70,38 @@ export default function DragMatchBoard({ data, onCueClick, onCueCorrect, onCueWr
         <p className="mt-1 text-[13px] text-ink-700 sm:text-sm">{data.instruction}</p>
       </header>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        {/* LEFT COLUMN — triggers (fixed order, same as cart) */}
-        <div className="flex flex-col gap-2.5">
-          <div className="text-[10px] font-bold uppercase tracking-widest text-ink-500">From the cart</div>
-          {triggerOrder.map((id) => {
-            const p = pairs.find((x) => x.id === id);
-            const isMatched = !!matched[id];
-            const isPicked = pickedTrigger === id;
-            const shake = wrongPulse?.startsWith(`${id}-`);
-            return (
+      {/* Two parallel columns; row heights are kept equal via auto-rows-fr +
+         min-h on each button, so trigger N visually lines up with the
+         category in the same row index — even though categories are shuffled
+         and trigger text length varies. */}
+      <div className="grid grid-cols-2 gap-x-3 gap-y-0">
+        <div className="text-[10px] font-bold uppercase tracking-widest text-ink-500 pb-2">From the cart</div>
+        <div className="text-[10px] font-bold uppercase tracking-widest text-ink-500 pb-2">Pick the reason</div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-x-3 gap-y-2.5 auto-rows-fr">
+        {triggerOrder.map((id, rowIdx) => {
+          const triggerPair = pairs.find((x) => x.id === id);
+          const isMatched = !!matched[id];
+          const isPicked = pickedTrigger === id;
+          const shake = wrongPulse?.startsWith(`${id}-`);
+
+          const catId = categoryOrder[rowIdx];
+          const catPair = pairs.find((x) => x.id === catId);
+          const catMatched = !!matched[catId];
+          const catShake = wrongPulse?.endsWith(`-${catId}`);
+          const catArmed = !!pickedTrigger && !catMatched;
+
+          return (
+            <div key={id} className="contents">
               <motion.button
-                key={id}
                 type="button"
                 onClick={() => pickTrigger(id)}
                 animate={shake ? { x: [0, -6, 6, -4, 4, 0] } : { x: 0 }}
                 transition={{ duration: 0.4 }}
                 disabled={isMatched}
                 className={[
-                  'group relative text-left rounded-2xl px-4 py-3 ring-1 transition shadow-sm',
+                  'group relative text-left rounded-2xl px-4 py-3 ring-1 transition shadow-sm min-h-[78px] flex items-center',
                   isMatched
                     ? 'bg-teal-500/15 ring-teal-500/50 text-ink-900 cursor-default'
                     : isPicked
@@ -94,56 +109,47 @@ export default function DragMatchBoard({ data, onCueClick, onCueCorrect, onCueWr
                       : 'bg-white ring-ink-300/20 text-ink-800 hover:ring-saffron-500/40 hover:bg-saffron-50',
                 ].join(' ')}
               >
-                <div className="flex items-start gap-2">
+                <div className="flex w-full items-start gap-2">
                   <span className={`mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${isMatched ? 'bg-teal-500 text-white' : 'bg-ink-900/85 text-white/95'}`}>
                     {isMatched ? <Check className="h-3.5 w-3.5" /> : pairs.findIndex((x) => x.id === id) + 1}
                   </span>
-                  <div className="text-[14px] font-semibold leading-snug sm:text-[15px]">{p.trigger}</div>
+                  <div className="flex-1">
+                    <div className="text-[14px] font-semibold leading-snug sm:text-[15px]">{triggerPair.trigger}</div>
+                    {isPicked && (
+                      <div className="mt-1 text-[11px] font-semibold text-saffron-500">Now tap the reason →</div>
+                    )}
+                  </div>
                 </div>
-                {isPicked && (
-                  <div className="mt-1 text-[11px] font-semibold text-saffron-500">Now tap the reason →</div>
-                )}
               </motion.button>
-            );
-          })}
-        </div>
 
-        {/* RIGHT COLUMN — categories (shuffled) */}
-        <div className="flex flex-col gap-2.5">
-          <div className="text-[10px] font-bold uppercase tracking-widest text-ink-500">Pick the reason</div>
-          {categoryOrder.map((id) => {
-            const p = pairs.find((x) => x.id === id);
-            const isMatched = !!matched[id];
-            const shake = wrongPulse?.endsWith(`-${id}`);
-            const armed = !!pickedTrigger && !isMatched;
-            return (
               <motion.button
-                key={id}
                 type="button"
-                onClick={() => pickCategory(id)}
-                animate={shake ? { x: [0, -6, 6, -4, 4, 0] } : { x: 0 }}
+                onClick={() => pickCategory(catId)}
+                animate={catShake ? { x: [0, -6, 6, -4, 4, 0] } : { x: 0 }}
                 transition={{ duration: 0.4 }}
-                disabled={isMatched || !pickedTrigger}
+                disabled={catMatched || !pickedTrigger}
                 className={[
-                  'relative text-left rounded-2xl px-4 py-3 ring-1 transition shadow-sm',
-                  isMatched
+                  'relative text-left rounded-2xl px-4 py-3 ring-1 transition shadow-sm min-h-[78px] flex items-center',
+                  catMatched
                     ? 'bg-teal-500/15 ring-teal-500/50 text-ink-900 cursor-default'
-                    : armed
+                    : catArmed
                       ? 'bg-white ring-saffron-500/50 text-ink-900 hover:bg-saffron-50 hover:ring-saffron-500'
                       : 'bg-white/70 ring-ink-300/20 text-ink-500',
                 ].join(' ')}
               >
-                <div className="flex items-center gap-2">
-                  {isMatched && <Check className="h-4 w-4 shrink-0 text-teal-500" />}
-                  <div className="text-[14px] font-bold sm:text-[15px]">{p.category}</div>
+                <div className="flex w-full items-center gap-2">
+                  {catMatched && <Check className="h-4 w-4 shrink-0 text-teal-500" />}
+                  <div className="flex-1">
+                    <div className="text-[14px] font-bold sm:text-[15px]">{catPair.category}</div>
+                    {catMatched && (
+                      <div className="mt-1 text-[12px] text-ink-700">↳ {catPair.trigger}</div>
+                    )}
+                  </div>
                 </div>
-                {isMatched && (
-                  <div className="mt-1 text-[12px] text-ink-700">↳ {p.trigger}</div>
-                )}
               </motion.button>
-            );
-          })}
-        </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Insight reveal — small floating card after a correct match */}

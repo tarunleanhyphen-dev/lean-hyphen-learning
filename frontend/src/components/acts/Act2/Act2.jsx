@@ -10,6 +10,7 @@ import AudioConsentBanner from '../../shared/AudioConsentBanner.jsx';
 import DragMatchBoard from '../../shared/DragMatchBoard.jsx';
 import DefinitionPuzzle from '../../shared/DefinitionPuzzle.jsx';
 import FrameworkCard from '../../shared/FrameworkCard.jsx';
+import { pickMood } from '../Act1/Act1.jsx';
 import { lesson, act2Activities } from '../../../data/lessons/thinkBeforeYouSpend.js';
 import { useSequencer } from '../../../hooks/useSequencer.js';
 import { useLesson } from '../../../context/LessonContext.jsx';
@@ -86,12 +87,8 @@ export default function Act2({ onComplete }) {
 
   useEffect(() => {
     if (!audioEnabled) return;
-    setMusicMood(
-      scene.ambience === 'silent' ? 'silent'
-      : scene.ambience === 'reflective' ? 'reflective'
-      : 'cosy'
-    );
-  }, [audioEnabled, scene.ambience]);
+    setMusicMood(pickMood(currentEmotion, scene.ambience));
+  }, [audioEnabled, currentEmotion, scene.ambience]);
 
   useEffect(() => () => { stopMusic(); cancelSpeech(); }, []);
 
@@ -266,6 +263,8 @@ export default function Act2({ onComplete }) {
                 onCueClick={onCueClick}
                 onCueCorrect={onCueCorrect}
                 onCueWrong={onCueWrong}
+                onRevealBullet={(b) => audioEnabled && speak(`${b.label}. ${b.question}. ${b.detail}`, { who: 'shanaya' })}
+                speakingDone={!isSpeaking}
                 onComplete={(payload) => handleActivityComplete(activity.kind, payload || {})}
               />
             ) : (
@@ -302,7 +301,7 @@ export default function Act2({ onComplete }) {
 
 /* =================== Activity router =================== */
 
-function ActivityRenderer({ kind, onCueClick, onCueCorrect, onCueWrong, onComplete }) {
+function ActivityRenderer({ kind, onCueClick, onCueCorrect, onCueWrong, onRevealBullet, speakingDone, onComplete }) {
   if (kind === 'match') {
     return (
       <DragMatchBoard
@@ -330,6 +329,8 @@ function ActivityRenderer({ kind, onCueClick, onCueCorrect, onCueWrong, onComple
       <FrameworkCard
         data={act2Activities.framework}
         onCueClick={onCueClick}
+        onReveal={onRevealBullet}
+        speakingDone={speakingDone}
         onComplete={() => onComplete({ activity: 'framework' })}
       />
     );

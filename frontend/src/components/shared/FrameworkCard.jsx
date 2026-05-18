@@ -7,19 +7,31 @@ import { Pause, Check } from 'lucide-react';
  * a "Got it" button that fires onComplete. Each bullet shows label + a question
  * and a short detail line. Designed to be the closing beat of Act 2.
  *
+ * As each bullet appears, onReveal(bullet) fires so the parent can speak it
+ * aloud via TTS. The next bullet doesn't appear until the previous one's
+ * narration is done — gated by `speakingDone` from the parent.
+ *
  * `data`: { title, intro, bullets: [{id, emoji, label, question, detail}], closer }
  */
-export default function FrameworkCard({ data, onCueClick, onComplete }) {
+export default function FrameworkCard({ data, onCueClick, onReveal, speakingDone = true, onComplete }) {
   const [revealed, setRevealed] = useState(0);
   const total = data.bullets.length;
   const fullyRevealed = revealed >= total;
 
-  // Reveal one bullet every 900ms so the student has time to read each.
+  // Reveal the next bullet once the current one's narration finishes (or a
+  // 4.5s safety timer fires if speech is muted/never came back).
   useEffect(() => {
     if (fullyRevealed) return;
-    const t = setTimeout(() => setRevealed((n) => n + 1), revealed === 0 ? 350 : 900);
+    if (revealed > 0 && !speakingDone) return; // wait for TTS to finish
+    const delay = revealed === 0 ? 600 : 700; // small visual pause before next
+    const t = setTimeout(() => {
+      const next = revealed + 1;
+      setRevealed(next);
+      const bullet = data.bullets[next - 1];
+      if (bullet) onReveal?.(bullet);
+    }, delay);
     return () => clearTimeout(t);
-  }, [revealed, fullyRevealed]);
+  }, [revealed, fullyRevealed, speakingDone, data.bullets, onReveal]);
 
   return (
     <div className="flex flex-col gap-4">

@@ -1,62 +1,106 @@
 import { Router } from 'express';
+import { MsEdgeTTS, OUTPUT_FORMAT } from 'msedge-tts';
 
 const router = Router();
 
 /**
  * GET /api/tts?text=hello&voice=shanaya
  *
- * Proxies Google Translate's public TTS endpoint and streams the MP3 back to
- * the browser with proper CORS headers. This bypasses two issues we hit with
- * client-side Web Speech: (1) CORS on the upstream endpoint, (2) Chrome's
- * macOS-specific bug where Web Speech is silent.
+ * Streams an Indian-English MP3 back to the browser. Primary engine is
+ * Microsoft Edge's Neural TTS (free, no auth, high quality) — it has genuine
+ * en-IN voices that sound clearly Indian. Falls back to Google Translate's
+ * public TTS if Edge fails (e.g. blocked on a network or transient error).
  *
- * Notes:
- *  - Google Translate TTS caps each request at ~200 characters. The frontend
- *    chunks long text into sentences before calling this route.
- *  - Voices supported: 'shanaya' (en-IN), 'narrator' (en-GB). We can swap to
- *    a paid provider later (ElevenLabs, Gemini, OpenAI) by replacing the
- *    upstream URL.
+ *   voice=shanaya  → en-IN-NeerjaNeural (female, teen-ish range)
+ *   voice=narrator → en-IN-PrabhatNeural (male, adult narrator)
+ *
+ * The frontend chunks long text into ~180-char sentences before calling, so
+ * each request stays under the upstream limits. Responses are cached for 24h
+ * since the same phrase yields identical bytes.
  */
+
+// We use Hindi-speaker neural voices (hi-IN) reading English on purpose: the
+// en-IN voices Microsoft ships (Neerja, Prabhat) sound "neutral global" with
+// only a hint of Indian English. The Hindi-speaker voices produce the thicker,
+// typical Indian English accent the lesson is targeting.
+const VOICES = {
+  shanaya:  { neural: 'hi-IN-SwaraNeural',  googleTl: 'en-IN' },
+  narrator: { neural: 'hi-IN-MadhurNeural', googleTl: 'en-IN' },
+};
+
 router.get('/', async (req, res, next) => {
   try {
-    const text = (req.query.text || '').toString().slice(0, 200);
-    const voice = (req.query.voice || 'shanaya').toString();
+    const text = (req.query.text || '').toString().slice(0, 400);
+    const voiceKey = (req.query.voice || 'shanaya').toString();
     if (!text) {
       const err = new Error('text query param required');
       err.status = 400;
       throw err;
     }
 
-    const tl = voice === 'narrator' ? 'en-GB' : 'en-IN';
-    const upstream = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${tl}&client=tw-ob&q=${encodeURIComponent(text)}`;
+    const voice = VOICES[voiceKey] || VOICES.shanaya;
 
-    const upstreamRes = await fetch(upstream, {
-      headers: {
-        // Some Google edges refuse without a browsery UA.
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
-        'Referer': 'https://translate.google.com/',
-      },
-    });
-
-    if (!upstreamRes.ok) {
-      const text = await upstreamRes.text().catch(() => '');
+    let buf;
+    try {
+      buf = await synthEdge(voice.neural, text);
+    } catch (edgeErr) {
       // eslint-disable-next-line no-console
-      console.warn('[tts proxy] upstream', upstreamRes.status, text.slice(0, 200));
-      const err = new Error(`Upstream TTS returned ${upstreamRes.status}`);
-      err.status = 502;
-      throw err;
+      console.warn('[tts] edge failed, falling back to google:', edgeErr?.message);
+      buf = await synthGoogle(voice.googleTl, text);
     }
 
-    res.set('Content-Type', upstreamRes.headers.get('content-type') || 'audio/mpeg');
-    // Cache for 24h — same phrase yields the same audio bytes.
+    res.set('Content-Type', 'audio/mpeg');
     res.set('Cache-Control', 'public, max-age=86400, immutable');
-
-    // Stream the MP3 bytes through.
-    const buf = Buffer.from(await upstreamRes.arrayBuffer());
     res.send(buf);
   } catch (err) {
     next(err);
   }
 });
+
+/* ------------------------------------------------------------------ */
+/* Edge Neural TTS (primary)                                          */
+/* ------------------------------------------------------------------ */
+
+async function synthEdge(voiceName, text) {
+  const tts = new MsEdgeTTS();
+  await tts.setMetadata(voiceName, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
+  const { audioStream } = tts.toStream(text);
+
+  const chunks = [];
+  await new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      try { tts.close(); } catch {}
+      reject(new Error('edge tts timeout'));
+    }, 8000);
+
+    audioStream.on('data', (c) => chunks.push(c));
+    audioStream.on('end', () => { clearTimeout(timeout); resolve(); });
+    audioStream.on('closed', () => { clearTimeout(timeout); resolve(); });
+    audioStream.on('error', (e) => { clearTimeout(timeout); reject(e); });
+  });
+
+  try { tts.close(); } catch {}
+
+  const buf = Buffer.concat(chunks);
+  if (buf.length < 200) throw new Error(`edge tts returned ${buf.length} bytes`);
+  return buf;
+}
+
+/* ------------------------------------------------------------------ */
+/* Google Translate TTS (fallback)                                    */
+/* ------------------------------------------------------------------ */
+
+async function synthGoogle(tl, text) {
+  // Google Translate caps each request at ~200 chars; chunking happens client-side.
+  const upstream = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${tl}&client=tw-ob&q=${encodeURIComponent(text.slice(0, 200))}`;
+  const r = await fetch(upstream, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+      'Referer': 'https://translate.google.com/',
+    },
+  });
+  if (!r.ok) throw new Error(`google tts ${r.status}`);
+  return Buffer.from(await r.arrayBuffer());
+}
 
 export default router;

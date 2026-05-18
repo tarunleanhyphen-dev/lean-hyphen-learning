@@ -22,6 +22,25 @@ import {
   speak, cancelSpeech, setSpeechCallbacks,
 } from '../../../utils/sounds.js';
 
+/**
+ * Map (current emotion + scene ambience) → music mood key.
+ * Exported so Act 2 (and future acts) can share the same mapping.
+ *
+ * The bias is: emotion wins. If Shanaya is shocked/realised/guilty, the
+ * music should react regardless of which scene she's in. Falling back on
+ * scene.ambience handles in-between phases where emotion is "neutral".
+ */
+export function pickMood(emotion, ambience) {
+  if (ambience === 'silent') return 'silent';
+  if (emotion === 'shocked')                                  return 'hit';
+  if (emotion === 'unsettled' || emotion === 'guilty')        return 'thinking';
+  if (emotion === 'realised')                                 return 'reflective';
+  if (emotion === 'tempted' || emotion === 'curious')         return 'app-tempo';
+  if (ambience === 'reflective')                              return 'reflective';
+  if (ambience === 'app-tempo')                               return 'app-tempo';
+  return 'calm';
+}
+
 function emotionFor(phase, sceneEmotion) {
   if (!phase?.id) return sceneEmotion;
   if (phase.emotion) return phase.emotion;
@@ -61,9 +80,16 @@ export default function Act1({ onComplete }) {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [wordTick, setWordTick] = useState(0);
 
-  // Hold auto-advance while Shanaya / the narrator is still speaking so the
-  // student hears the full line before the next phase appears.
-  const seq = useSequencer(phases, { holdWhile: isSpeaking });
+  const { sessionId, audioEnabled, setAudioEnabled, setAudioDismissed, setReflection, setActStatus, state: lessonState } = useLesson();
+  // Hold the very first phase until the user has decided about audio —
+  // otherwise the opening narration ("It is a quiet afternoon…") can fly past
+  // before they click "Enable Audio", and the line never gets read aloud.
+  // After that, hold only while speech is in flight so the student hears each
+  // full line before the next phase appears.
+  const audioDecided = audioEnabled || lessonState?.audioDismissed;
+  const seq = useSequencer(phases, {
+    holdWhile: isSpeaking || !audioDecided,
+  });
   const sceneIdx = phaseToScene[seq.index] ?? 0;
   const scene = act.scenes[sceneIdx];
   const phase = seq.phase;
@@ -93,8 +119,6 @@ export default function Act1({ onComplete }) {
     }
     return trail;
   }, [seq.index, phases]);
-
-  const { sessionId, audioEnabled, setAudioEnabled, setReflection, setActStatus } = useLesson();
 
   /* -------- Audio: music + cues + TTS w/ mouth events -------- */
 
@@ -132,12 +156,8 @@ export default function Act1({ onComplete }) {
 
   useEffect(() => {
     if (!audioEnabled) return;
-    setMusicMood(
-      scene.ambience === 'silent' ? 'silent'
-      : scene.ambience === 'reflective' ? 'reflective'
-      : 'cosy'
-    );
-  }, [audioEnabled, scene.ambience]);
+    setMusicMood(pickMood(currentEmotion, scene.ambience));
+  }, [audioEnabled, currentEmotion, scene.ambience]);
 
   useEffect(() => () => { stopMusic(); cancelSpeech(); }, []);
 
@@ -165,7 +185,10 @@ export default function Act1({ onComplete }) {
     startMusic();
   }, [setAudioEnabled]);
 
-  const dismissAudio = useCallback(() => setAudioEnabled(false), [setAudioEnabled]);
+  const dismissAudio = useCallback(() => {
+    setAudioEnabled(false);
+    setAudioDismissed(true);
+  }, [setAudioEnabled, setAudioDismissed]);
 
   /* -------- Reflections + MCQs (chained — last phase = act complete) -------- */
 

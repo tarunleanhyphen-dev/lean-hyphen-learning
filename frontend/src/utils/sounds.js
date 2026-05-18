@@ -94,30 +94,98 @@ export const sounds = {
   },
 };
 
-/* ============== Music sequencer ==============
- * Pad + bass + melody. Four-bar progression: C → Am → F → G (looping).
- * Notes are scheduled ahead on the AudioContext clock for tight timing.
+/* ============== Music sequencer (mood-aware) ==============
+ * The music engine schedules four-bar chord loops on the AudioContext clock.
+ * Instead of one fixed loop, every bar reads the *current mood* and uses that
+ * mood's chord progression + instrumentation. Mood transitions happen on bar
+ * boundaries, so the music never glitches mid-phrase — it just gracefully
+ * shifts when Shanaya's emotion / the scene shifts.
+ *
+ * Moods:
+ *   calm        — opening / planning      → warm pad, soft bass, no shaker
+ *   app-tempo   — browsing / scrolling    → pad + bass + shaker (the "scrolling" feel)
+ *   thinking    — reflection / doubt      → sparse pad + slow bell, very quiet
+ *   hit         — shock / realisation     → bright pad + bass + shaker + impact swell
+ *   reflective  — Act 2 / closing         → major pad + slow bell, gentle bass
+ *   silent      — full duck                → everything off
  */
 
 let musicTimer = null;
 let currentBar = 0;
 let nextBarTime = 0;
 let lowPassFilter = null;
+let activeMood = 'calm';     // mood that the next-scheduled bar will use
+let lastImpactAt = 0;        // ctx.currentTime of last hit-impact, debounces re-entry
 
-// Mature lo-fi feel for class 7–9 students: slow tempo, minor-leaning vi-iii-IV-I
-// progression (Am-Em-F-C), bass + atmospheric pad only — no bell melody.
 const BPM = 64;
 const BEAT = 60 / BPM;
 const BAR = BEAT * 4;
 
-const progression = [
-  { notes: [220.00, 261.63, 329.63], bass: 110.00 }, // A minor
-  { notes: [164.81, 196.00, 246.94], bass: 82.41  }, // E minor
-  { notes: [174.61, 220.00, 261.63], bass: 87.31  }, // F major
-  { notes: [196.00, 246.94, 293.66], bass: 98.00  }, // G major (resolves back to Am)
-];
+// Chord = [pad voices (3 notes), bass root]. Voicings in low/mid registers so
+// they sit under the speech without competing with vocal frequencies (~250 Hz+).
+const CHORDS = {
+  Am:  { notes: [220.00, 261.63, 329.63], bass: 110.00 },
+  Em:  { notes: [164.81, 196.00, 246.94], bass:  82.41 },
+  F:   { notes: [174.61, 220.00, 261.63], bass:  87.31 },
+  G:   { notes: [196.00, 246.94, 293.66], bass:  98.00 },
+  C:   { notes: [196.00, 261.63, 329.63], bass: 130.81 },
+  Dm:  { notes: [220.00, 293.66, 349.23], bass: 146.83 },
+  Bb:  { notes: [233.08, 293.66, 349.23], bass: 116.54 },
+  A:   { notes: [220.00, 277.18, 329.63], bass: 110.00 },
+  Fmaj7:{notes: [174.61, 261.63, 329.63], bass:  87.31 },
+};
 
-function schedulePad(freq, start, dur) {
+// Mood definitions tuned so transitions are *audible*, not subtle. The big
+// dimensions of contrast: bus volume, presence of percussion, low-pass cutoff
+// (brightness), and whether the bell melody is present.
+const MOODS = {
+  calm: {
+    progression: ['Am', 'Em', 'F', 'C'],
+    hasPad: true, hasBass: true, hasShaker: false, hasBell: false,
+    padGain: 0.05, bassGain: 0.14,
+    busGain: 0.32, lpfHz: 1000,
+  },
+  'app-tempo': {
+    // Browsing / scrolling — adds shaker + a tiny tick on every beat for the
+    // "swiping through the feed" feel, brighter LPF, slightly louder bus.
+    progression: ['Am', 'Em', 'F', 'G'],
+    hasPad: true, hasBass: true, hasShaker: true, hasBell: false,
+    extraTick: true,
+    padGain: 0.055, bassGain: 0.18,
+    busGain: 0.40, lpfHz: 1600,
+  },
+  thinking: {
+    // Halved bus volume, no bass, no percussion — just a slow pad + bell.
+    // Very obviously quieter than calm/app-tempo.
+    progression: ['Am', 'Fmaj7', 'C', 'G'],
+    hasPad: true, hasBass: false, hasShaker: false, hasBell: true,
+    padGain: 0.04, bellGain: 0.06,
+    busGain: 0.16, lpfHz: 700,
+  },
+  reflective: {
+    progression: ['F', 'C', 'Dm', 'Am'],
+    hasPad: true, hasBass: true, hasShaker: false, hasBell: true,
+    padGain: 0.055, bassGain: 0.10, bellGain: 0.05,
+    busGain: 0.30, lpfHz: 950,
+  },
+  hit: {
+    // Tense chord (Dm-Bb-A-A), bright LPF, big bus volume bump, plays an
+    // impact swell on entry. This should be impossible to miss.
+    progression: ['Dm', 'Bb', 'A', 'A'],
+    hasPad: true, hasBass: true, hasShaker: true, hasBell: false,
+    extraTick: true,
+    padGain: 0.07, bassGain: 0.26,
+    busGain: 0.62, lpfHz: 2800,
+  },
+  silent: {
+    progression: ['Am', 'Am', 'Am', 'Am'],
+    hasPad: false, hasBass: false, hasShaker: false, hasBell: false,
+    padGain: 0, bassGain: 0,
+    busGain: 0, lpfHz: 500,
+  },
+};
+
+function schedulePad(freq, start, dur, peak) {
   // Warm sustained chord tone — slightly detuned, slow attack/release.
   const o = ctx.createOscillator();
   const g = ctx.createGain();
@@ -125,22 +193,22 @@ function schedulePad(freq, start, dur) {
   o.frequency.value = freq;
   o.detune.value = Math.random() * 8 - 4;
   g.gain.setValueAtTime(0, start);
-  g.gain.linearRampToValueAtTime(0.045, start + 1.2);
-  g.gain.setValueAtTime(0.045, start + dur - 0.6);
+  g.gain.linearRampToValueAtTime(peak, start + 1.2);
+  g.gain.setValueAtTime(peak, start + dur - 0.6);
   g.gain.linearRampToValueAtTime(0, start + dur);
   o.connect(g).connect(lowPassFilter);
   o.start(start);
   o.stop(start + dur + 0.2);
 }
 
-function scheduleBass(freq, start, dur) {
+function scheduleBass(freq, start, dur, peak) {
   // Low pluck on beat 1 of each bar — half-decay then quiet.
   const o = ctx.createOscillator();
   const g = ctx.createGain();
   o.type = 'sine';
   o.frequency.value = freq;
   g.gain.setValueAtTime(0, start);
-  g.gain.linearRampToValueAtTime(0.16, start + 0.05);
+  g.gain.linearRampToValueAtTime(peak, start + 0.05);
   g.gain.exponentialRampToValueAtTime(0.0001, start + dur * 0.7);
   o.connect(g).connect(musicGain);
   o.start(start);
@@ -148,7 +216,7 @@ function scheduleBass(freq, start, dur) {
 }
 
 function scheduleShaker(start) {
-  // Subtle hi-hat tick on beat 3 — short white noise burst through high-pass.
+  // Subtle hi-hat tick — short white noise burst through high-pass.
   const dur = 0.06;
   const buffer = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
   const data = buffer.getChannelData(0);
@@ -166,15 +234,91 @@ function scheduleShaker(start) {
   src.stop(start + dur + 0.02);
 }
 
+function scheduleBell(freq, start, dur, peak) {
+  // Soft mallet/bell tone — triangle wave, slow attack so it floats above
+  // the pad rather than punching through. Used in thinking/reflective moods.
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.type = 'triangle';
+  o.frequency.value = freq * 2; // one octave up so the bell reads as melody
+  g.gain.setValueAtTime(0, start);
+  g.gain.linearRampToValueAtTime(peak, start + 0.5);
+  g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+  o.connect(g).connect(lowPassFilter);
+  o.start(start);
+  o.stop(start + dur + 0.1);
+}
+
+function playImpactSwell() {
+  // One-shot "hit" cue — low boom + reversed-noise swell. Used when the mood
+  // flips into 'hit'. Played outside the bar scheduler so it lands immediately.
+  if (!ensureCtx() || muted) return;
+  const t = ctx.currentTime;
+  if (t - lastImpactAt < 1.2) return; // debounce
+  lastImpactAt = t;
+
+  // Sub boom
+  const o = ctx.createOscillator();
+  const og = ctx.createGain();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(70, t);
+  o.frequency.exponentialRampToValueAtTime(32, t + 1.4);
+  og.gain.setValueAtTime(0, t);
+  og.gain.linearRampToValueAtTime(0.55, t + 0.02);
+  og.gain.exponentialRampToValueAtTime(0.0001, t + 1.4);
+  o.connect(og).connect(master);
+  o.start(t);
+  o.stop(t + 1.5);
+
+  // White-noise swell (cymbal-ish), rises into the boom
+  const dur = 0.9;
+  const buf = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < data.length; i += 1) {
+    const env = i / data.length;
+    data[i] = (Math.random() * 2 - 1) * env * env;
+  }
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  const hp = ctx.createBiquadFilter();
+  hp.type = 'highpass';
+  hp.frequency.value = 4000;
+  const ng = ctx.createGain();
+  ng.gain.setValueAtTime(0, t);
+  ng.gain.linearRampToValueAtTime(0.18, t + dur - 0.05);
+  ng.gain.linearRampToValueAtTime(0, t + dur + 0.05);
+  src.connect(hp).connect(ng).connect(master);
+  src.start(t);
+  src.stop(t + dur + 0.1);
+}
+
 function scheduleBar(barIdx, startTime) {
-  const chord = progression[barIdx % progression.length];
-  chord.notes.forEach((freq) => schedulePad(freq, startTime, BAR));
-  // Bass on beats 1 and 3 of each bar.
-  scheduleBass(chord.bass, startTime, BAR / 2);
-  scheduleBass(chord.bass, startTime + BAR / 2, BAR / 2);
-  // Subtle shaker on the off-beats for lo-fi feel.
-  scheduleShaker(startTime + BEAT * 1);
-  scheduleShaker(startTime + BEAT * 3);
+  const mood = MOODS[activeMood] || MOODS.calm;
+  const chordName = mood.progression[barIdx % mood.progression.length];
+  const chord = CHORDS[chordName];
+
+  if (mood.hasPad) {
+    chord.notes.forEach((freq) => schedulePad(freq, startTime, BAR, mood.padGain));
+  }
+  if (mood.hasBass) {
+    scheduleBass(chord.bass, startTime, BAR / 2, mood.bassGain);
+    scheduleBass(chord.bass, startTime + BAR / 2, BAR / 2, mood.bassGain * 0.7);
+  }
+  if (mood.hasShaker) {
+    scheduleShaker(startTime + BEAT * 1);
+    scheduleShaker(startTime + BEAT * 3);
+    // Active / hit moods get extra eighth-note ticks for a more driven feel.
+    if (mood.extraTick) {
+      scheduleShaker(startTime + BEAT * 0.5);
+      scheduleShaker(startTime + BEAT * 1.5);
+      scheduleShaker(startTime + BEAT * 2.5);
+      scheduleShaker(startTime + BEAT * 3.5);
+    }
+  }
+  if (mood.hasBell) {
+    // Bell on the downbeat of each bar — uses the top note of the chord.
+    scheduleBell(chord.notes[2], startTime + 0.05, BAR * 0.9, mood.bellGain || 0.04);
+  }
 }
 
 export function startMusic() {
@@ -184,18 +328,18 @@ export function startMusic() {
     musicGain.gain.value = 0;
     lowPassFilter = ctx.createBiquadFilter();
     lowPassFilter.type = 'lowpass';
-    lowPassFilter.frequency.value = 1100; // warmer / less bright than before
+    lowPassFilter.frequency.value = (MOODS[activeMood] || MOODS.calm).lpfHz;
     lowPassFilter.Q.value = 0.65;
     lowPassFilter.connect(musicGain);
     musicGain.connect(master);
   }
+  const mood = MOODS[activeMood] || MOODS.calm;
   musicGain.gain.cancelScheduledValues(ctx.currentTime);
   musicGain.gain.setValueAtTime(musicGain.gain.value, ctx.currentTime);
-  musicGain.gain.linearRampToValueAtTime(MUSIC_VOLUME, ctx.currentTime + 1.5);
+  musicGain.gain.linearRampToValueAtTime(mood.busGain * MUSIC_VOLUME * 3, ctx.currentTime + 1.5);
 
   currentBar = 0;
   nextBarTime = ctx.currentTime + 0.15;
-  // schedule the first two bars now
   scheduleBar(0, nextBarTime);
   scheduleBar(1, nextBarTime + BAR);
   currentBar = 2;
@@ -233,22 +377,43 @@ export function pauseMusic() {
   musicGain.gain.linearRampToValueAtTime(0, t + 0.25);
 }
 
-/** Counterpart to pauseMusic — fades the bus back to MUSIC_VOLUME. */
+/** Counterpart to pauseMusic — fades the bus back to current mood volume. */
 export function resumeMusic() {
   if (muted) return;
   if (!musicGain || !ctx) { startMusic(); return; }
+  const mood = MOODS[activeMood] || MOODS.calm;
   const t = ctx.currentTime;
   musicGain.gain.cancelScheduledValues(t);
   musicGain.gain.setValueAtTime(musicGain.gain.value, t);
-  musicGain.gain.linearRampToValueAtTime(MUSIC_VOLUME, t + 0.6);
+  musicGain.gain.linearRampToValueAtTime(mood.busGain * MUSIC_VOLUME * 3, t + 0.6);
 }
 
+/**
+ * Set the current music mood. The next-scheduled bar uses the new mood's
+ * chord progression + instrumentation; the bus gain + low-pass filter ramp
+ * to the new targets over ~1s so transitions don't pop.
+ */
 export function setMusicMood(mood) {
-  // Soft tone shift for silent/reflective scenes.
-  if (!lowPassFilter || !ctx) return;
-  const cutoff = mood === 'silent' ? 500 : mood === 'reflective' ? 900 : 1800;
-  lowPassFilter.frequency.cancelScheduledValues(ctx.currentTime);
-  lowPassFilter.frequency.linearRampToValueAtTime(cutoff, ctx.currentTime + 1.2);
+  const next = MOODS[mood] ? mood : 'calm';
+  const prev = activeMood;
+  activeMood = next;
+
+  // If we just entered 'hit', schedule a one-shot impact immediately.
+  if (next === 'hit' && prev !== 'hit') playImpactSwell();
+
+  if (!lowPassFilter || !ctx || !musicGain) return;
+  const m = MOODS[next];
+  const t = ctx.currentTime;
+
+  lowPassFilter.frequency.cancelScheduledValues(t);
+  lowPassFilter.frequency.linearRampToValueAtTime(m.lpfHz, t + 1.0);
+
+  // Don't ramp bus when paused (muted bus) — pauseMusic owns it then.
+  if (musicGain.gain.value > 0.0001 || m.busGain > 0) {
+    musicGain.gain.cancelScheduledValues(t);
+    musicGain.gain.setValueAtTime(musicGain.gain.value, t);
+    musicGain.gain.linearRampToValueAtTime(m.busGain * MUSIC_VOLUME * 3, t + 0.8);
+  }
 }
 
 /* ============== Speech (TTS) ==============
@@ -348,9 +513,16 @@ function playChunkSequence(chunks, i, who, volume) {
   const audio = new Audio(url);
   currentCloudAudio = audio;
   audio.volume = volume;
-  audio.preservesPitch = false;
-  // Shanaya is 12–13: speed/pitch up the youthful Google Translate voice.
-  audio.playbackRate = who === 'shanaya' ? 1.15 : 1.0;
+  // preservesPitch must be TRUE so changing playbackRate doesn't shift pitch
+  // — otherwise the en-IN voice gets squeaky and stops sounding Indian.
+  audio.preservesPitch = true;
+  // Both voices use the same en-IN locale on the backend; prosody is what
+  // makes them distinct on the client side.
+  //   shanaya  → 1.0  : natural Indian-English female voice
+  //   narrator → 0.92 : slower so the narrator reads as more "adult"
+  // We previously sped Shanaya to 1.15× with preservesPitch=false to make her
+  // sound younger, but that distorted the accent.
+  audio.playbackRate = who === 'shanaya' ? 1.0 : 0.92;
   audio.crossOrigin = 'anonymous';
 
   if (i === 0) {

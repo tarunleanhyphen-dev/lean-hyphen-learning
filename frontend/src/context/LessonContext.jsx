@@ -50,6 +50,7 @@ export function LessonProvider({ children }) {
       }));
     },
     setAudioEnabled: (enabled) => setState((s) => ({ ...s, audioEnabled: enabled })),
+    setAudioDismissed: (v) => setState((s) => ({ ...s, audioDismissed: v })),
     audioEnabled: state.audioEnabled ?? false,
   }), [state]);
 

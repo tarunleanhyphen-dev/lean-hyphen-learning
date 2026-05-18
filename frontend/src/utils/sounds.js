@@ -509,7 +509,11 @@ function playChunkSequence(chunks, i, who, volume) {
     if (activeUtterances === 0) speakEndHandler?.();
     return;
   }
-  const url = `${CLOUD_TTS_BASE}/api/tts?voice=${encodeURIComponent(who)}&text=${encodeURIComponent(chunks[i])}`;
+  // The `v` query param cache-busts when we change voices on the backend.
+  // Without it, browsers that cached the old Google Translate MP3 (under
+  // Cache-Control: immutable) would keep replaying the old voice for the
+  // same phrase, even after a backend deploy. Bump this when voices change.
+  const url = `${CLOUD_TTS_BASE}/api/tts?voice=${encodeURIComponent(who)}&v=3&text=${encodeURIComponent(chunks[i])}`;
   const audio = new Audio(url);
   currentCloudAudio = audio;
   audio.volume = volume;

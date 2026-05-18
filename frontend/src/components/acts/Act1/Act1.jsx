@@ -369,10 +369,13 @@ export default function Act1({ onComplete }) {
           </div>
         </div>
 
-        {/* RIGHT — top-aligned with left column */}
-        <div className="relative flex flex-col items-stretch">
+        {/* RIGHT — top-aligned with the scene tag row on the left column.
+           Negative top margin pulls the phone column up so the phone's top
+           edge sits flush with the left card's top, not the bottom of the
+           InsightCallout (which only renders when there's an insight). */}
+        <div className="relative flex flex-col items-stretch -mt-1 sm:-mt-2">
           <InsightCallout insight={phase?.insight} />
-          <div className="-mt-2 flex justify-center">
+          <div className="flex justify-center">
             <PhoneFrame dim={phoneState.dim}>
               <MockShoppingApp state={phoneState} />
             </PhoneFrame>

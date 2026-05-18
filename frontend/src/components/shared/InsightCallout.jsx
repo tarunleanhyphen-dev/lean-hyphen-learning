@@ -7,7 +7,7 @@ import { Sparkles, AlertCircle } from 'lucide-react';
  */
 export default function InsightCallout({ insight }) {
   return (
-    <div className="pointer-events-none mb-2 flex min-h-[2rem] w-full justify-center" aria-live="polite">
+    <div className={`pointer-events-none flex w-full justify-center ${insight ? 'mb-2 min-h-[2rem]' : ''}`} aria-live="polite">
       <AnimatePresence mode="wait">
         {insight && (
           <motion.div

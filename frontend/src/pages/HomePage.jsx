@@ -92,15 +92,18 @@ export default function HomePage() {
  * clicks. No library, no canvas — pure framer-motion + Tailwind.
  */
 function FloatingBubbles() {
+  // Tuned for "soft ambience" not "neon disco". Opacity is roughly half of
+  // what it was before so the screen doesn't sting the eyes, and blur is
+  // dropped 60 px → 36 px so they read as orbs rather than smears.
   const bubbles = [
-    { color: '#FF9F1C', size: 280, x0: -60,  y0: -40,  dx:  140, dy:  120, dur: 22, op: 0.30 },
-    { color: '#FF6B6B', size: 320, x0:  '60%', y0: -80, dx: -160, dy:   80, dur: 26, op: 0.28 },
-    { color: '#14B8A6', size: 240, x0: '20%', y0: '40%', dx:  120, dy:  -90, dur: 20, op: 0.22 },
-    { color: '#9B5DE5', size: 360, x0: '70%', y0: '55%', dx: -100, dy:  110, dur: 28, op: 0.22 },
-    { color: '#F15BB5', size: 200, x0: '10%', y0: '70%', dx:  130, dy:  -70, dur: 18, op: 0.24 },
-    { color: '#06AED5', size: 220, x0: '85%', y0: '30%', dx: -130, dy:  100, dur: 24, op: 0.20 },
-    { color: '#FFD23F', size: 180, x0: '40%', y0: '15%', dx:  -90, dy:   60, dur: 16, op: 0.22 },
-    { color: '#7DDA58', size: 160, x0: '55%', y0: '80%', dx:  100, dy:  -80, dur: 14, op: 0.18 },
+    { color: '#FF9F1C', size: 280, x0: -60,  y0: -40,  dx:  140, dy:  120, dur: 22, op: 0.14 },
+    { color: '#FF6B6B', size: 320, x0:  '60%', y0: -80, dx: -160, dy:   80, dur: 26, op: 0.13 },
+    { color: '#14B8A6', size: 240, x0: '20%', y0: '40%', dx:  120, dy:  -90, dur: 20, op: 0.10 },
+    { color: '#9B5DE5', size: 360, x0: '70%', y0: '55%', dx: -100, dy:  110, dur: 28, op: 0.10 },
+    { color: '#F15BB5', size: 200, x0: '10%', y0: '70%', dx:  130, dy:  -70, dur: 18, op: 0.11 },
+    { color: '#06AED5', size: 220, x0: '85%', y0: '30%', dx: -130, dy:  100, dur: 24, op: 0.09 },
+    { color: '#FFD23F', size: 180, x0: '40%', y0: '15%', dx:  -90, dy:   60, dur: 16, op: 0.10 },
+    { color: '#7DDA58', size: 160, x0: '55%', y0: '80%', dx:  100, dy:  -80, dur: 14, op: 0.08 },
   ];
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -115,7 +118,7 @@ function FloatingBubbles() {
             height: b.size,
             backgroundColor: b.color,
             opacity: b.op,
-            filter: 'blur(60px)',
+            filter: 'blur(36px)',
             willChange: 'transform, opacity',
           }}
           animate={{

@@ -79,6 +79,7 @@ export default function Act1({ onComplete }) {
   const [saving, setSaving] = useState(false);
   const [completedHolds, setCompletedHolds] = useState(() => new Set());
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [speaker, setSpeaker] = useState(null); // 'shanaya' | 'narrator' | null
   const [wordTick, setWordTick] = useState(0);
 
   const { sessionId, audioEnabled, setAudioEnabled, setAudioDismissed, setReflection, setActStatus, state: lessonState } = useLesson();
@@ -125,8 +126,8 @@ export default function Act1({ onComplete }) {
 
   useEffect(() => {
     setSpeechCallbacks({
-      onStart: () => setIsSpeaking(true),
-      onEnd:   () => setIsSpeaking(false),
+      onStart: (who) => { setIsSpeaking(true); setSpeaker(who || 'shanaya'); },
+      onEnd:   () => { setIsSpeaking(false); setSpeaker(null); },
       onWord:  () => setWordTick((t) => t + 1),
     });
     return () => setSpeechCallbacks(null);
@@ -327,7 +328,7 @@ export default function Act1({ onComplete }) {
             <div className="mt-2 flex flex-col">
               <div className="relative flex items-start gap-3 sm:gap-5">
                 <div className="relative shrink-0">
-                  <ShanayaAvatar emotion={currentEmotion} speaking={isSpeaking} wordTick={wordTick} size="xl" />
+                  <ShanayaAvatar emotion={currentEmotion} speaking={isSpeaking && speaker === 'shanaya'} wordTick={wordTick} size="xl" />
                   {/* Imagination clouds — only render when the current phase
                      supplies imagery (used by Scene 0's "she's picturing
                      birthday at the café / friends / outfits" beats). */}

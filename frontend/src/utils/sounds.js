@@ -467,8 +467,11 @@ export function speak(text, opts = {}) {
   // auto-advance timer during the 200–500 ms it takes to fetch + play() the
   // MP3, and short phases can advance before TTS even begins — which is
   // exactly the "text not read fully" symptom the user reported.
+  //
+  // The `who` is forwarded so the avatar can decide whether to lip-sync
+  // (Shanaya speaking) or stay still (narrator speaking).
   activeUtterances += 1;
-  speakStartHandler?.();
+  speakStartHandler?.(opts.who || 'shanaya');
   cloudSpeak(text, opts);
 }
 

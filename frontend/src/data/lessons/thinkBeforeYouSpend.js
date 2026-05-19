@@ -77,8 +77,11 @@ function act1Scenes() {
           narration: 'Shanaya is 13, super social, and always excited about making memories with her friends.',
           phone: { view: 'feed' },
           imagery: [
-            { id: 'friends-1', emoji: '👯‍♀️', caption: 'her crew',     pos: 'tr', delay: 0.1 },
-            { id: 'selfie',    emoji: '🤳',  caption: 'selfies',     pos: 'br', delay: 0.4 },
+            { id: 'friends-1', emoji: '👯‍♀️', caption: 'her crew',  pos: 'tr', delay: 0.0 },
+            { id: 'selfie',    emoji: '🤳',  caption: 'selfies',  pos: 'br', delay: 0.35 },
+            { id: 'school',    emoji: '🏫',  caption: 'school',   pos: 'tl', delay: 0.7  },
+            { id: 'reels',     emoji: '📱',  caption: 'reels',    pos: 'bl', delay: 1.1  },
+            { id: 'heart',     emoji: '💖',                       pos: 'top', delay: 1.4 },
           ],
         },
         {
@@ -89,36 +92,52 @@ function act1Scenes() {
           narration: 'Her birthday is just two days away — her group is planning to celebrate at a cute café nearby.',
           phone: { view: 'feed' },
           imagery: [
-            { id: 'cake',  emoji: '🎂',  caption: 'in 2 days',   pos: 'tr', delay: 0.1 },
-            { id: 'cafe',  emoji: '☕️', caption: 'cute café',   pos: 'br', delay: 0.45 },
+            { id: 'cake',      emoji: '🎂',  caption: 'in 2 days',   pos: 'tr', delay: 0.0  },
+            { id: 'cafe',      emoji: '☕️',  caption: 'cute café',   pos: 'br', delay: 0.35 },
+            { id: 'balloons',  emoji: '🎈',                          pos: 'tl', delay: 0.7  },
+            { id: 'sparkle-b', emoji: '✨',  caption: 'the day',     pos: 'bl', delay: 1.0  },
+            { id: 'gift',      emoji: '🎁',                          pos: 'top', delay: 1.3 },
           ],
         },
         {
+          /* The narrator's beat above is the heaviest line in the act;
+           * giving Shanaya a personal thought here grounds it in HER voice
+           * (and gives the right column something to read while the cafe
+           * imagery floats in). */
           id: 's0-group-chat',
-          duration: 11000,
+          duration: 13000,
           status: 'Group chat is going wild',
           emotion: 'tempted',
           bubbles: [
-            { side: 'right', type: 'thought', text: 'Birthday fit checkkk 👀' },
-            { side: 'right', type: 'thought', text: 'We need pics!! Dress extra cool 😎' },
+            { side: 'right', type: 'thought', text: 'Birthday fit checkkk 👀 — we NEED matching vibes!' },
+            { side: 'right', type: 'thought', text: 'Cute photos, cute café, cute everything 💖' },
           ],
           phone: { view: 'feed' },
           imagery: [
-            { id: 'chat',  emoji: '💬', caption: 'group chat',  pos: 'tr', delay: 0.1 },
-            { id: 'phone', emoji: '📱', caption: 'pinging',     pos: 'br', delay: 0.4 },
+            { id: 'chat',      emoji: '💬',  caption: 'group chat',  pos: 'tr', delay: 0.0 },
+            { id: 'phone',     emoji: '📱',  caption: 'pinging',     pos: 'br', delay: 0.35 },
+            { id: 'fire',      emoji: '🔥',                          pos: 'tl', delay: 0.7  },
+            { id: 'heart-eyes',emoji: '😍',                          pos: 'bl', delay: 1.0  },
+            { id: 'star-c',    emoji: '⭐',                          pos: 'top', delay: 1.3 },
           ],
         },
         {
           id: 's0-vision',
-          duration: 13000,
+          duration: 14000,
           status: 'Imagining the day',
           emotion: 'happy',
-          narration: 'She already knows the kind of birthday she wants — fun photos, matching vibes, good food, and an outfit that makes her feel confident.',
+          bubbles: [
+            { side: 'right', type: 'thought', text: 'I already know the vibe — confident outfit, great photos, perfect day.' },
+          ],
+          narration: 'Fun photos, matching vibes, good food, and an outfit that makes her feel confident.',
           phone: { view: 'feed' },
           imagery: [
-            { id: 'fit',     emoji: '👗', caption: 'the outfit', pos: 'tr', delay: 0.1 },
-            { id: 'camera',  emoji: '📸', caption: 'fun photos', pos: 'br', delay: 0.4 },
-            { id: 'sparkle', emoji: '✨', caption: 'confidence', pos: 'tl', delay: 0.7 },
+            { id: 'fit',       emoji: '👗',  caption: 'the outfit', pos: 'tr', delay: 0.0  },
+            { id: 'camera',    emoji: '📸',  caption: 'fun photos', pos: 'br', delay: 0.3  },
+            { id: 'sparkle-v', emoji: '✨',  caption: 'confidence', pos: 'tl', delay: 0.6  },
+            { id: 'food',      emoji: '🍰',  caption: 'good food',  pos: 'bl', delay: 0.9  },
+            { id: 'shoes-v',   emoji: '👟',                         pos: 'top', delay: 1.2 },
+            { id: 'star-v',    emoji: '🌟',                         pos: 'right', delay: 1.5 },
           ],
         },
         {
@@ -129,8 +148,9 @@ function act1Scenes() {
           narration: 'So she opens her favourite shopping app, planning to quickly buy one pair of shoes to complete her birthday look and log off.',
           phone: { view: 'feed' },
           imagery: [
-            { id: 'shoes',   emoji: '👟', caption: 'just shoes', pos: 'tr', delay: 0.1 },
-            { id: 'plan',    emoji: '📝', caption: 'one item',   pos: 'br', delay: 0.4 },
+            { id: 'shoes-o',   emoji: '👟',  caption: 'just shoes', pos: 'tr', delay: 0.0 },
+            { id: 'plan-o',    emoji: '📝',  caption: 'one item',   pos: 'br', delay: 0.35 },
+            { id: 'budget-o',  emoji: '₹',   caption: '₹1,500 cap', pos: 'tl', delay: 0.7  },
           ],
         },
       ],

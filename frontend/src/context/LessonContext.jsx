@@ -5,11 +5,23 @@ const LessonContext = createContext(null);
 
 const STORAGE_KEY = 'lh.lessonState.v1';
 
+// Keys that must NOT survive a page reload. Browsers tie permission to
+// play() audio to a user gesture in the CURRENT page session; if we trust
+// a stored `audioEnabled: true`, the consent banner is hidden but the
+// browser still blocks audio.play() until the user clicks something — so
+// the very first narration is silently rejected and the student wonders
+// why nothing's reading. Stripping these on load forces the banner to
+// always show on a fresh page, which guarantees a user gesture before
+// any TTS request, which guarantees the audio plays.
+const VOLATILE_KEYS = ['audioEnabled', 'audioDismissed'];
+
 function loadInitial() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return {};
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    for (const k of VOLATILE_KEYS) delete parsed[k];
+    return parsed;
   } catch {
     return {};
   }
@@ -19,7 +31,13 @@ export function LessonProvider({ children }) {
   const [state, setState] = useState(loadInitial);
 
   useEffect(() => {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
+    try {
+      // Don't write back the volatile audio flags either — keeps
+      // localStorage clean.
+      const toStore = { ...state };
+      for (const k of VOLATILE_KEYS) delete toStore[k];
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(toStore));
+    } catch {}
   }, [state]);
 
   const value = useMemo(() => ({

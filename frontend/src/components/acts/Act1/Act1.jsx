@@ -12,7 +12,6 @@ import MultipleChoice from '../../shared/MultipleChoice.jsx';
 import AudioToggle from '../../shared/AudioToggle.jsx';
 import AudioConsentBanner from '../../shared/AudioConsentBanner.jsx';
 import InsightCallout from '../../shared/InsightCallout.jsx';
-import TricksSpotted from '../../shared/TricksSpotted.jsx';
 import EndOfActCelebration from '../../shared/EndOfActCelebration.jsx';
 import DecisionTimeline from '../../shared/DecisionTimeline.jsx';
 import MockShoppingApp from '../../phone/MockShoppingApp.jsx';
@@ -87,9 +86,9 @@ export default function Act1({ onComplete }) {
   // analyser. Drives ShanayaAvatar's mouth open/close so lip-sync actually
   // matches the audio waveform instead of pulsing on every word.
   const mouthRef = useRef(0);
-  // Track distinct insight labels surfaced so far. The header chip reads
-  // tricksCount; the Set prevents the same insight from incrementing
-  // twice if the user replays a scene.
+  // Distinct insight labels surfaced so far. Still tracked because the
+  // end-of-act celebration uses tricksCount as a stat; we just no longer
+  // display the live counter chip in the header.
   const tricksSeenRef = useRef(new Set());
   const [tricksCount, setTricksCount] = useState(0);
 
@@ -338,7 +337,6 @@ export default function Act1({ onComplete }) {
           <h1 className="text-[13px] font-semibold text-white/85 sm:text-base">{act.title}</h1>
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2">
-          <TricksSpotted count={tricksCount} />
           <AudioToggle />
           <button
             onClick={seq.paused ? seq.resume : seq.pause}

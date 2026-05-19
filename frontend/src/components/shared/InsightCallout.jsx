@@ -12,10 +12,14 @@ export default function InsightCallout({ insight }) {
         {insight && (
           <motion.div
             key={insight.label}
-            initial={{ opacity: 0, y: -10, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
+            initial={{ opacity: 0, y: -14, scale: 0.94 }}
+            animate={{ opacity: 1, y: 0, scale: 1, boxShadow: [
+              '0 8px 24px -8px rgba(255,159,28,0.0)',
+              '0 8px 24px -4px rgba(255,159,28,0.45)',
+              '0 8px 24px -8px rgba(255,159,28,0.0)',
+            ] }}
             exit={{ opacity: 0, y: -8, scale: 0.96 }}
-            transition={{ duration: 0.4, ease: 'easeOut' }}
+            transition={{ duration: 0.55, ease: 'easeOut', boxShadow: { duration: 1.2 } }}
             className="relative flex w-full max-w-md items-start gap-3 rounded-2xl bg-white px-4 py-3 shadow-xl ring-1 ring-saffron-500/30"
           >
             <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-saffron-500/15">

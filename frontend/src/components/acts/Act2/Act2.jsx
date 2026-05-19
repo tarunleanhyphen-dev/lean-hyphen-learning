@@ -6,12 +6,14 @@ import ThoughtBubble from '../../shared/ThoughtBubble.jsx';
 import LiveStatus from '../../shared/LiveStatus.jsx';
 import SceneProgress from '../../shared/SceneProgress.jsx';
 import AudioToggle from '../../shared/AudioToggle.jsx';
+import TricksSpotted from '../../shared/TricksSpotted.jsx';
 import AudioConsentBanner from '../../shared/AudioConsentBanner.jsx';
 import DragMatchBoard from '../../shared/DragMatchBoard.jsx';
 import DefinitionPuzzle from '../../shared/DefinitionPuzzle.jsx';
 import FrameworkCard from '../../shared/FrameworkCard.jsx';
 import { pickMood } from '../Act1/Act1.jsx';
 import { lesson, act2Activities } from '../../../data/lessons/thinkBeforeYouSpend.js';
+import EndOfActCelebration from '../../shared/EndOfActCelebration.jsx';
 import { useSequencer } from '../../../hooks/useSequencer.js';
 import { useLesson } from '../../../context/LessonContext.jsx';
 import { api } from '../../../utils/api.js';
@@ -38,6 +40,11 @@ export default function Act2({ onComplete }) {
   const [wordTick, setWordTick] = useState(0);
   // Real-time speech amplitude (0–1) — drives ShanayaAvatar's mouth.
   const mouthRef = useRef(0);
+  // Same tricks-spotted score the chip displays. Act 2 has fewer of these
+  // (insights are inline on the activity cards), but the chip still ticks
+  // up on the few that fire so the running total persists visually.
+  const tricksSeenRef = useRef(new Set());
+  const [tricksCount, setTricksCount] = useState(0);
 
   const seq = useSequencer(phases, { holdWhile: isSpeaking });
   const sceneIdx = phaseToScene[seq.index] ?? 0;
@@ -75,6 +82,12 @@ export default function Act2({ onComplete }) {
     if (lastCuePhaseId.current === phase.id) return;
     lastCuePhaseId.current = phase.id;
     if (audioEnabled && phase.cue && sounds[phase.cue]) sounds[phase.cue]();
+    const insight = phase.insight;
+    if (insight?.label && !tricksSeenRef.current.has(insight.label)) {
+      tricksSeenRef.current.add(insight.label);
+      setTricksCount(tricksSeenRef.current.size);
+      if (audioEnabled && sounds.aha) sounds.aha();
+    }
   }, [phase, audioEnabled]);
 
   const spokenTexts = useRef(new Set());
@@ -128,14 +141,35 @@ export default function Act2({ onComplete }) {
     });
   }, []);
 
-  const advanceOrFinish = useCallback((payload) => {
+  // Same celebration loop as Act 1: when the act's last phase reports
+  // done, we show the recap modal instead of immediately navigating.
+  // The student clicks Continue → finishAct() fires the real onComplete.
+  const [showCelebration, setShowCelebration] = useState(false);
+  const startTimeRef = useRef(Date.now());
+
+  const advanceOrFinish = useCallback(() => {
     if (seq.isLast) {
       setActStatus(lesson.id, 'act2', 'completed');
-      onComplete?.(payload);
+      setShowCelebration(true);
     } else {
       seq.advance();
     }
-  }, [seq, onComplete, setActStatus]);
+  }, [seq, setActStatus]);
+
+  const finishAct = useCallback(() => {
+    setShowCelebration(false);
+    onComplete?.();
+  }, [onComplete]);
+
+  const celebrationStats = useMemo(() => {
+    const mins = Math.max(1, Math.round((Date.now() - startTimeRef.current) / 60000));
+    return [
+      { label: 'Tricks named',     value: 4,           sub: 'matched all 4'        },
+      { label: 'Definition built', value: 'Solved',    sub: 'impulse buying'        },
+      { label: 'Pause framework',  value: '5 steps',   sub: 'Plan → Trade-off'      },
+      { label: 'Time taken',       value: `${mins} min`, sub: 'self-paced'          },
+    ];
+  }, []);
 
   const handleActivityComplete = useCallback(async (kind, payload = {}) => {
     try {
@@ -185,6 +219,7 @@ export default function Act2({ onComplete }) {
           <h1 className="text-[13px] font-semibold text-white/85 sm:text-base">{act.title}</h1>
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2">
+          <TricksSpotted count={tricksCount} />
           <AudioToggle />
           <button
             onClick={seq.paused ? seq.resume : seq.pause}
@@ -327,6 +362,19 @@ export default function Act2({ onComplete }) {
           {seq.isLast ? 'Finish Act 2' : 'Next'} <ChevronRight className="h-4 w-4" />
         </button>
       </div>
+
+      <AnimatePresence>
+        {showCelebration && (
+          <EndOfActCelebration
+            actLabel="Act 2"
+            title="Understanding Impulse Buying"
+            stats={celebrationStats}
+            takeaway="The trap has a name. Plan, Need, Budget, Wait, Trade-off — five questions you can run in your head before you ever tap 'Buy'."
+            continueLabel="Back to home →"
+            onContinue={finishAct}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

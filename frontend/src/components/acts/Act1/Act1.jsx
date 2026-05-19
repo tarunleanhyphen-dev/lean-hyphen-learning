@@ -12,6 +12,8 @@ import MultipleChoice from '../../shared/MultipleChoice.jsx';
 import AudioToggle from '../../shared/AudioToggle.jsx';
 import AudioConsentBanner from '../../shared/AudioConsentBanner.jsx';
 import InsightCallout from '../../shared/InsightCallout.jsx';
+import TricksSpotted from '../../shared/TricksSpotted.jsx';
+import EndOfActCelebration from '../../shared/EndOfActCelebration.jsx';
 import DecisionTimeline from '../../shared/DecisionTimeline.jsx';
 import MockShoppingApp from '../../phone/MockShoppingApp.jsx';
 import { lesson, intendedBudget, products } from '../../../data/lessons/thinkBeforeYouSpend.js';
@@ -85,6 +87,11 @@ export default function Act1({ onComplete }) {
   // analyser. Drives ShanayaAvatar's mouth open/close so lip-sync actually
   // matches the audio waveform instead of pulsing on every word.
   const mouthRef = useRef(0);
+  // Track distinct insight labels surfaced so far. The header chip reads
+  // tricksCount; the Set prevents the same insight from incrementing
+  // twice if the user replays a scene.
+  const tricksSeenRef = useRef(new Set());
+  const [tricksCount, setTricksCount] = useState(0);
 
   const { sessionId, audioEnabled, setAudioEnabled, setAudioDismissed, setReflection, setActStatus, state: lessonState } = useLesson();
   // Hold the very first phase until the user has decided about audio —
@@ -147,6 +154,14 @@ export default function Act1({ onComplete }) {
     if (lastCuePhaseId.current === phase.id) return;
     lastCuePhaseId.current = phase.id;
     if (audioEnabled && phase.cue && sounds[phase.cue]) sounds[phase.cue]();
+    // First time we see a given insight label, count it as a "trick spotted"
+    // and play a small bell so the moment earns an audible win.
+    const insight = phase.insight;
+    if (insight?.label && !tricksSeenRef.current.has(insight.label)) {
+      tricksSeenRef.current.add(insight.label);
+      setTricksCount(tricksSeenRef.current.size);
+      if (audioEnabled && sounds.aha) sounds.aha();
+    }
   }, [phase, audioEnabled]);
 
   // Speak new bubbles + narration, deduped by text.
@@ -217,14 +232,39 @@ export default function Act1({ onComplete }) {
     });
   }, []);
 
-  const advanceOrFinish = useCallback((payload) => {
+  // Show the celebration modal between "act finished" and the actual
+  // navigation. Once the student clicks Continue, the navigation fires.
+  const [showCelebration, setShowCelebration] = useState(false);
+  const startTimeRef = useRef(Date.now());
+
+  const advanceOrFinish = useCallback(() => {
     if (seq.isLast) {
       setActStatus(lesson.id, 'act1', 'completed');
-      onComplete?.(payload);
+      setShowCelebration(true);
     } else {
       seq.advance();
     }
-  }, [seq, onComplete, setActStatus]);
+  }, [seq, setActStatus]);
+
+  const finishAct = useCallback(() => {
+    setShowCelebration(false);
+    onComplete?.();
+  }, [onComplete]);
+
+  // Stats handed to the celebration modal. Computed lazily off cart, the
+  // tricks-spotted count, and the wall-clock duration since mount.
+  const celebrationStats = useMemo(() => {
+    const items = cartIds.length;
+    const spent = `₹${cartTotal.toLocaleString('en-IN')}`;
+    const overPct = Math.max(0, Math.round((cartTotal / intendedBudget - 1) * 100));
+    const mins = Math.max(1, Math.round((Date.now() - startTimeRef.current) / 60000));
+    return [
+      { label: 'Tricks spotted', value: tricksCount, sub: `out of ${4}` },
+      { label: 'Items in cart',  value: items,       sub: `vs 1 planned` },
+      { label: 'Money spent',    value: spent,       sub: `+${overPct}% over plan` },
+      { label: 'Time taken',     value: `${mins} min`, sub: 'self-paced' },
+    ];
+  }, [cartIds.length, cartTotal, tricksCount]);
 
   const handleReflectionSubmit = useCallback(async (response) => {
     setSaving(true);
@@ -292,6 +332,7 @@ export default function Act1({ onComplete }) {
           <h1 className="text-[13px] font-semibold text-white/85 sm:text-base">{act.title}</h1>
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2">
+          <TricksSpotted count={tricksCount} />
           <AudioToggle />
           <button
             onClick={seq.paused ? seq.resume : seq.pause}
@@ -480,6 +521,19 @@ export default function Act1({ onComplete }) {
           Next <ChevronRight className="h-4 w-4" />
         </button>
       </div>
+
+      <AnimatePresence>
+        {showCelebration && (
+          <EndOfActCelebration
+            actLabel="Act 1"
+            title="Temptation"
+            stats={celebrationStats}
+            takeaway="Every purchase felt justified in the moment. The trap doesn't ambush you — it works by making each next step feel reasonable. That's why pausing before you tap 'Buy' matters."
+            continueLabel="Move to Act 2 →"
+            onContinue={finishAct}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

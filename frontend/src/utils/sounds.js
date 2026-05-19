@@ -92,6 +92,13 @@ export const sounds = {
   alert() {
     tone({ freq: 880, freqEnd: 1100, type: 'sawtooth', attack: 0.003, decay: 0.22, peak: 0.18 });
   },
+  // "Aha moment" — a clean two-note bell that says "you just noticed
+  // something". Played alongside the InsightCallout reveal so every
+  // insight earns a tiny audible win.
+  aha() {
+    tone({ freq: 988,  type: 'triangle', attack: 0.003, decay: 0.32, peak: 0.22 });
+    setTimeout(() => tone({ freq: 1318, type: 'triangle', attack: 0.003, decay: 0.45, peak: 0.18 }), 80);
+  },
 };
 
 /* ============== Music sequencer (mood-aware) ==============

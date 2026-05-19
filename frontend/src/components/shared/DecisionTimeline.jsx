@@ -31,7 +31,16 @@ export default function DecisionTimeline({ entries = [] }) {
       </div>
 
       <ol className="relative space-y-2 pl-5">
-        <span aria-hidden className="absolute left-[7px] top-1.5 bottom-1.5 w-px bg-ink-300/40" />
+        {/* Trail bar — soft vertical gradient that warms up as more items
+           pile on, hinting that each new add tints the journey toward
+           "this got out of hand". */}
+        <span
+          aria-hidden
+          className="absolute left-[7px] top-1.5 bottom-1.5 w-[2px] rounded-full"
+          style={{
+            background: 'linear-gradient(to bottom, rgba(20,184,166,0.6) 0%, rgba(255,159,28,0.7) 50%, rgba(255,107,107,0.8) 100%)',
+          }}
+        />
         <AnimatePresence initial={false}>
           {entries.map((e, i) => {
             const p = products[e.id];
@@ -39,16 +48,30 @@ export default function DecisionTimeline({ entries = [] }) {
             const meta = TRIGGER_META[e.trigger] || TRIGGER_META.plan;
             const tone = TONE[meta.tone];
             const Icon = meta.Icon;
+            const isLatest = i === entries.length - 1;
             return (
               <motion.li
                 key={e.id + '-' + i}
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
+                initial={{ opacity: 0, x: -12, scale: 0.92 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.4 }}
+                transition={{ type: 'spring', stiffness: 380, damping: 22, mass: 0.7 }}
                 className="relative flex items-center gap-2"
               >
-                <span className={`absolute -left-[14px] top-1.5 h-2.5 w-2.5 rounded-full ${tone.dot} ring-2 ring-white`} />
+                {/* Dot + halo. The newest entry briefly pulses to draw the
+                   eye to "this just happened". */}
+                <span
+                  className={`absolute -left-[14px] top-1.5 h-2.5 w-2.5 rounded-full ${tone.dot} ring-2 ring-white`}
+                />
+                {isLatest && (
+                  <motion.span
+                    aria-hidden
+                    initial={{ scale: 1, opacity: 0.7 }}
+                    animate={{ scale: 2.4, opacity: 0 }}
+                    transition={{ duration: 1.1, ease: 'easeOut' }}
+                    className={`absolute -left-[14px] top-1.5 h-2.5 w-2.5 rounded-full ${tone.dot}`}
+                  />
+                )}
                 <span className="text-base leading-none">{p.emoji}</span>
                 <span className="text-[12px] font-semibold text-ink-900">{p.name}</span>
                 <span className="text-[11px] font-bold text-ink-500">₹{p.price.toLocaleString('en-IN')}</span>

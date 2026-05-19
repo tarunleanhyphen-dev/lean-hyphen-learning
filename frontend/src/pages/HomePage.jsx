@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Play, Clock, Sparkles, ShieldCheck } from 'lucide-react';
+import { Play, Clock, Sparkles } from 'lucide-react';
 import { lesson } from '../data/lessons/thinkBeforeYouSpend.js';
 
 export default function HomePage() {
@@ -7,7 +7,7 @@ export default function HomePage() {
     <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col px-6 py-10">
       <header className="flex items-center justify-between">
         <a href="/" aria-label="Lean Hyphen home" className="inline-flex shrink-0">
-          <img src="/lean-hyphen-logo.svg" alt="Lean Hyphen" className="h-9 w-auto sm:h-10" draggable={false} />
+          <img src="/lean-hyphen-logo.svg" alt="Lean Hyphen" className="h-12 w-auto sm:h-14" draggable={false} />
         </a>
         <a
           href="https://lean-hyphen-user-web-4zrf.vercel.app/#home"
@@ -34,10 +34,6 @@ export default function HomePage() {
         <div className="flex flex-wrap items-center gap-3 text-sm text-white/60">
           <span className="inline-flex items-center gap-1.5">
             <Clock className="h-4 w-4" /> {lesson.totalMinutes} min total
-          </span>
-          <span>·</span>
-          <span className="inline-flex items-center gap-1.5">
-            <ShieldCheck className="h-4 w-4" /> No login needed
           </span>
         </div>
 

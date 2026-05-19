@@ -6,7 +6,6 @@ import ThoughtBubble from '../../shared/ThoughtBubble.jsx';
 import LiveStatus from '../../shared/LiveStatus.jsx';
 import SceneProgress from '../../shared/SceneProgress.jsx';
 import AudioToggle from '../../shared/AudioToggle.jsx';
-import TricksSpotted from '../../shared/TricksSpotted.jsx';
 import AudioConsentBanner from '../../shared/AudioConsentBanner.jsx';
 import DragMatchBoard from '../../shared/DragMatchBoard.jsx';
 import DefinitionPuzzle from '../../shared/DefinitionPuzzle.jsx';
@@ -40,11 +39,6 @@ export default function Act2({ onComplete }) {
   const [wordTick, setWordTick] = useState(0);
   // Real-time speech amplitude (0–1) — drives ShanayaAvatar's mouth.
   const mouthRef = useRef(0);
-  // Same tricks-spotted score the chip displays. Act 2 has fewer of these
-  // (insights are inline on the activity cards), but the chip still ticks
-  // up on the few that fire so the running total persists visually.
-  const tricksSeenRef = useRef(new Set());
-  const [tricksCount, setTricksCount] = useState(0);
 
   const seq = useSequencer(phases, { holdWhile: isSpeaking });
   const sceneIdx = phaseToScene[seq.index] ?? 0;
@@ -82,12 +76,6 @@ export default function Act2({ onComplete }) {
     if (lastCuePhaseId.current === phase.id) return;
     lastCuePhaseId.current = phase.id;
     if (audioEnabled && phase.cue && sounds[phase.cue]) sounds[phase.cue]();
-    const insight = phase.insight;
-    if (insight?.label && !tricksSeenRef.current.has(insight.label)) {
-      tricksSeenRef.current.add(insight.label);
-      setTricksCount(tricksSeenRef.current.size);
-      if (audioEnabled && sounds.aha) sounds.aha();
-    }
   }, [phase, audioEnabled]);
 
   const spokenTexts = useRef(new Set());
@@ -219,7 +207,6 @@ export default function Act2({ onComplete }) {
           <h1 className="text-[13px] font-semibold text-white/85 sm:text-base">{act.title}</h1>
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2">
-          <TricksSpotted count={tricksCount} />
           <AudioToggle />
           <button
             onClick={seq.paused ? seq.resume : seq.pause}

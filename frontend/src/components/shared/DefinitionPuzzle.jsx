@@ -80,28 +80,47 @@ export default function DefinitionPuzzle({ data, onCueClick, onCueCorrect, onCue
     onSpeakDefinitionRef.current?.(data.finalLine);
   }, [placed, data.finalLine]);
 
-  // Advance after narration finishes. If speakingDone is still false (speech
-  // in flight), wait — with a hard cap of 8 s. If speakingDone is true (either
-  // speech ended or audio is off), give a 1.4 s breath then advance. Either
-  // path fires onComplete exactly once via the advancedRef guard.
+  // Advance only after the definition has had time to read in full. Polls
+  // every 250 ms; fires onComplete when BOTH (a) at least MIN_WAIT has
+  // elapsed since the puzzle was completed AND (b) speakingDone is true.
+  // A 15 s safety cap forces an advance if speech never starts/ends so
+  // muted students and bad TTS networks don't get stuck.
+  //
+  // MIN_WAIT of 9 s exists because the previous 1.4 s breath fired even
+  // when speakingDone flickered true briefly before the audio element
+  // had a chance to start — the user heard the puzzle advance before the
+  // definition read aloud. With a guaranteed floor, the full sentence
+  // ("Impulse buying is buying something you didn't plan to buy because
+  // it feels right in the moment.") is always given its ~7-8 s of audio
+  // plus a small breath before the next scene appears.
   const advancedRef = useRef(false);
   useEffect(() => {
     if (!done) return;
     if (advancedRef.current) return;
+    const startedAt = Date.now();
+    const MIN_WAIT = 9000;
+    const SAFETY_CAP = 15000;
+    let cancelled = false;
     const fire = () => {
-      if (advancedRef.current) return;
+      if (cancelled || advancedRef.current) return;
       advancedRef.current = true;
       onCompleteRef.current?.();
     };
-    if (!speakingDone) {
-      // 12 s cap is longer than the 17-word definition (~7-8 s), so the
-      // line is never cut off mid-sentence.
-      const cap = setTimeout(fire, 12000);
-      return () => clearTimeout(cap);
-    }
-    const t = setTimeout(fire, 1400);
-    return () => clearTimeout(t);
-  }, [done, speakingDone]);
+    const tryAdvance = () => {
+      if (cancelled || advancedRef.current) return;
+      const elapsed = Date.now() - startedAt;
+      if (elapsed >= MIN_WAIT && speakingDoneRef.current) fire();
+      else setTimeout(tryAdvance, 250);
+    };
+    setTimeout(tryAdvance, 250);
+    const safetyTimer = setTimeout(fire, SAFETY_CAP);
+    return () => { cancelled = true; clearTimeout(safetyTimer); };
+  }, [done]);
+
+  // Mirror speakingDone into a ref so the polling loop above sees the
+  // latest value without re-firing the whole effect on every flip.
+  const speakingDoneRef = useRef(speakingDone);
+  speakingDoneRef.current = speakingDone;
 
   return (
     <div className="relative flex flex-col gap-4">

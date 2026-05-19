@@ -251,20 +251,9 @@ export default function Act1({ onComplete }) {
     onComplete?.();
   }, [onComplete]);
 
-  // Stats handed to the celebration modal. Computed lazily off cart, the
-  // tricks-spotted count, and the wall-clock duration since mount.
-  const celebrationStats = useMemo(() => {
-    const items = cartIds.length;
-    const spent = `₹${cartTotal.toLocaleString('en-IN')}`;
-    const overPct = Math.max(0, Math.round((cartTotal / intendedBudget - 1) * 100));
-    const mins = Math.max(1, Math.round((Date.now() - startTimeRef.current) / 60000));
-    return [
-      { label: 'Tricks spotted', value: tricksCount, sub: `out of ${4}` },
-      { label: 'Items in cart',  value: items,       sub: `vs 1 planned` },
-      { label: 'Money spent',    value: spent,       sub: `+${overPct}% over plan` },
-      { label: 'Time taken',     value: `${mins} min`, sub: 'self-paced' },
-    ];
-  }, [cartIds.length, cartTotal, tricksCount]);
+  // Stats handed to the celebration modal. (Built below, after cartIds /
+  // cartTotal are defined — those are const so we can't reference them
+  // here without hitting the temporal-dead-zone.)
 
   const handleReflectionSubmit = useCallback(async (response) => {
     setSaving(true);
@@ -314,6 +303,23 @@ export default function Act1({ onComplete }) {
 
   const cartIds = phoneState.cart || [];
   const cartTotal = cartIds.reduce((s, id) => s + (products[id]?.price || 0), 0);
+
+  // Stats handed to the celebration modal. Computed lazily off cart, the
+  // tricks-spotted count, and the wall-clock duration since mount. Lives
+  // here (after cartIds / cartTotal) to avoid the TDZ.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const celebrationStats = useMemo(() => {
+    const items = cartIds.length;
+    const spent = `₹${cartTotal.toLocaleString('en-IN')}`;
+    const overPct = Math.max(0, Math.round((cartTotal / intendedBudget - 1) * 100));
+    const mins = Math.max(1, Math.round((Date.now() - startTimeRef.current) / 60000));
+    return [
+      { label: 'Tricks spotted', value: tricksCount, sub: 'out of 4' },
+      { label: 'Items in cart',  value: items,       sub: 'vs 1 planned' },
+      { label: 'Money spent',    value: spent,       sub: `+${overPct}% over plan` },
+      { label: 'Time taken',     value: `${mins} min`, sub: 'self-paced' },
+    ];
+  }, [cartIds.length, cartTotal, tricksCount, showCelebration]);
 
   return (
     <div className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-4 px-3 py-5 sm:px-6 sm:py-6 lg:px-8">

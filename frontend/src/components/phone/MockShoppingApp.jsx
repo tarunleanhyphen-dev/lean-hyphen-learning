@@ -388,8 +388,12 @@ function ProductDetail({ id, badge, tapping, urgencyMinutes, onlyXLeft, socialPr
 
           <div className="mt-2 flex items-baseline gap-2">
             <span className="text-xl font-extrabold text-ink-900">₹{p.price.toLocaleString('en-IN')}</span>
-            <span className="text-[11px] text-ink-500 line-through">₹2,199</span>
-            <span className="text-[10px] font-bold text-coral-500">32% off</span>
+            {p.originalPrice && p.originalPrice > p.price && (
+              <>
+                <span className="text-[11px] text-ink-500 line-through">₹{p.originalPrice.toLocaleString('en-IN')}</span>
+                <span className="text-[10px] font-bold text-coral-500">{Math.round((1 - p.price / p.originalPrice) * 100)}% off</span>
+              </>
+            )}
           </div>
 
           {/* Colour dots (visual variety per product kind) */}
@@ -670,7 +674,9 @@ function FeaturedProduct({ id, badge, tapping }) {
           </div>
           <div className="text-right">
             <div className="text-base font-extrabold text-ink-900">₹{p.price.toLocaleString('en-IN')}</div>
-            <div className="text-[10px] text-ink-500 line-through">₹2,199</div>
+            {p.originalPrice && p.originalPrice > p.price && (
+              <div className="text-[10px] text-ink-500 line-through">₹{p.originalPrice.toLocaleString('en-IN')}</div>
+            )}
           </div>
         </div>
 
@@ -780,7 +786,12 @@ function RecommendationRow({ label, ids, socialProofId, flashId, highlightId, ta
                 <Star className="h-2.5 w-2.5 fill-saffron-500 text-saffron-500" /> {p.rating} · {p.tagline}
               </div>
               <div className="mt-1 flex items-center justify-between">
-                <span className="text-[13px] font-extrabold text-ink-900">₹{p.price.toLocaleString('en-IN')}</span>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-[13px] font-extrabold text-ink-900">₹{p.price.toLocaleString('en-IN')}</span>
+                  {p.originalPrice && p.originalPrice > p.price && (
+                    <span className="text-[10px] text-ink-500 line-through">₹{p.originalPrice.toLocaleString('en-IN')}</span>
+                  )}
+                </div>
                 <div className="relative">
                   <button className="rounded-md bg-cream-100 px-2 py-1 text-[10px] font-bold text-coral-600">
                     Add
@@ -1319,9 +1330,26 @@ function CountdownText({ minutes }) {
 
 /* =================== Flash deal alert banner ===================
  * Slides in across the top of the phone whenever the lesson data triggers a
- * `flashAlert`. Pulses + glows for ~2s to grab attention before students see
- * the product itself. */
-function FlashDealAlert({ label, product, mins = 7 }) {
+ * `flashAlert`. Pulses + glows to grab attention before students see the
+ * product itself. If `product` contains two ₹ prices (e.g. "Birthday Hoodie
+ * · ₹1,999 ₹999"), the first is rendered struck-through and the second as
+ * the actual price. */
+function FlashDealAlert({ label, product, mins = 5 }) {
+  // Pull out two ₹-prices in order so we can render the first as a
+  // strikethrough "was" price and the second as the "now" price.
+  const priceMatches = product.match(/₹[\d,]+/g) || [];
+  let display = product;
+  if (priceMatches.length >= 2) {
+    const [was, now] = priceMatches;
+    const prefix = product.slice(0, product.indexOf(was)).trim();
+    display = (
+      <>
+        {prefix}{' '}
+        <span className="text-white/70 line-through">{was}</span>{' '}
+        <span className="text-white font-extrabold">{now}</span>
+      </>
+    );
+  }
   return (
     <motion.div
       key={label + product}
@@ -1334,7 +1362,7 @@ function FlashDealAlert({ label, product, mins = 7 }) {
         <span className="text-base">⏳</span> {label}
       </div>
       <div className="mt-1 text-[14px] font-extrabold leading-tight">
-        {product}
+        {display}
       </div>
       <div className="mt-0.5 inline-flex items-center gap-1 text-[12px] font-bold">
         <span>⚡</span> Only {mins} minutes left!

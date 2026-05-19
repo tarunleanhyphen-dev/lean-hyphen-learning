@@ -424,20 +424,20 @@ function act1Scenes() {
         },
 
         /* --- Wave 3: Urgency / scarcity — hoodie.
-         * The screen now shows a prominent FlashDealAlert banner at the top
-         * of the phone PLUS the hoodie in the recommendations row, matching
-         * the script's "Pause for 2 seconds as 'Flash Deal — Ends Soon!'
-         * pulses/glows" beat. The hoodie product detail also carries an
-         * `urgencyMinutes` countdown + an "Only 2 left" badge. */
+         * "Trending Now" row carries three hoodies, but only the main
+         * Birthday Hoodie has the flash-deal timer and "Only 2 left" chip.
+         * Top of the phone shows a pulsing FlashDealAlert; PDP layers more
+         * urgency (5-minute countdown + "Only 2 left" badge + the ₹1,999 →
+         * ₹999 strikethrough price). */
         {
           id: 's2-w3-card',
           duration: 6000,
           status: 'Flash Deal flashes in',
           phone: after(['shoes', 'socks', 'smartwatch'], {
-            recommendations: ['hoodie'],
+            recommendations: ['hoodie', 'hoodie-2', 'hoodie-3'],
             rowLabel: 'Trending Now',
             flashDeal: 'hoodie',
-            flashAlert: { label: 'Flash Deal Alert', product: 'Trending Now → Birthday Hoodie · ₹999', mins: 7 },
+            flashAlert: { label: 'Flash Deal — Ends Soon!', product: 'Trending Now → Birthday Hoodie · ₹1,999 ₹999', mins: 5 },
             scrollTo: 'recommendations',
           }),
           insight: { label: 'Urgency design', detail: 'Countdown timers and "only X left" shrink decision time on purpose.' },
@@ -448,10 +448,10 @@ function act1Scenes() {
           duration: 1600,
           status: 'Tapping the hoodie',
           phone: after(['shoes', 'socks', 'smartwatch'], {
-            recommendations: ['hoodie'],
+            recommendations: ['hoodie', 'hoodie-2', 'hoodie-3'],
             rowLabel: 'Trending Now',
             flashDeal: 'hoodie',
-            flashAlert: { label: 'Flash Deal Alert', product: 'Trending Now → Birthday Hoodie · ₹999', mins: 7 },
+            flashAlert: { label: 'Flash Deal — Ends Soon!', product: 'Trending Now → Birthday Hoodie · ₹1,999 ₹999', mins: 5 },
             tapTarget: 'rec-hoodie',
           }),
           cue: 'tap',
@@ -460,7 +460,7 @@ function act1Scenes() {
           id: 's2-w3-detail',
           duration: 5400,
           status: 'Reading hoodie details',
-          phone: { cart: ['shoes', 'socks', 'smartwatch'], view: 'detail', showProduct: 'hoodie', urgencyMinutes: 7, onlyXLeft: 2 },
+          phone: { cart: ['shoes', 'socks', 'smartwatch'], view: 'detail', showProduct: 'hoodie', urgencyMinutes: 5, onlyXLeft: 2 },
           bubbles: [
             { side: 'right', type: 'thought', text: 'This hoodie is so nice…' },
           ],
@@ -469,7 +469,7 @@ function act1Scenes() {
           id: 's2-w3-bubble2',
           duration: 4800,
           status: 'Reading hoodie details',
-          phone: { cart: ['shoes', 'socks', 'smartwatch'], view: 'detail', showProduct: 'hoodie', urgencyMinutes: 7, onlyXLeft: 2 },
+          phone: { cart: ['shoes', 'socks', 'smartwatch'], view: 'detail', showProduct: 'hoodie', urgencyMinutes: 5, onlyXLeft: 2 },
           bubbles: [
             { side: 'right', type: 'thought', text: 'It would actually look great in my birthday photos.' },
           ],
@@ -478,7 +478,7 @@ function act1Scenes() {
           id: 's2-w3-bubble3',
           duration: 4800,
           status: 'Reading hoodie details',
-          phone: { cart: ['shoes', 'socks', 'smartwatch'], view: 'detail', showProduct: 'hoodie', urgencyMinutes: 7, onlyXLeft: 2 },
+          phone: { cart: ['shoes', 'socks', 'smartwatch'], view: 'detail', showProduct: 'hoodie', urgencyMinutes: 5, onlyXLeft: 2 },
           bubbles: [
             { side: 'right', type: 'thought', text: 'I did not plan this… but it kind of fits the whole vibe.' },
           ],
@@ -487,7 +487,7 @@ function act1Scenes() {
           id: 's2-w3-tap-add',
           duration: 1600,
           status: 'Tapping Add to Cart',
-          phone: { cart: ['shoes', 'socks', 'smartwatch'], view: 'detail', showProduct: 'hoodie', urgencyMinutes: 7, onlyXLeft: 2, tapTarget: 'primary-cta' },
+          phone: { cart: ['shoes', 'socks', 'smartwatch'], view: 'detail', showProduct: 'hoodie', urgencyMinutes: 5, onlyXLeft: 2, tapTarget: 'primary-cta' },
           cue: 'tap',
         },
         {
@@ -1086,11 +1086,17 @@ const SIZE_PRESETS = {
   kit:      { kind: 'kit',      label: 'Pack',              values: ['3-piece basic', '5-piece premium', '7-piece pro'],           defaultIndex: 1 },
 };
 
+/* Optional `originalPrice` is shown struck-through next to the real price
+ * (e.g. ₹1,999 strike → ₹999). The two hoodie filler variants exist purely
+ * so the "Trending Now" row has three hoodies — only the main `hoodie` carries
+ * the flash-deal timer + the social-proof beat. */
 export const products = {
   shoes:          { id: 'shoes',        emoji: '👟', image: UN('1622760806364-5ccac8096b59'), name: 'White Sneakers',    tagline: 'Trending pick',              price: 1499, rating: 4.5, sizeOptions: SIZE_PRESETS.shoeUK },
   socks:          { id: 'socks',        emoji: '🧦', image: UN('1615486364462-ef6363adbc18'), name: 'Branded Socks',     tagline: 'Goes with sneakers',         price: 299,  rating: 4.3, sizeOptions: SIZE_PRESETS.apparel },
   smartwatch:     { id: 'smartwatch',   emoji: '⌚', image: UN('1546868871-7041f2a55e12'), name: 'Smartwatch X1',     tagline: '12K bought this week',       price: 799,  rating: 4.8, sizeOptions: SIZE_PRESETS.watch },
-  hoodie:         { id: 'hoodie',       emoji: '👕', image: UN('1620799140188-3b2a02fd9a77'), name: 'Birthday Hoodie',   tagline: 'Only 2 left',                price: 999,  rating: 4.6, sizeOptions: SIZE_PRESETS.apparel },
+  hoodie:         { id: 'hoodie',       emoji: '👕', image: UN('1620799140188-3b2a02fd9a77'), name: 'Birthday Hoodie',   tagline: 'Only 2 left',                price: 999,  originalPrice: 1999, rating: 4.6, sizeOptions: SIZE_PRESETS.apparel },
+  'hoodie-2':     { id: 'hoodie-2',     emoji: '👕', image: UN('1593032465175-481ac7f401a0'), name: 'Cropped Pullover',  tagline: 'Best seller',                price: 1299, rating: 4.4, sizeOptions: SIZE_PRESETS.apparel },
+  'hoodie-3':     { id: 'hoodie-3',     emoji: '👕', image: UN('1517438476312-10d79c077509'), name: 'Streetwear Hoodie', tagline: 'New drop',                   price: 1599, rating: 4.5, sizeOptions: SIZE_PRESETS.apparel },
   'cleaning-kit': { id: 'cleaning-kit', emoji: '🧴', image: UN('1636262899511-dc5865c774dc'), name: 'Shoe Cleaning Kit', tagline: 'Frequently bought together', price: 399,  rating: 4.2, sizeOptions: SIZE_PRESETS.kit },
 };
 

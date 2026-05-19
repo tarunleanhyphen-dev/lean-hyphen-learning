@@ -1,10 +1,13 @@
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Play, Clock, Sparkles } from 'lucide-react';
 import { lesson } from '../data/lessons/thinkBeforeYouSpend.js';
 
 export default function HomePage() {
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col px-6 py-10">
+    <div className="relative min-h-screen overflow-hidden">
+      <FloatingBubbles />
+      <div className="relative mx-auto flex min-h-screen w-full max-w-5xl flex-col px-6 py-10">
       <header className="flex items-center justify-between">
         <a href="/" aria-label="Lean Hyphen home" className="inline-flex shrink-0">
           <img src="/lean-hyphen-logo.svg" alt="Lean Hyphen" className="h-12 w-auto sm:h-14" draggable={false} />
@@ -70,6 +73,65 @@ export default function HomePage() {
       <footer className="mt-auto pt-16 text-xs text-white/40">
         © {new Date().getFullYear()} Lean Hyphen · Built for behaviour-first learning.
       </footer>
+      </div>
+    </div>
+  );
+}
+
+/* =================== Floating colour bubbles ===================
+ * Eight blurred, coloured "light orbs" drift around behind the page
+ * content. Each bubble:
+ *   - has its own colour from the brand palette (saffron / coral /
+ *     teal / magenta / sky / violet),
+ *   - has its own size (160–360 px) and starting position,
+ *   - drifts on a unique 14–28 s loop with subtle scale + opacity
+ *     breathing so the screen always feels alive but never busy.
+ *
+ * 36-px blur + low opacity means the bubbles read as soft coloured
+ * light, not as solid disks. Pointer-events-off so they never block
+ * clicks. No library, no canvas — pure framer-motion + Tailwind.
+ */
+function FloatingBubbles() {
+  const bubbles = [
+    { color: '#FF9F1C', size: 280, x0: -60,  y0: -40,  dx:  140, dy:  120, dur: 22, op: 0.30 },
+    { color: '#FF6B6B', size: 320, x0:  '60%', y0: -80, dx: -160, dy:   80, dur: 26, op: 0.28 },
+    { color: '#14B8A6', size: 240, x0: '20%', y0: '40%', dx:  120, dy:  -90, dur: 20, op: 0.22 },
+    { color: '#9B5DE5', size: 360, x0: '70%', y0: '55%', dx: -100, dy:  110, dur: 28, op: 0.22 },
+    { color: '#F15BB5', size: 200, x0: '10%', y0: '70%', dx:  130, dy:  -70, dur: 18, op: 0.24 },
+    { color: '#06AED5', size: 220, x0: '85%', y0: '30%', dx: -130, dy:  100, dur: 24, op: 0.20 },
+    { color: '#FFD23F', size: 180, x0: '40%', y0: '15%', dx:  -90, dy:   60, dur: 16, op: 0.22 },
+    { color: '#7DDA58', size: 160, x0: '55%', y0: '80%', dx:  100, dy:  -80, dur: 14, op: 0.18 },
+  ];
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+      {bubbles.map((b, i) => (
+        <motion.div
+          key={i}
+          className="absolute rounded-full"
+          style={{
+            left: b.x0,
+            top: b.y0,
+            width: b.size,
+            height: b.size,
+            backgroundColor: b.color,
+            opacity: b.op,
+            filter: 'blur(60px)',
+            willChange: 'transform, opacity',
+          }}
+          animate={{
+            x: [0, b.dx, -b.dx * 0.5, b.dx * 0.3, 0],
+            y: [0, b.dy, b.dy * -0.4, b.dy * 0.6, 0],
+            scale: [1, 1.15, 0.92, 1.08, 1],
+            opacity: [b.op, b.op * 1.3, b.op * 0.85, b.op * 1.15, b.op],
+          }}
+          transition={{
+            duration: b.dur,
+            repeat: Infinity,
+            ease: 'easeInOut',
+            delay: i * 0.6,
+          }}
+        />
+      ))}
     </div>
   );
 }

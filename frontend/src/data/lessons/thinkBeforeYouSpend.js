@@ -49,6 +49,15 @@ export const lesson = {
     act4: { id: 'act4', title: 'Act 4 — Reflect & Realise', minutes: 3, kind: 'impulse-meter', status: 'coming-soon' },
   },
 };
+/* Microsoft Fluent UI 3D Emoji served from the project's public GitHub
+ * repo (free, no auth, hosted by raw.githubusercontent.com). These are the
+ * same 3D illustrations Microsoft uses across Teams / Office — way more
+ * "video-like" than the platform emoji font. The first arg is the
+ * directory name (encoded for the URL), the second is the filename slug.
+ * ThoughtImagery falls back to the regular emoji glyph if any URL 404s. */
+const FL = (dir, file) =>
+  `https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/${dir}/3D/${file}_3d.png`;
+
 function act1Scenes() {
   /* helper: spread a long phone-state block without retyping */
   const after = (cart, extra = {}) => ({ cart, view: 'feed', ...extra });
@@ -65,7 +74,7 @@ function act1Scenes() {
      * ============================================================ */
     {
       id: 'scene-0',
-      title: 'Opening Context',
+      title: "Shanaya's Birthday",
       ambience: 'cosy',
       emotion: 'happy',
       phases: [
@@ -74,14 +83,17 @@ function act1Scenes() {
           duration: 12000,
           status: 'Meet Shanaya',
           emotion: 'happy',
-          narration: 'Shanaya is 13, super social, and always excited about making memories with her friends.',
+          // Spelling out "thirteen" so the hi-IN Swara/Madhur voices read
+          // the age cleanly in English instead of dropping into Hindi number
+          // prosody on a bare "13".
+          narration: 'Shanaya is thirteen, super social, and always excited about making memories with her friends.',
           phone: { view: 'feed' },
           imagery: [
-            { id: 'friends-1', emoji: '👯‍♀️', caption: 'her crew',  pos: 'tr', delay: 0.0 },
-            { id: 'selfie',    emoji: '🤳',  caption: 'selfies',  pos: 'br', delay: 0.35 },
-            { id: 'school',    emoji: '🏫',  caption: 'school',   pos: 'tl', delay: 0.7  },
-            { id: 'reels',     emoji: '📱',  caption: 'reels',    pos: 'bl', delay: 1.1  },
-            { id: 'heart',     emoji: '💖',                       pos: 'top', delay: 1.4 },
+            { id: 'friends-1', image: FL('Smiling%20face%20with%20hearts', 'smiling_face_with_hearts'), emoji: '🥰', caption: 'her crew',  pos: 'tr', delay: 0.0  },
+            { id: 'selfie',    image: FL('Selfie', 'selfie'),                                          emoji: '🤳', caption: 'selfies',  pos: 'br', delay: 0.35 },
+            { id: 'school',    image: FL('School', 'school'),                                          emoji: '🏫', caption: 'school',   pos: 'tl', delay: 0.7  },
+            { id: 'reels',     image: FL('Camera', 'camera'),                                          emoji: '📸', caption: 'reels',    pos: 'bl', delay: 1.1  },
+            { id: 'heart',     image: FL('Heart%20with%20arrow', 'heart_with_arrow'),                  emoji: '💘',                       pos: 'top', delay: 1.4 },
           ],
         },
         {
@@ -92,11 +104,11 @@ function act1Scenes() {
           narration: 'Her birthday is just two days away — her group is planning to celebrate at a cute café nearby.',
           phone: { view: 'feed' },
           imagery: [
-            { id: 'cake',      emoji: '🎂',  caption: 'in 2 days',   pos: 'tr', delay: 0.0  },
-            { id: 'cafe',      emoji: '☕️',  caption: 'cute café',   pos: 'br', delay: 0.35 },
-            { id: 'balloons',  emoji: '🎈',                          pos: 'tl', delay: 0.7  },
-            { id: 'sparkle-b', emoji: '✨',  caption: 'the day',     pos: 'bl', delay: 1.0  },
-            { id: 'gift',      emoji: '🎁',                          pos: 'top', delay: 1.3 },
+            { id: 'cake',      image: FL('Birthday%20cake', 'birthday_cake'),     emoji: '🎂', caption: 'in 2 days',  pos: 'tr', delay: 0.0  },
+            { id: 'cafe',      image: FL('Hot%20beverage', 'hot_beverage'),       emoji: '☕', caption: 'cute café',  pos: 'br', delay: 0.35 },
+            { id: 'balloons',  image: FL('Balloon', 'balloon'),                   emoji: '🎈',                        pos: 'tl', delay: 0.7  },
+            { id: 'sparkle-b', image: FL('Sparkles', 'sparkles'),                 emoji: '✨', caption: 'the day',    pos: 'bl', delay: 1.0  },
+            { id: 'gift',      image: FL('Wrapped%20gift', 'wrapped_gift'),       emoji: '🎁',                        pos: 'top', delay: 1.3 },
           ],
         },
         {
@@ -114,11 +126,11 @@ function act1Scenes() {
           ],
           phone: { view: 'feed' },
           imagery: [
-            { id: 'chat',      emoji: '💬',  caption: 'group chat',  pos: 'tr', delay: 0.0 },
-            { id: 'phone',     emoji: '📱',  caption: 'pinging',     pos: 'br', delay: 0.35 },
-            { id: 'fire',      emoji: '🔥',                          pos: 'tl', delay: 0.7  },
-            { id: 'heart-eyes',emoji: '😍',                          pos: 'bl', delay: 1.0  },
-            { id: 'star-c',    emoji: '⭐',                          pos: 'top', delay: 1.3 },
+            { id: 'chat',       image: FL('Speech%20balloon', 'speech_balloon'),                          emoji: '💬', caption: 'group chat', pos: 'tr', delay: 0.0  },
+            { id: 'phone',      image: FL('Mobile%20phone', 'mobile_phone'),                              emoji: '📱', caption: 'pinging',    pos: 'br', delay: 0.35 },
+            { id: 'fire',       image: FL('Fire', 'fire'),                                                emoji: '🔥',                        pos: 'tl', delay: 0.7  },
+            { id: 'heart-eyes', image: FL('Smiling%20face%20with%20heart-eyes', 'smiling_face_with_heart-eyes'), emoji: '😍',                  pos: 'bl', delay: 1.0  },
+            { id: 'star-c',     image: FL('Glowing%20star', 'glowing_star'),                              emoji: '🌟',                        pos: 'top', delay: 1.3 },
           ],
         },
         {
@@ -132,12 +144,12 @@ function act1Scenes() {
           narration: 'Fun photos, matching vibes, good food, and an outfit that makes her feel confident.',
           phone: { view: 'feed' },
           imagery: [
-            { id: 'fit',       emoji: '👗',  caption: 'the outfit', pos: 'tr', delay: 0.0  },
-            { id: 'camera',    emoji: '📸',  caption: 'fun photos', pos: 'br', delay: 0.3  },
-            { id: 'sparkle-v', emoji: '✨',  caption: 'confidence', pos: 'tl', delay: 0.6  },
-            { id: 'food',      emoji: '🍰',  caption: 'good food',  pos: 'bl', delay: 0.9  },
-            { id: 'shoes-v',   emoji: '👟',                         pos: 'top', delay: 1.2 },
-            { id: 'star-v',    emoji: '🌟',                         pos: 'right', delay: 1.5 },
+            { id: 'fit',       image: FL('Dress', 'dress'),                              emoji: '👗', caption: 'the outfit', pos: 'tr', delay: 0.0  },
+            { id: 'camera',    image: FL('Camera%20with%20flash', 'camera_with_flash'),  emoji: '📸', caption: 'fun photos', pos: 'br', delay: 0.3  },
+            { id: 'sparkle-v', image: FL('Sparkles', 'sparkles'),                        emoji: '✨', caption: 'confidence', pos: 'tl', delay: 0.6  },
+            { id: 'food',      image: FL('Shortcake', 'shortcake'),                      emoji: '🍰', caption: 'good food',  pos: 'bl', delay: 0.9  },
+            { id: 'shoes-v',   image: FL('Running%20shoe', 'running_shoe'),              emoji: '👟',                        pos: 'top', delay: 1.2 },
+            { id: 'star-v',    image: FL('Glowing%20star', 'glowing_star'),              emoji: '🌟',                        pos: 'right', delay: 1.5 },
           ],
         },
         {
@@ -148,9 +160,9 @@ function act1Scenes() {
           narration: 'So she opens her favourite shopping app, planning to quickly buy one pair of shoes to complete her birthday look and log off.',
           phone: { view: 'feed' },
           imagery: [
-            { id: 'shoes-o',   emoji: '👟',  caption: 'just shoes', pos: 'tr', delay: 0.0 },
-            { id: 'plan-o',    emoji: '📝',  caption: 'one item',   pos: 'br', delay: 0.35 },
-            { id: 'budget-o',  emoji: '₹',   caption: '₹1,500 cap', pos: 'tl', delay: 0.7  },
+            { id: 'shoes-o',   image: FL('Running%20shoe', 'running_shoe'),  emoji: '👟', caption: 'just shoes', pos: 'tr', delay: 0.0  },
+            { id: 'plan-o',    image: FL('Memo', 'memo'),                    emoji: '📝', caption: 'one item',   pos: 'br', delay: 0.35 },
+            { id: 'budget-o',  image: FL('Money%20bag', 'money_bag'),        emoji: '💰', caption: '₹1,500 cap', pos: 'tl', delay: 0.7  },
           ],
         },
       ],

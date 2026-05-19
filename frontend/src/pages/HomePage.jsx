@@ -6,10 +6,9 @@ export default function HomePage() {
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col px-6 py-10">
       <header className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-white">
-          <div className="grid h-9 w-9 place-items-center rounded-xl bg-saffron-500 text-ink-900 font-extrabold">L</div>
-          <div className="text-sm font-semibold tracking-wide">Lean Hyphen</div>
-        </div>
+        <a href="/" aria-label="Lean Hyphen home" className="inline-flex shrink-0">
+          <img src="/lean-hyphen-logo.svg" alt="Lean Hyphen" className="h-9 w-auto sm:h-10" draggable={false} />
+        </a>
         <a
           href="https://lean-hyphen-user-web-4zrf.vercel.app/#home"
           target="_blank"

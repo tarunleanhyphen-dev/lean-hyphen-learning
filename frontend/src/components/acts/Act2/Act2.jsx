@@ -167,10 +167,16 @@ export default function Act2({ onComplete }) {
     <div className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-4 px-3 py-5 sm:px-6 sm:py-6 lg:px-8">
       {/* Top bar */}
       <header className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
-        <div className="flex items-center gap-2 sm:gap-3">
-          <span className="rounded-full bg-saffron-500/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-saffron-400 sm:px-3 sm:text-[11px]">
-            <Sparkles className="mr-1 inline h-3 w-3 -translate-y-px" /> Lean Hyphen
-          </span>
+        <div className="flex items-center gap-3 sm:gap-4">
+          <a href="/" aria-label="Lean Hyphen home" className="shrink-0">
+            <img
+              src="/lean-hyphen-logo.svg"
+              alt="Lean Hyphen"
+              className="h-8 w-auto sm:h-9"
+              draggable={false}
+            />
+          </a>
+          <span aria-hidden className="h-5 w-px bg-white/15 sm:h-6" />
           <h1 className="text-[13px] font-semibold text-white/85 sm:text-base">{act.title}</h1>
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2">

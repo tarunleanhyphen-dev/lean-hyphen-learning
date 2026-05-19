@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles } from 'lucide-react';
+import MicroConfetti from './MicroConfetti.jsx';
 
 /**
  * Word-tile puzzle: build a target sentence by tapping tiles in order.
@@ -103,7 +104,8 @@ export default function DefinitionPuzzle({ data, onCueClick, onCueCorrect, onCue
   }, [done, speakingDone]);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="relative flex flex-col gap-4">
+      <MicroConfetti active={done} keyId="puzzle-confetti" />
       <header>
         <div className="text-[11px] font-bold uppercase tracking-widest text-saffron-400">Activity 2 · Build the sentence</div>
         <h3 className="mt-1 text-xl font-extrabold text-ink-900 sm:text-2xl">{data.title}</h3>

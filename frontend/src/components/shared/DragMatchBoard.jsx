@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Sparkles } from 'lucide-react';
+import MicroConfetti from './MicroConfetti.jsx';
 
 /**
  * Tap-to-match board: students tap a trigger, then tap a reason. Correct
@@ -94,7 +95,8 @@ export default function DragMatchBoard({ data, onCueClick, onCueCorrect, onCueWr
   }, [pickedTrigger, matched, onCueCorrect, onCueWrong, onSpeakInsight, pairs]);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="relative flex flex-col gap-4">
+      <MicroConfetti active={allDone} keyId="match-confetti" />
       <header>
         <div className="text-[11px] font-bold uppercase tracking-widest text-saffron-400">Activity 1 · Match the trick</div>
         <h3 className="mt-1 text-xl font-extrabold text-ink-900 sm:text-2xl">{data.title}</h3>

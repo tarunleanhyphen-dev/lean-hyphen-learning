@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Pause, Check } from 'lucide-react';
+import MicroConfetti from './MicroConfetti.jsx';
 
 /**
  * Pause & Think framework — five bullets that animate in one by one, then
@@ -71,7 +72,8 @@ export default function FrameworkCard({ data, onReveal, speakingDone = true, onC
   }, [fullyRevealed, speakingDone, readyToFinish]);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="relative flex flex-col gap-4">
+      <MicroConfetti active={fullyRevealed} keyId="framework-confetti" count={40} duration={1.8} />
       <header>
         <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-saffron-400">
           <Pause className="h-3.5 w-3.5" />

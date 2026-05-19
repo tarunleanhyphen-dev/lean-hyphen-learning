@@ -5,6 +5,7 @@ import {
   ChevronRight, BadgePercent, Flame, Check,
 } from 'lucide-react';
 import { products, freeDeliveryThreshold, SHOE_GRID } from '../../data/lessons/thinkBeforeYouSpend.js';
+import MicroConfetti from '../shared/MicroConfetti.jsx';
 
 const CATEGORIES = [
   { id: 'footwear', label: 'Footwear', emoji: '👟' },
@@ -1213,6 +1214,10 @@ function ConfirmationScreen({ total, ids }) {
 function CartFocusView({ total, ids, reached, highlightPrice, timerMinutes, freqBought, freeDeliveryBanner, cleaningKitTap, showPlaceOrder, placeOrderTap, revealTotal, showGap }) {
   return (
     <div className="relative min-h-full bg-cream-50 pb-24">
+      {/* Confetti when the free-delivery threshold is reached — gives the
+         "I'm not spending extra, I'm saving on delivery" beat a small
+         dopamine reward instead of just a banner colour swap. */}
+      <MicroConfetti active={reached} keyId={`cart-${reached ? 'unlocked' : 'idle'}`} count={32} duration={1.6} />
       <AppHeader cartCount={ids.length} backable />
       <div className="bg-white px-4 py-3 ring-1 ring-ink-300/10">
         <div className="text-[15px] font-extrabold text-ink-900">Your cart</div>

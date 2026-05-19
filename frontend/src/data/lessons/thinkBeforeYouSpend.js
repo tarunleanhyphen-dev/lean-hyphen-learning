@@ -266,7 +266,7 @@ function act1Scenes() {
         },
         {
           id: 's1-validate',
-          duration: 5800,
+          duration: 7800,
           status: 'On plan: ₹1,499 of ₹1,500',
           phone: { search: 'shoes', view: 'detail', showProduct: 'shoes', cart: ['shoes'], badge: 'Smart budget pick ✓' },
           bubbles: [

@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Sparkles } from 'lucide-react';
 
@@ -7,17 +7,27 @@ import { Check, Sparkles } from 'lucide-react';
  * matches glow green and reveal a small insight card; wrong matches shake
  * and clear the selection. When all pairs are matched, onComplete fires.
  *
+ * Engagement assists:
+ *   - On mount, the first unmatched trigger pulses with a saffron ring and
+ *     a "↑ start here" hint, and the parent gets onSpeakPrompt(text) so it
+ *     can play "Please match each trigger to the right reason" aloud.
+ *   - If the student doesn't interact within 5 seconds, the board starts
+ *     auto-solving — picking the next unmatched pair every ~1.6 s so the
+ *     simulation never stalls.
+ *
  * `data` shape (from lesson data): { title, instruction, pairs: [{ id, trigger, category, insight }] }
  *
  * Drag-and-drop was considered, but tap-to-match is more accessible on
  * mobile/tablet, doesn't fight scroll, and works with keyboard naturally.
  */
-export default function DragMatchBoard({ data, onCueClick, onCueCorrect, onCueWrong, onSpeakInsight, onComplete }) {
+export default function DragMatchBoard({ data, onCueClick, onCueCorrect, onCueWrong, onSpeakInsight, onSpeakPrompt, onComplete }) {
   const pairs = data.pairs;
   const [matched, setMatched] = useState({});             // { pairId: true }
   const [pickedTrigger, setPickedTrigger] = useState(null);
   const [wrongPulse, setWrongPulse] = useState(null);     // pairId-pairId
   const [openInsight, setOpenInsight] = useState(null);   // pairId
+  const [autoSolving, setAutoSolving] = useState(false);
+  const userInteractedRef = useRef(false);
 
   const triggerOrder = useMemo(() => pairs.map((p) => p.id), [pairs]);
   // Shuffle categories so the order doesn't give it away. Deterministic per mount.
@@ -31,6 +41,52 @@ export default function DragMatchBoard({ data, onCueClick, onCueCorrect, onCueWr
   }, [pairs]);
 
   const allDone = Object.keys(matched).length === pairs.length;
+  const firstUnmatched = triggerOrder.find((id) => !matched[id]) || null;
+
+  // Voice prompt on mount: "please match this now". Single fire, parent
+  // decides whether audio is enabled.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      onSpeakPrompt?.('Please match each cart trigger to the right reason now.');
+    }, 500);
+    return () => clearTimeout(t);
+  }, [onSpeakPrompt]);
+
+  // Auto-solve if no interaction in 5 s.
+  useEffect(() => {
+    if (allDone || autoSolving) return;
+    const t = setTimeout(() => {
+      if (!userInteractedRef.current) setAutoSolving(true);
+    }, 5000);
+    return () => clearTimeout(t);
+  }, [allDone, autoSolving]);
+
+  // Auto-solve loop: pick one unmatched pair every 1.6 s with the same
+  // "trigger first, then category" rhythm the student would use.
+  useEffect(() => {
+    if (!autoSolving || allDone) return;
+    const stepDelay = 1600;
+    let cancelled = false;
+
+    const solveNext = () => {
+      if (cancelled) return;
+      const next = triggerOrder.find((id) => !matched[id]);
+      if (!next) return;
+      setPickedTrigger(next);
+      setTimeout(() => {
+        if (cancelled) return;
+        setMatched((m) => ({ ...m, [next]: true }));
+        setOpenInsight(next);
+        setPickedTrigger(null);
+        onCueCorrect?.();
+        const matchedPair = pairs.find((p) => p.id === next);
+        if (matchedPair) onSpeakInsight?.(matchedPair);
+      }, stepDelay / 2);
+    };
+
+    const t = setTimeout(solveNext, stepDelay);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [autoSolving, allDone, matched, triggerOrder, pairs, onCueCorrect, onSpeakInsight]);
 
   useEffect(() => {
     if (!allDone) return;
@@ -38,8 +94,11 @@ export default function DragMatchBoard({ data, onCueClick, onCueCorrect, onCueWr
     return () => clearTimeout(t);
   }, [allDone, onComplete]);
 
+  const markUserInteraction = () => { userInteractedRef.current = true; };
+
   const pickTrigger = useCallback((id) => {
     if (matched[id]) return;
+    markUserInteraction();
     onCueClick?.();
     setPickedTrigger((cur) => (cur === id ? null : id));
   }, [matched, onCueClick]);
@@ -47,6 +106,7 @@ export default function DragMatchBoard({ data, onCueClick, onCueCorrect, onCueWr
   const pickCategory = useCallback((id) => {
     if (!pickedTrigger) return;
     if (matched[id]) return;
+    markUserInteraction();
     if (pickedTrigger === id) {
       setMatched((m) => ({ ...m, [id]: true }));
       setOpenInsight(id);
@@ -97,16 +157,26 @@ export default function DragMatchBoard({ data, onCueClick, onCueCorrect, onCueWr
               <motion.button
                 type="button"
                 onClick={() => pickTrigger(id)}
-                animate={shake ? { x: [0, -6, 6, -4, 4, 0] } : { x: 0 }}
-                transition={{ duration: 0.4 }}
-                disabled={isMatched}
+                animate={shake
+                  ? { x: [0, -6, 6, -4, 4, 0] }
+                  : (id === firstUnmatched && !pickedTrigger && !autoSolving
+                      ? { x: 0, boxShadow: ['0 0 0 0 rgba(255,159,28,0)', '0 0 0 5px rgba(255,159,28,0.35)', '0 0 0 0 rgba(255,159,28,0)'] }
+                      : { x: 0 })}
+                transition={shake
+                  ? { duration: 0.4 }
+                  : (id === firstUnmatched && !pickedTrigger && !autoSolving
+                      ? { duration: 1.6, repeat: Infinity }
+                      : { duration: 0.4 })}
+                disabled={isMatched || autoSolving}
                 className={[
                   'group relative text-left rounded-2xl px-4 py-3 ring-1 transition shadow-sm min-h-[78px] flex items-center',
                   isMatched
                     ? 'bg-teal-500/15 ring-teal-500/50 text-ink-900 cursor-default'
                     : isPicked
                       ? 'bg-saffron-500/20 ring-saffron-500/60 text-ink-900 scale-[1.01]'
-                      : 'bg-white ring-ink-300/20 text-ink-800 hover:ring-saffron-500/40 hover:bg-saffron-50',
+                      : id === firstUnmatched
+                        ? 'bg-saffron-50 ring-saffron-500 text-ink-900 hover:bg-saffron-100'
+                        : 'bg-white ring-ink-300/20 text-ink-800 hover:ring-saffron-500/40 hover:bg-saffron-50',
                 ].join(' ')}
               >
                 <div className="flex w-full items-start gap-2">

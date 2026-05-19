@@ -674,32 +674,58 @@ function act1Scenes() {
       ambience: 'silent',
       emotion: 'unsettled',
       phases: [
+        /* Cart-focus stays the dominant view for all of Scene 4 — the
+         * student already saw the cart fill up in Scene 3, so the reality-
+         * check beats keep that same screen as the camera. Each phase
+         * layers in revealTotal / showGap / showPlaceOrder / tap targets
+         * so the screen reacts to narration without ever switching back
+         * to the feed view. */
         {
           id: 's4-freeze',
           duration: 2800,
           status: 'Pause',
-          phone: { cart: ['shoes', 'socks', 'smartwatch', 'hoodie', 'cleaning-kit'], silent: true },
+          phone: {
+            cart: ['shoes', 'socks', 'smartwatch', 'hoodie', 'cleaning-kit'],
+            view: 'cart-focus',
+            freeDeliveryBanner: true,
+            silent: true,
+          },
           cue: 'freeze',
         },
         {
           id: 's4-cart-open',
           duration: 4200,
           status: 'Opening the cart',
-          phone: { cart: ['shoes', 'socks', 'smartwatch', 'hoodie', 'cleaning-kit'], cartOpen: true },
+          phone: {
+            cart: ['shoes', 'socks', 'smartwatch', 'hoodie', 'cleaning-kit'],
+            view: 'cart-focus',
+            freeDeliveryBanner: true,
+          },
           narration: 'Her cart updates again. The total is bigger than she expected.',
         },
         {
           id: 's4-total-build',
           duration: 5000,
           status: 'Total counting up',
-          phone: { cart: ['shoes', 'socks', 'smartwatch', 'hoodie', 'cleaning-kit'], cartOpen: true, revealTotal: true },
+          phone: {
+            cart: ['shoes', 'socks', 'smartwatch', 'hoodie', 'cleaning-kit'],
+            view: 'cart-focus',
+            freeDeliveryBanner: true,
+            revealTotal: true,
+          },
           cue: 'reveal',
         },
         {
           id: 's4-gap',
           duration: 5600,
           status: '₹1,500 plan → ₹3,995 actual',
-          phone: { cart: ['shoes', 'socks', 'smartwatch', 'hoodie', 'cleaning-kit'], cartOpen: true, revealTotal: true, showGap: true },
+          phone: {
+            cart: ['shoes', 'socks', 'smartwatch', 'hoodie', 'cleaning-kit'],
+            view: 'cart-focus',
+            freeDeliveryBanner: true,
+            revealTotal: true,
+            showGap: true,
+          },
           insight: { label: '₹1,500 → ₹3,995', detail: 'Almost 2.7× the original plan. None of it felt like a "big" decision.', type: 'fact' },
           narration: 'What started as "just one thing" became almost three times her original budget.',
         },
@@ -707,7 +733,14 @@ function act1Scenes() {
           id: 's4-realisation-1',
           duration: 5400,
           status: 'Shanaya reflects',
-          phone: { cart: ['shoes', 'socks', 'smartwatch', 'hoodie', 'cleaning-kit'], cartOpen: true, revealTotal: true, showGap: true },
+          phone: {
+            cart: ['shoes', 'socks', 'smartwatch', 'hoodie', 'cleaning-kit'],
+            view: 'cart-focus',
+            freeDeliveryBanner: true,
+            revealTotal: true,
+            showGap: true,
+            showPlaceOrder: true,
+          },
           bubbles: [
             { side: 'right', type: 'thought', text: 'This didn’t feel like a bad decision while I was making it.' },
           ],
@@ -716,7 +749,14 @@ function act1Scenes() {
           id: 's4-realisation-2',
           duration: 6200,
           status: 'Shanaya reflects',
-          phone: { cart: ['shoes', 'socks', 'smartwatch', 'hoodie', 'cleaning-kit'], cartOpen: true, revealTotal: true, showGap: true },
+          phone: {
+            cart: ['shoes', 'socks', 'smartwatch', 'hoodie', 'cleaning-kit'],
+            view: 'cart-focus',
+            freeDeliveryBanner: true,
+            revealTotal: true,
+            showGap: true,
+            showPlaceOrder: true,
+          },
           bubbles: [
             { side: 'right', type: 'thought', text: 'This didn’t feel like a bad decision while I was making it.' },
             { side: 'right', type: 'thought', text: 'Each step seemed perfectly reasonable. So why does it feel like I went overboard?' },
@@ -730,7 +770,12 @@ function act1Scenes() {
           status: 'Tapping Place Order',
           phone: {
             cart: ['shoes', 'socks', 'smartwatch', 'hoodie', 'cleaning-kit'],
-            cartOpen: true, revealTotal: true, tapTarget: 'place-order',
+            view: 'cart-focus',
+            freeDeliveryBanner: true,
+            revealTotal: true,
+            showGap: true,
+            showPlaceOrder: true,
+            tapTarget: 'place-order',
           },
           cue: 'tap',
         },
@@ -814,7 +859,7 @@ function act1Scenes() {
           id: 's4-reflect-1',
           hold: true,
           status: 'Your reflection',
-          phone: { cart: ['shoes', 'socks', 'smartwatch', 'hoodie', 'cleaning-kit'], cartOpen: true, revealTotal: true, dim: true },
+          phone: { cart: ['shoes', 'socks', 'smartwatch', 'hoodie', 'cleaning-kit'], view: 'cart-focus', freeDeliveryBanner: true, revealTotal: true, showGap: true, dim: true },
           reflection: {
             prompt: 'At which moment do you think Shanaya lost track of her original plan?',
             placeholder: 'One sentence is enough.',
@@ -829,7 +874,7 @@ function act1Scenes() {
           id: 's4-reflect-2',
           hold: true,
           status: 'One more',
-          phone: { cart: ['shoes', 'socks', 'smartwatch', 'hoodie', 'cleaning-kit'], cartOpen: true, revealTotal: true, dim: true },
+          phone: { cart: ['shoes', 'socks', 'smartwatch', 'hoodie', 'cleaning-kit'], view: 'cart-focus', freeDeliveryBanner: true, revealTotal: true, showGap: true, dim: true },
           mcq: {
             kind: 'opinion-multi',
             prompt: 'Which purchase felt MOST justified to you?',
@@ -1094,9 +1139,9 @@ export const products = {
   shoes:          { id: 'shoes',        emoji: '👟', image: UN('1622760806364-5ccac8096b59'), name: 'White Sneakers',    tagline: 'Trending pick',              price: 1499, rating: 4.5, sizeOptions: SIZE_PRESETS.shoeUK },
   socks:          { id: 'socks',        emoji: '🧦', image: UN('1615486364462-ef6363adbc18'), name: 'Branded Socks',     tagline: 'Goes with sneakers',         price: 299,  rating: 4.3, sizeOptions: SIZE_PRESETS.apparel },
   smartwatch:     { id: 'smartwatch',   emoji: '⌚', image: UN('1546868871-7041f2a55e12'), name: 'Smartwatch X1',     tagline: '12K bought this week',       price: 799,  rating: 4.8, sizeOptions: SIZE_PRESETS.watch },
-  hoodie:         { id: 'hoodie',       emoji: '👕', image: UN('1620799140188-3b2a02fd9a77'), name: 'Birthday Hoodie',   tagline: 'Only 2 left',                price: 999,  originalPrice: 1999, rating: 4.6, sizeOptions: SIZE_PRESETS.apparel },
-  'hoodie-2':     { id: 'hoodie-2',     emoji: '👕', image: UN('1593032465175-481ac7f401a0'), name: 'Cropped Pullover',  tagline: 'Best seller',                price: 1299, rating: 4.4, sizeOptions: SIZE_PRESETS.apparel },
-  'hoodie-3':     { id: 'hoodie-3',     emoji: '👕', image: UN('1517438476312-10d79c077509'), name: 'Streetwear Hoodie', tagline: 'New drop',                   price: 1599, rating: 4.5, sizeOptions: SIZE_PRESETS.apparel },
+  hoodie:         { id: 'hoodie',       emoji: '👕', image: UN('1620799140188-3b2a02fd9a77'), name: 'Birthday Hoodie',     tagline: 'Only 2 left',           price: 999,  originalPrice: 1999, rating: 4.6, sizeOptions: SIZE_PRESETS.apparel },
+  'hoodie-2':     { id: 'hoodie-2',     emoji: '👕', image: UN('1556821840-3a63f95609a7'),    name: 'Classic Pullover',     tagline: 'Best seller',           price: 1299, rating: 4.4, sizeOptions: SIZE_PRESETS.apparel },
+  'hoodie-3':     { id: 'hoodie-3',     emoji: '👕', image: UN('1542406775-ade58c52d2e4'),    name: 'Cosy Hoodie',          tagline: 'New drop',              price: 1599, rating: 4.5, sizeOptions: SIZE_PRESETS.apparel },
   'cleaning-kit': { id: 'cleaning-kit', emoji: '🧴', image: UN('1636262899511-dc5865c774dc'), name: 'Shoe Cleaning Kit', tagline: 'Frequently bought together', price: 399,  rating: 4.2, sizeOptions: SIZE_PRESETS.kit },
 };
 

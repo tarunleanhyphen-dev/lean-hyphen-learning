@@ -36,7 +36,7 @@ export default function MockShoppingApp({ state = {} }) {
   if (view === 'payment') return <PaymentScreen total={cartTotal} ids={cartIds} tapping={state.tapTarget === 'pay'} processing={state.processing} />;
   if (view === 'confirmation') return <ConfirmationScreen total={cartTotal} ids={cartIds} />;
   if (view === 'order-summary') return <OrderSummaryScreen total={cartTotal} ids={cartIds} />;
-  if (view === 'cart-focus') return <CartFocusView total={cartTotal} ids={cartIds} reached={reached} highlightPrice={state.highlightPrice} timerMinutes={state.timerMinutes} freqBought={state.freqBought} freeDeliveryBanner={state.freeDeliveryBanner} cleaningKitTap={state.tapTarget === 'rec-cleaning-kit'} />;
+  if (view === 'cart-focus') return <CartFocusView total={cartTotal} ids={cartIds} reached={reached} highlightPrice={state.highlightPrice} timerMinutes={state.timerMinutes} freqBought={state.freqBought} freeDeliveryBanner={state.freeDeliveryBanner} cleaningKitTap={state.tapTarget === 'rec-cleaning-kit'} showPlaceOrder={state.showPlaceOrder} placeOrderTap={state.tapTarget === 'place-order'} revealTotal={state.revealTotal} showGap={state.showGap} />;
 
   /* Auto-scroll the phone container as the scene progresses.
    * The scroller is the parent `.phone-scroll` div from <PhoneFrame>; we
@@ -1210,7 +1210,7 @@ function ConfirmationScreen({ total, ids }) {
  * matching visual. Items, totals (with optional highlight), countdown timer,
  * free-delivery banner, and a "Frequently Bought Together" recommendation
  * are all stacked here. */
-function CartFocusView({ total, ids, reached, highlightPrice, timerMinutes, freqBought, freeDeliveryBanner, cleaningKitTap }) {
+function CartFocusView({ total, ids, reached, highlightPrice, timerMinutes, freqBought, freeDeliveryBanner, cleaningKitTap, showPlaceOrder, placeOrderTap, revealTotal, showGap }) {
   return (
     <div className="relative min-h-full bg-cream-50 pb-24">
       <AppHeader cartCount={ids.length} backable />
@@ -1268,13 +1268,36 @@ function CartFocusView({ total, ids, reached, highlightPrice, timerMinutes, freq
         <div className="flex items-center justify-between text-[12px]">
           <span className="font-semibold text-ink-700">Cart total</span>
           <motion.span
-            animate={highlightPrice ? { scale: [1, 1.08, 1] } : { scale: 1 }}
-            transition={{ duration: 0.7, repeat: highlightPrice ? Infinity : 0, repeatDelay: 1.2 }}
-            className={`text-xl font-extrabold ${highlightPrice ? 'text-burgundy-500' : 'text-ink-900'}`}
+            key={revealTotal ? 'revealed' : 'plain'}
+            initial={revealTotal ? { scale: 0.94, opacity: 0.6 } : false}
+            animate={
+              revealTotal
+                ? { scale: [0.94, 1.12, 1], opacity: 1 }
+                : highlightPrice ? { scale: [1, 1.08, 1] } : { scale: 1 }
+            }
+            transition={
+              revealTotal
+                ? { duration: 1.1, ease: 'easeOut' }
+                : { duration: 0.7, repeat: highlightPrice ? Infinity : 0, repeatDelay: 1.2 }
+            }
+            className={`text-xl font-extrabold ${revealTotal || highlightPrice ? 'text-burgundy-500' : 'text-ink-900'}`}
           >
             ₹{total.toLocaleString('en-IN')}
           </motion.span>
         </div>
+
+        {/* "₹1,500 planned → ₹3,995 actual" gap chip */}
+        {showGap && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="mt-2 flex items-center justify-between rounded-xl bg-burgundy-500/10 px-3 py-2 text-[11px] font-bold ring-1 ring-burgundy-500/30"
+          >
+            <span className="text-ink-500">Plan ₹1,500</span>
+            <span className="text-burgundy-500">+{Math.round((total / 1500 - 1) * 100)}% over plan</span>
+          </motion.div>
+        )}
 
         {timerMinutes && (
           <div className="mt-2 flex items-center gap-2 rounded-xl bg-coral-500/10 px-2.5 py-1.5 text-[11px] font-bold text-coral-500 ring-1 ring-coral-500/30">
@@ -1292,6 +1315,19 @@ function CartFocusView({ total, ids, reached, highlightPrice, timerMinutes, freq
             <div className="text-[12px] font-bold uppercase tracking-wider text-ink-700">🧴 Frequently Bought Together</div>
           </div>
           <FreqBoughtCard id={freqBought} tapping={cleaningKitTap} />
+        </div>
+      )}
+
+      {/* Place Order CTA — visible from Scene 4 onwards so the cart stays
+         the main view all the way to the payment screen. */}
+      {showPlaceOrder && (
+        <div className="mx-4 mt-4">
+          <div className="relative">
+            <button className="w-full rounded-xl bg-coral-500 py-3 text-sm font-bold text-white shadow-sm">
+              Place Order · ₹{total.toLocaleString('en-IN')}
+            </button>
+            {placeOrderTap && <TapPulse />}
+          </div>
         </div>
       )}
     </div>

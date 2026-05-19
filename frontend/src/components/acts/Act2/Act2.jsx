@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PauseCircle, PlayCircle, RotateCcw, ChevronRight, Sparkles } from 'lucide-react';
+import { PauseCircle, PlayCircle, RotateCcw, ChevronRight, ChevronLeft, Sparkles } from 'lucide-react';
 import ShanayaAvatar from '../../shared/ShanayaAvatar.jsx';
 import ThoughtBubble from '../../shared/ThoughtBubble.jsx';
 import LiveStatus from '../../shared/LiveStatus.jsx';
@@ -265,6 +265,7 @@ export default function Act2({ onComplete }) {
                 onCueWrong={onCueWrong}
                 onSpeakInsight={(pair) => audioEnabled && speak(`${pair.insight.label}. ${pair.insight.detail}`, { who: 'shanaya' })}
                 onSpeakDefinition={(line) => audioEnabled && speak(line, { who: 'shanaya' })}
+                onSpeakPrompt={(text) => audioEnabled && speak(text, { who: 'narrator' })}
                 onRevealBullet={(b) => audioEnabled && speak(`${b.label}. ${b.question}. ${b.detail}`, { who: 'shanaya' })}
                 speakingDone={!isSpeaking}
                 onComplete={(payload) => handleActivityComplete(activity.kind, payload || {})}
@@ -283,7 +284,18 @@ export default function Act2({ onComplete }) {
         <div className="text-center text-xs text-white/50">Paused — press Resume to continue</div>
       )}
 
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between gap-3">
+        <button
+          onClick={() => {
+            spokenTexts.current.clear();
+            seq.goTo(Math.max(0, seq.index - 1));
+            seq.resume();
+          }}
+          disabled={seq.index === 0}
+          className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2.5 text-xs font-semibold text-white/80 transition hover:bg-white/10 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-30"
+        >
+          <ChevronLeft className="h-4 w-4" /> Back
+        </button>
         <button
           onClick={isActivityActive ? undefined : seq.advance}
           disabled={isActivityActive}
@@ -303,7 +315,7 @@ export default function Act2({ onComplete }) {
 
 /* =================== Activity router =================== */
 
-function ActivityRenderer({ kind, onCueClick, onCueCorrect, onCueWrong, onSpeakInsight, onSpeakDefinition, onRevealBullet, speakingDone, onComplete }) {
+function ActivityRenderer({ kind, onCueClick, onCueCorrect, onCueWrong, onSpeakInsight, onSpeakDefinition, onSpeakPrompt, onRevealBullet, speakingDone, onComplete }) {
   if (kind === 'match') {
     return (
       <DragMatchBoard
@@ -312,6 +324,7 @@ function ActivityRenderer({ kind, onCueClick, onCueCorrect, onCueWrong, onSpeakI
         onCueCorrect={onCueCorrect}
         onCueWrong={onCueWrong}
         onSpeakInsight={onSpeakInsight}
+        onSpeakPrompt={onSpeakPrompt}
         onComplete={() => onComplete({ activity: 'match' })}
       />
     );
@@ -342,16 +355,91 @@ function ActivityRenderer({ kind, onCueClick, onCueCorrect, onCueWrong, onSpeakI
   return null;
 }
 
+/* Cart she actually paid for in Act 1 — referenced from Act 2 Scene 6's
+ * "What just happened?" panel so students see exactly the five items, the
+ * prices, and the gap from plan to total. */
+const ACT1_CART = [
+  { id: 'shoes',        name: 'White Sneakers',    emoji: '👟', price: 1499, trigger: 'On plan'                  },
+  { id: 'socks',        name: 'Branded Socks',     emoji: '🧦', price: 299,  trigger: '"Completes the look"'      },
+  { id: 'smartwatch',   name: 'Smartwatch X1',     emoji: '⌚', price: 799,  trigger: '12K bought this week'      },
+  { id: 'hoodie',       name: 'Birthday Hoodie',   emoji: '👕', price: 999,  trigger: 'Flash deal · 5 min left'   },
+  { id: 'cleaning-kit', name: 'Shoe Cleaning Kit', emoji: '🧴', price: 399,  trigger: 'Frequently bought together'},
+];
+
+function OrderSummaryCard() {
+  const subtotal = ACT1_CART.reduce((s, p) => s + p.price, 0);
+  const paid = Math.max(0, subtotal - 200);
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45 }}
+      className="flex flex-col gap-3"
+    >
+      <header>
+        <div className="text-[11px] font-bold uppercase tracking-widest text-saffron-400">Scene 6 · What just happened</div>
+        <h3 className="mt-1 text-xl font-extrabold text-ink-900 sm:text-2xl">Order summary</h3>
+        <p className="mt-0.5 text-[12.5px] text-ink-700 sm:text-[13px]">Everything Shanaya bought — and the trigger behind each pick.</p>
+      </header>
+
+      <ul className="flex flex-col gap-2">
+        {ACT1_CART.map((p) => (
+          <li key={p.id} className="flex items-center gap-3 rounded-xl bg-cream-50 p-2.5 ring-1 ring-ink-300/15">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white text-lg ring-1 ring-ink-300/15">
+              {p.emoji}
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="text-[13px] font-bold text-ink-900">{p.name}</div>
+              <div className="text-[11px] text-ink-500">{p.trigger}</div>
+            </div>
+            <div className="text-[13px] font-extrabold text-ink-900">₹{p.price.toLocaleString('en-IN')}</div>
+          </li>
+        ))}
+      </ul>
+
+      <div className="rounded-2xl bg-white p-3 ring-1 ring-ink-300/15">
+        <div className="space-y-1 text-[12px]">
+          <Row label="Items subtotal" value={`₹${subtotal.toLocaleString('en-IN')}`} />
+          <Row label="Delivery" value="FREE" valueClass="font-bold text-teal-500" />
+          <Row label="Coupon (LH200)" value="− ₹200" valueClass="text-teal-500" />
+          <div className="my-1 h-px bg-ink-300/15" />
+          <div className="flex items-center justify-between text-[14px] font-extrabold text-ink-900">
+            <span>Total paid</span>
+            <span className="text-burgundy-500">₹{paid.toLocaleString('en-IN')}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-2xl bg-gradient-to-br from-saffron-500/15 to-coral-500/10 p-3 ring-1 ring-saffron-500/30">
+        <div className="text-[11px] font-bold uppercase tracking-widest text-saffron-600">Original plan vs actual</div>
+        <div className="mt-1 flex items-baseline justify-between gap-2">
+          <span className="text-[13px] text-ink-900">Planned <strong>₹1,500</strong></span>
+          <span className="text-[14px] font-extrabold text-burgundy-500">+{Math.round((paid / 1500 - 1) * 100)}% over plan</span>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function Row({ label, value, valueClass = 'text-ink-900' }) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-ink-700">{label}</span>
+      <span className={valueClass}>{value}</span>
+    </div>
+  );
+}
+
 /* When no activity is active, show a calm summary card so the right column
- * doesn't go blank between scenes. */
+ * doesn't go blank between scenes. Scene 6 uses the full Order Summary
+ * card; Scenes 7 and 8 keep the lighter "what's coming next" tile. */
 function PreActivityPlaceholder({ sceneIdx, isAfterActivity }) {
+  if (sceneIdx === 0) {
+    return <OrderSummaryCard />;
+  }
+
   const summaries = [
-    {
-      eyebrow: 'Scene 6',
-      title: 'What just happened?',
-      copy: 'Five items, ₹3,795. We\'ll look at each cart trigger and name the trick behind it.',
-      tag: 'Match the trick',
-    },
+    null, // Scene 6 handled above
     {
       eyebrow: 'Scene 7',
       title: 'Connecting the dots',
@@ -365,7 +453,7 @@ function PreActivityPlaceholder({ sceneIdx, isAfterActivity }) {
       tag: 'Learn the framework',
     },
   ];
-  const s = summaries[sceneIdx] || summaries[0];
+  const s = summaries[sceneIdx] || summaries[1];
 
   return (
     <div className="flex min-h-[440px] flex-col items-start justify-center gap-3 p-2">

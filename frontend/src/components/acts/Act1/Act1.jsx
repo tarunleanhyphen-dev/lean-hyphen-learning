@@ -1,6 +1,6 @@
 import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PauseCircle, PlayCircle, RotateCcw, ChevronRight, Sparkles } from 'lucide-react';
+import { PauseCircle, PlayCircle, RotateCcw, ChevronRight, ChevronLeft, Sparkles } from 'lucide-react';
 import PhoneFrame from '../../shared/PhoneFrame.jsx';
 import ThoughtBubble from '../../shared/ThoughtBubble.jsx';
 import ThoughtImagery from '../../shared/ThoughtImagery.jsx';
@@ -440,7 +440,18 @@ export default function Act1({ onComplete }) {
         <div className="text-center text-xs text-white/50">Paused — press Resume to continue</div>
       )}
 
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between gap-3">
+        <button
+          onClick={() => {
+            spokenTexts.current.clear();
+            seq.goTo(Math.max(0, seq.index - 1));
+            seq.resume();
+          }}
+          disabled={seq.index === 0}
+          className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2.5 text-xs font-semibold text-white/80 transition hover:bg-white/10 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-30"
+        >
+          <ChevronLeft className="h-4 w-4" /> Back
+        </button>
         <button
           onClick={seq.advance}
           className="inline-flex items-center gap-2 rounded-full bg-saffron-500 px-5 py-2.5 text-xs font-bold text-ink-900 shadow-lg shadow-saffron-500/30 transition hover:bg-saffron-400 active:scale-[0.98]"

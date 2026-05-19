@@ -233,7 +233,7 @@ function act1Scenes() {
            * the top so the highlighted card is in frame, and the hover
            * effect pulses around it. */
           id: 's1-results-scan',
-          duration: 6000,
+          duration: 8000,
           status: 'Spotting the white sneakers',
           phone: { search: 'shoes', view: 'results', hover: 'shoes', scrollToTop: true },
           bubbles: [

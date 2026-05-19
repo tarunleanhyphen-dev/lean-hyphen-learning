@@ -365,7 +365,7 @@ function act1Scenes() {
         },
         {
           id: 's2-w1-detail',
-          duration: 5200,
+          duration: 6700,
           status: 'Reading socks details',
           phone: { cart: ['shoes'], view: 'detail', showProduct: 'socks' },
           bubbles: [

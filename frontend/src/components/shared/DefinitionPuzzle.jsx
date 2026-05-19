@@ -70,15 +70,6 @@ export default function DefinitionPuzzle({ data, onCueClick, onCueCorrect, onCue
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
   const spokeRef = useRef(false);
-  // Track whether we've actually observed the definition narration starting.
-  // Without this, the advance effect can fire immediately because
-  // speakingDone defaults to true — speech hasn't started yet but the gate
-  // is already open, and the next scene comes up before the line is read.
-  const sawSpeechRef = useRef(false);
-  useEffect(() => {
-    if (!speakingDone) sawSpeechRef.current = true;
-  }, [speakingDone]);
-
   // When all 4 slots are filled, mark done and speak the definition (once).
   useEffect(() => {
     if (!placed.every((id) => id !== null)) return;
@@ -88,21 +79,25 @@ export default function DefinitionPuzzle({ data, onCueClick, onCueCorrect, onCue
     onSpeakDefinitionRef.current?.(data.finalLine);
   }, [placed, data.finalLine]);
 
-  // Advance only after the narration genuinely runs and finishes. In muted
-  // mode speech never starts, so a 4 s fallback ensures the puzzle still
-  // moves on for students who turned audio off.
+  // Advance after narration finishes. If speakingDone is still false (speech
+  // in flight), wait — with a hard cap of 8 s. If speakingDone is true (either
+  // speech ended or audio is off), give a 1.4 s breath then advance. Either
+  // path fires onComplete exactly once via the advancedRef guard.
+  const advancedRef = useRef(false);
   useEffect(() => {
     if (!done) return;
-    let cancelled = false;
-    const fallback = setTimeout(() => {
-      if (!cancelled) onCompleteRef.current?.();
-    }, 4000);
-    if (speakingDone && sawSpeechRef.current) {
-      clearTimeout(fallback);
-      const t = setTimeout(() => onCompleteRef.current?.(), 1400);
-      return () => { cancelled = true; clearTimeout(t); };
+    if (advancedRef.current) return;
+    const fire = () => {
+      if (advancedRef.current) return;
+      advancedRef.current = true;
+      onCompleteRef.current?.();
+    };
+    if (!speakingDone) {
+      const cap = setTimeout(fire, 8000);
+      return () => clearTimeout(cap);
     }
-    return () => { cancelled = true; clearTimeout(fallback); };
+    const t = setTimeout(fire, 1400);
+    return () => clearTimeout(t);
   }, [done, speakingDone]);
 
   return (

@@ -24,40 +24,49 @@ export default function FrameworkCard({ data, onReveal, speakingDone = true, onC
   onRevealRef.current = onReveal;
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
-  // Track whether we've actually observed the current bullet's narration
-  // start before we let speakingDone gate the next reveal — otherwise the
-  // effect fires immediately because speakingDone defaults to true.
-  const sawSpeechRef = useRef(false);
-  useEffect(() => {
-    if (!speakingDone) sawSpeechRef.current = true;
-  }, [speakingDone]);
 
-  // Reveal the next bullet once the current one's narration finishes.
+  // Reveal each bullet in sequence:
+  //   - bullet 1 appears 700 ms after mount, fires onReveal (which speaks it).
+  //   - speech start synchronously flips speakingDone → false; effect re-runs
+  //     and parks on the safety branch until speakingDone → true again.
+  //   - 1.6 s breath after speech ends, reveal next bullet.
+  //   - Safety cap of 8 s per bullet so a stuck TTS callback can't freeze
+  //     the activity — bullets 4 + 5 always appear, audio or not.
   useEffect(() => {
     if (fullyRevealed) return;
-    if (revealed > 0 && !speakingDone) return;       // narration still playing
-    if (revealed > 0 && !sawSpeechRef.current) return; // narration hasn't started yet
-    const delay = revealed === 0 ? 600 : 700;
-    const t = setTimeout(() => {
+    const revealNext = () => {
       const next = revealed + 1;
-      sawSpeechRef.current = false; // reset for the next bullet
       setRevealed(next);
       const bullet = data.bullets[next - 1];
       if (bullet) onRevealRef.current?.(bullet);
-    }, delay);
+    };
+    if (revealed > 0 && !speakingDone) {
+      // Speech is in flight — wait for it, but with a hard cap.
+      const t = setTimeout(revealNext, 8000);
+      return () => clearTimeout(t);
+    }
+    const delay = revealed === 0 ? 700 : 1600;
+    const t = setTimeout(revealNext, delay);
     return () => clearTimeout(t);
   }, [revealed, fullyRevealed, speakingDone, data.bullets]);
 
-  // After the last bullet's narration completes, advance to the next scene
-  // automatically — no "Got it" button click required.
+  // After the last bullet's narration completes, advance automatically.
+  // Hard cap of 6 s in case narration somehow never finishes.
   const advancedRef = useRef(false);
   useEffect(() => {
     if (!fullyRevealed) return;
-    if (!speakingDone) return;
     if (advancedRef.current) return;
-    advancedRef.current = true;
-    const t = setTimeout(() => onCompleteRef.current?.(), 2200);
-    return () => clearTimeout(t);
+    const fire = () => {
+      if (advancedRef.current) return;
+      advancedRef.current = true;
+      onCompleteRef.current?.();
+    };
+    if (speakingDone) {
+      const t = setTimeout(fire, 2200);
+      return () => clearTimeout(t);
+    }
+    const fallback = setTimeout(fire, 6000);
+    return () => clearTimeout(fallback);
   }, [fullyRevealed, speakingDone]);
 
   return (

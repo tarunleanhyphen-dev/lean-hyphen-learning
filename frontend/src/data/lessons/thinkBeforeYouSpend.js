@@ -1047,14 +1047,14 @@ function act2Scenes() {
       phases: [
         {
           id: 's6-open',
-          duration: 9500,
+          duration: 11500,
           status: 'Looking back at the cart',
           emotion: 'realised',
           narration: 'Five items. ₹3,795. None of it was on the plan. So what actually made each one slip in?',
         },
         {
           id: 's6-setup',
-          duration: 8000,
+          duration: 10000,
           status: 'Four triggers from the cart',
           emotion: 'curious',
           bubbles: [
@@ -1070,7 +1070,7 @@ function act2Scenes() {
         },
         {
           id: 's6-close',
-          duration: 8000,
+          duration: 10000,
           status: 'All four named',
           emotion: 'realised',
           bubbles: [
@@ -1091,7 +1091,7 @@ function act2Scenes() {
       phases: [
         {
           id: 's7-open',
-          duration: 8000,
+          duration: 10000,
           status: 'Naming what just happened',
           emotion: 'curious',
           narration: 'These tricks have a name. Build the definition — two tiles are decoys, leave them out.',
@@ -1105,7 +1105,7 @@ function act2Scenes() {
         },
         {
           id: 's7-close',
-          duration: 8500,
+          duration: 10500,
           status: 'Definition unlocked',
           emotion: 'realised',
           bubbles: [
@@ -1126,7 +1126,7 @@ function act2Scenes() {
       phases: [
         {
           id: 's8-open',
-          duration: 8000,
+          duration: 10000,
           status: 'Learning the framework',
           emotion: 'curious',
           narration: 'Knowing the trick is half the answer. Here is a five-question pause that beats it.',

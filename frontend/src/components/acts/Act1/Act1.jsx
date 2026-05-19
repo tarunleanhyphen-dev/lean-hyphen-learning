@@ -141,9 +141,16 @@ export default function Act1({ onComplete }) {
   }, [phase, audioEnabled]);
 
   // Speak new bubbles + narration, deduped by text.
+  // Quiz / reflection phases play with ONLY background music — when one
+  // opens we cancel any in-flight speech so the previous beat's narration
+  // doesn't bleed across into the silent quiz moment.
   const spokenTexts = useRef(new Set());
   useEffect(() => {
     if (!audioEnabled || !phase) return;
+    if (phase.mcq || phase.reflection) {
+      cancelSpeech();
+      return;
+    }
     (phase.bubbles || []).forEach((b) => {
       if (!b?.text || spokenTexts.current.has(b.text)) return;
       spokenTexts.current.add(b.text);

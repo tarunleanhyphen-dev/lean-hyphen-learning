@@ -280,18 +280,35 @@ function act1Scenes() {
           phone: after(['shoes'], { scrollHint: true, scrollTo: 'flash-strip' }),
         },
 
-        /* --- Wave 1: Cross-sell — socks --- */
+        /* --- Wave 1: Cross-sell — socks.
+         * Split into two beats so the student can register what the nudge
+         * is saying BEFORE the product card slides in:
+         *   1) Banner alone — "Pair your shoes with a beautiful pair of
+         *      matching socks" — pauses for ~4 s so the line lands.
+         *   2) App auto-scrolls and the "Complete the Look" recommendation
+         *      pops into view below the banner. */
+        {
+          id: 's2-w1-nudge',
+          duration: 5500,
+          status: 'Pairing nudge slides in',
+          phone: after(['shoes'], {
+            pairNudge: { title: 'Complete the Look', subtitle: 'Pair your shoes with a beautiful pair of matching socks' },
+          }),
+          narration: 'Pair your shoes with a beautiful pair of matching socks.',
+          cue: 'ding',
+          insight: { label: 'Cross-sell', detail: 'Pairing suggestions feel like completing one decision, not making a new one.' },
+        },
         {
           id: 's2-w1-card',
-          duration: 5000,
-          status: '"Complete the Look" appears',
+          duration: 4500,
+          status: '"Complete the Look" → Branded Socks ₹299',
           phone: after(['shoes'], {
             recommendations: ['socks'],
             rowLabel: 'Complete the Look',
             scrollTo: 'recommendations',
             pairNudge: { title: 'Complete the Look', subtitle: 'Pair your shoes with a beautiful pair of matching socks' },
+            highlight: 'socks',
           }),
-          insight: { label: 'Cross-sell', detail: 'Pairing suggestions feel like completing one decision, not making a new one.' },
         },
         {
           id: 's2-w1-tap-rec',
@@ -1072,7 +1089,7 @@ const SIZE_PRESETS = {
 export const products = {
   shoes:          { id: 'shoes',        emoji: '👟', image: UN('1622760806364-5ccac8096b59'), name: 'White Sneakers',    tagline: 'Trending pick',              price: 1499, rating: 4.5, sizeOptions: SIZE_PRESETS.shoeUK },
   socks:          { id: 'socks',        emoji: '🧦', image: UN('1615486364462-ef6363adbc18'), name: 'Branded Socks',     tagline: 'Goes with sneakers',         price: 299,  rating: 4.3, sizeOptions: SIZE_PRESETS.apparel },
-  smartwatch:     { id: 'smartwatch',   emoji: '⌚', image: UN('1546868871-7041f2a55e12'), name: 'Smartwatch X1',     tagline: '12K bought this week',       price: 799,  rating: 4.4, sizeOptions: SIZE_PRESETS.watch },
+  smartwatch:     { id: 'smartwatch',   emoji: '⌚', image: UN('1546868871-7041f2a55e12'), name: 'Smartwatch X1',     tagline: '12K bought this week',       price: 799,  rating: 4.8, sizeOptions: SIZE_PRESETS.watch },
   hoodie:         { id: 'hoodie',       emoji: '👕', image: UN('1620799140188-3b2a02fd9a77'), name: 'Birthday Hoodie',   tagline: 'Only 2 left',                price: 999,  rating: 4.6, sizeOptions: SIZE_PRESETS.apparel },
   'cleaning-kit': { id: 'cleaning-kit', emoji: '🧴', image: UN('1636262899511-dc5865c774dc'), name: 'Shoe Cleaning Kit', tagline: 'Frequently bought together', price: 399,  rating: 4.2, sizeOptions: SIZE_PRESETS.kit },
 };

@@ -383,7 +383,7 @@ function ProductDetail({ id, badge, tapping, urgencyMinutes, onlyXLeft, socialPr
           <div className="text-[14px] font-bold text-ink-900">{p.name}</div>
           <div className="mt-0.5 flex items-center gap-1 text-[11px] text-ink-500">
             <Star className="h-3 w-3 fill-saffron-500 text-saffron-500" />
-            {p.rating} · 1,283 reviews · 46k sold this month
+            {p.rating} · 1,283 reviews · {id === 'smartwatch' ? '12K bought this week' : '46k sold this month'}
           </div>
 
           <div className="mt-2 flex items-baseline gap-2">

@@ -21,7 +21,7 @@ import { useLesson } from '../../../context/LessonContext.jsx';
 import { api } from '../../../utils/api.js';
 import {
   sounds, unlockAudio, startMusic, stopMusic, pauseMusic, resumeMusic, setMusicMood,
-  speak, cancelSpeech, setSpeechCallbacks,
+  speak, cancelSpeech, pauseSpeech, resumeSpeech, setSpeechCallbacks,
 } from '../../../utils/sounds.js';
 
 /**
@@ -198,14 +198,18 @@ export default function Act1({ onComplete }) {
     else { stopMusic(); cancelSpeech(); }
   }, [audioEnabled]);
 
-  // When the user pauses, mute the music bus + kill in-flight speech.
-  // When they resume, fade the music back in.
+  // When the user pauses, pause the music bus AND the in-flight speech.
+  // pauseSpeech keeps the current audio element + queue intact so resume
+  // picks up exactly where it left off (was cancelSpeech before, which
+  // silently dropped whatever line was playing — the user reported the
+  // speech not coming back after pause + resume).
   useEffect(() => {
     if (!audioEnabled) return;
     if (seq.paused) {
-      cancelSpeech();
+      pauseSpeech();
       pauseMusic();
     } else {
+      resumeSpeech();
       resumeMusic();
     }
   }, [seq.paused, audioEnabled]);

@@ -552,6 +552,11 @@ function stopAmplitudeLoop() {
 
 let speechQueue = [];
 let processing = false;
+// When `queuePaused` is true the queue processor refuses to start the next
+// item, and the currently-playing audio is paused (not killed). Used by
+// pauseSpeech / resumeSpeech so a sequencer Pause+Resume actually resumes
+// the same line where it left off, instead of skipping it.
+let queuePaused = false;
 
 export function speak(text, opts = {}) {
   if (!text || muted) return;
@@ -560,7 +565,7 @@ export function speak(text, opts = {}) {
 }
 
 function processSpeechQueue() {
-  if (processing) return;
+  if (processing || queuePaused) return;
   const next = speechQueue.shift();
   if (!next) return;
   processing = true;
@@ -589,8 +594,39 @@ export function cancelSpeech() {
   speechQueue = [];
   cancelCloudSpeech();
   processing = false;
+  queuePaused = false;
   activeUtterances = 0;
+  stopAmplitudeLoop();
   speakEndHandler?.();
+}
+
+/* Pause currently-playing TTS without destroying state. Unlike
+ * cancelSpeech, this keeps the audio element, the queue, and the
+ * processing flag — calling resumeSpeech() picks up exactly where the
+ * student left off. Used by the sequencer's Pause button so a pause +
+ * resume doesn't silently skip the current narration. */
+export function pauseSpeech() {
+  queuePaused = true;
+  if (currentCloudAudio && !currentCloudAudio.paused) {
+    try { currentCloudAudio.pause(); } catch {}
+  }
+  // Freeze the amplitude RAF too so the avatar's mouth doesn't keep
+  // moving while there's no audio coming out.
+  stopAmplitudeLoop();
+}
+
+/* Counterpart to pauseSpeech — resumes the paused audio element (if any)
+ * and lets the queue start processing again. If nothing was in flight when
+ * pause was called, this is effectively a no-op + a queue kick. */
+export function resumeSpeech() {
+  queuePaused = false;
+  if (currentCloudAudio && currentCloudAudio.paused) {
+    try {
+      currentCloudAudio.play().then(() => startAmplitudeLoop()).catch(() => {});
+    } catch {}
+  } else if (!processing && speechQueue.length > 0) {
+    processSpeechQueue();
+  }
 }
 
 /* ============== Cloud TTS path (bypasses broken Web Speech) ==============

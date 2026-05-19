@@ -18,7 +18,7 @@ import { useLesson } from '../../../context/LessonContext.jsx';
 import { api } from '../../../utils/api.js';
 import {
   sounds, unlockAudio, startMusic, stopMusic, pauseMusic, resumeMusic, setMusicMood,
-  speak, cancelSpeech, setSpeechCallbacks,
+  speak, cancelSpeech, pauseSpeech, resumeSpeech, setSpeechCallbacks,
 } from '../../../utils/sounds.js';
 
 export default function Act2({ onComplete }) {
@@ -107,8 +107,8 @@ export default function Act2({ onComplete }) {
 
   useEffect(() => {
     if (!audioEnabled) return;
-    if (seq.paused) { cancelSpeech(); pauseMusic(); }
-    else { resumeMusic(); }
+    if (seq.paused) { pauseSpeech(); pauseMusic(); }
+    else { resumeSpeech(); resumeMusic(); }
   }, [seq.paused, audioEnabled]);
 
   const enableAudio = useCallback(async () => {

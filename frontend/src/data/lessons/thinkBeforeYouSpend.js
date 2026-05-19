@@ -517,7 +517,7 @@ function act1Scenes() {
         },
         {
           id: 's2-w3-bubble3',
-          duration: 4800,
+          duration: 6800,
           status: 'Reading hoodie details',
           phone: { cart: ['shoes', 'socks', 'smartwatch'], view: 'detail', showProduct: 'hoodie', urgencyMinutes: 5, onlyXLeft: 2 },
           bubbles: [
@@ -526,14 +526,14 @@ function act1Scenes() {
         },
         {
           id: 's2-w3-tap-add',
-          duration: 2600,
+          duration: 4600,
           status: 'Tapping Add to Cart',
           phone: { cart: ['shoes', 'socks', 'smartwatch'], view: 'detail', showProduct: 'hoodie', urgencyMinutes: 5, onlyXLeft: 2, tapTarget: 'primary-cta' },
           cue: 'tap',
         },
         {
           id: 's2-w3-add',
-          duration: 3200,
+          duration: 5200,
           status: 'Hoodie added',
           phone: after(['shoes', 'socks', 'smartwatch', 'hoodie'], {
             recommendations: ['socks', 'smartwatch', 'hoodie'],
@@ -589,7 +589,7 @@ function act1Scenes() {
          * mismatches in this scene — this view is the fix. */
         {
           id: 's3-banner-in',
-          duration: 5500,
+          duration: 7500,
           status: 'Free-delivery banner appears',
           phone: {
             cart: ['shoes', 'socks', 'smartwatch', 'hoodie'],
@@ -604,7 +604,7 @@ function act1Scenes() {
         },
         {
           id: 's3-think-1',
-          duration: 5000,
+          duration: 7000,
           status: '₹3 from free delivery',
           phone: {
             cart: ['shoes', 'socks', 'smartwatch', 'hoodie'],
@@ -619,7 +619,7 @@ function act1Scenes() {
         },
         {
           id: 's3-think-2',
-          duration: 5400,
+          duration: 7400,
           status: 'Tempted to add one more',
           phone: {
             cart: ['shoes', 'socks', 'smartwatch', 'hoodie'],
@@ -633,7 +633,7 @@ function act1Scenes() {
         },
         {
           id: 's3-fbt-card',
-          duration: 5000,
+          duration: 7000,
           status: '"Frequently Bought Together" appears',
           phone: {
             cart: ['shoes', 'socks', 'smartwatch', 'hoodie'],
@@ -646,7 +646,7 @@ function act1Scenes() {
         },
         {
           id: 's3-fbt-bubble1',
-          duration: 4800,
+          duration: 6800,
           status: 'Eyeing the cleaning kit',
           phone: {
             cart: ['shoes', 'socks', 'smartwatch', 'hoodie'],
@@ -660,7 +660,7 @@ function act1Scenes() {
         },
         {
           id: 's3-fbt-bubble2',
-          duration: 4800,
+          duration: 6800,
           status: 'Justifying the add-on',
           phone: {
             cart: ['shoes', 'socks', 'smartwatch', 'hoodie'],
@@ -674,7 +674,7 @@ function act1Scenes() {
         },
         {
           id: 's3-fbt-tap-add',
-          duration: 2800,
+          duration: 4800,
           status: 'Tapping Add on the cleaning kit',
           phone: {
             cart: ['shoes', 'socks', 'smartwatch', 'hoodie'],
@@ -687,7 +687,7 @@ function act1Scenes() {
         },
         {
           id: 's3-unlock',
-          duration: 5400,
+          duration: 7400,
           status: '🎉 Free delivery unlocked',
           phone: {
             cart: ['shoes', 'socks', 'smartwatch', 'hoodie', 'cleaning-kit'],
@@ -723,7 +723,7 @@ function act1Scenes() {
          * to the feed view. */
         {
           id: 's4-freeze',
-          duration: 2800,
+          duration: 4800,
           status: 'Pause',
           phone: {
             cart: ['shoes', 'socks', 'smartwatch', 'hoodie', 'cleaning-kit'],
@@ -735,7 +735,7 @@ function act1Scenes() {
         },
         {
           id: 's4-cart-open',
-          duration: 4200,
+          duration: 6200,
           status: 'Opening the cart',
           phone: {
             cart: ['shoes', 'socks', 'smartwatch', 'hoodie', 'cleaning-kit'],
@@ -746,7 +746,7 @@ function act1Scenes() {
         },
         {
           id: 's4-total-build',
-          duration: 5000,
+          duration: 7000,
           status: 'Total counting up',
           phone: {
             cart: ['shoes', 'socks', 'smartwatch', 'hoodie', 'cleaning-kit'],
@@ -758,7 +758,7 @@ function act1Scenes() {
         },
         {
           id: 's4-gap',
-          duration: 5600,
+          duration: 7600,
           status: '₹1,500 plan → ₹3,995 actual',
           phone: {
             cart: ['shoes', 'socks', 'smartwatch', 'hoodie', 'cleaning-kit'],
@@ -772,7 +772,7 @@ function act1Scenes() {
         },
         {
           id: 's4-realisation-1',
-          duration: 5400,
+          duration: 7400,
           status: 'Shanaya reflects',
           phone: {
             cart: ['shoes', 'socks', 'smartwatch', 'hoodie', 'cleaning-kit'],
@@ -788,7 +788,7 @@ function act1Scenes() {
         },
         {
           id: 's4-realisation-2',
-          duration: 6200,
+          duration: 8200,
           status: 'Shanaya reflects',
           phone: {
             cart: ['shoes', 'socks', 'smartwatch', 'hoodie', 'cleaning-kit'],
@@ -807,7 +807,7 @@ function act1Scenes() {
         /* ---- SHE GOES THROUGH WITH IT: PLACE ORDER → PAY → CONFIRMATION ---- */
         {
           id: 's4-tap-place-order',
-          duration: 2400,
+          duration: 4400,
           status: 'Tapping Place Order',
           phone: {
             cart: ['shoes', 'socks', 'smartwatch', 'hoodie', 'cleaning-kit'],
@@ -822,7 +822,7 @@ function act1Scenes() {
         },
         {
           id: 's4-payment',
-          duration: 5500,
+          duration: 7500,
           status: 'Choosing payment method',
           phone: {
             cart: ['shoes', 'socks', 'smartwatch', 'hoodie', 'cleaning-kit'],
@@ -832,7 +832,7 @@ function act1Scenes() {
         },
         {
           id: 's4-pay-tap',
-          duration: 2800,
+          duration: 4800,
           status: 'Tapping Pay',
           phone: {
             cart: ['shoes', 'socks', 'smartwatch', 'hoodie', 'cleaning-kit'],
@@ -842,7 +842,7 @@ function act1Scenes() {
         },
         {
           id: 's4-pay-processing',
-          duration: 3000,
+          duration: 5000,
           status: 'Processing payment',
           phone: {
             cart: ['shoes', 'socks', 'smartwatch', 'hoodie', 'cleaning-kit'],
@@ -851,7 +851,7 @@ function act1Scenes() {
         },
         {
           id: 's4-confirmation',
-          duration: 5500,
+          duration: 7500,
           status: 'Order placed',
           phone: {
             cart: ['shoes', 'socks', 'smartwatch', 'hoodie', 'cleaning-kit'],
@@ -865,7 +865,7 @@ function act1Scenes() {
          * reflection prompt steals their attention. */
         {
           id: 's4-order-summary',
-          duration: 8500,
+          duration: 10500,
           status: 'Reading the receipt',
           phone: {
             cart: ['shoes', 'socks', 'smartwatch', 'hoodie', 'cleaning-kit'],
@@ -881,7 +881,7 @@ function act1Scenes() {
          * no extra beat after. */
         {
           id: 's4-bridge',
-          duration: 14000,
+          duration: 16000,
           status: 'Sitting with the receipt',
           emotion: 'realised',
           phone: {

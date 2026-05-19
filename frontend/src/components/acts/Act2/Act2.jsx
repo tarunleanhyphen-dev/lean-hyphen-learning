@@ -208,7 +208,7 @@ export default function Act2({ onComplete }) {
           <div className="relative flex h-full min-h-[560px] flex-col">
             <div className="flex items-center justify-between">
               <div className="text-[11px] font-bold uppercase tracking-widest text-ink-500">
-                Scene {sceneIdx + 6} of 8
+                Scene {sceneIdx + 1} of {act.scenes.length}
               </div>
               <div className="hidden text-right sm:block">
                 <div className="text-[11px] text-ink-500">Reflecting on the cart</div>
@@ -325,6 +325,7 @@ function ActivityRenderer({ kind, onCueClick, onCueCorrect, onCueWrong, onSpeakI
         onCueWrong={onCueWrong}
         onSpeakInsight={onSpeakInsight}
         onSpeakPrompt={onSpeakPrompt}
+        speakingDone={speakingDone}
         onComplete={() => onComplete({ activity: 'match' })}
       />
     );
@@ -377,7 +378,7 @@ function OrderSummaryCard() {
       className="flex flex-col gap-3"
     >
       <header>
-        <div className="text-[11px] font-bold uppercase tracking-widest text-saffron-400">Scene 6 · What just happened</div>
+        <div className="text-[11px] font-bold uppercase tracking-widest text-saffron-400">Scene 1 · What just happened</div>
         <h3 className="mt-1 text-xl font-extrabold text-ink-900 sm:text-2xl">Order summary</h3>
         <p className="mt-0.5 text-[12.5px] text-ink-700 sm:text-[13px]">Everything Shanaya bought — and the trigger behind each pick.</p>
       </header>
@@ -439,15 +440,15 @@ function PreActivityPlaceholder({ sceneIdx, isAfterActivity }) {
   }
 
   const summaries = [
-    null, // Scene 6 handled above
+    null, // Scene 1 handled above by OrderSummaryCard
     {
-      eyebrow: 'Scene 7',
+      eyebrow: 'Scene 2',
       title: 'Connecting the dots',
       copy: 'These tricks have one name in common. Build the definition by tapping the right tiles.',
       tag: 'Build the definition',
     },
     {
-      eyebrow: 'Scene 8',
+      eyebrow: 'Scene 3',
       title: 'Pause & Think',
       copy: 'Five quick questions to ask before every purchase. The pause that beats the trap.',
       tag: 'Learn the framework',

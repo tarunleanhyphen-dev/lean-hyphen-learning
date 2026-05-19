@@ -850,7 +850,6 @@ function act1Scenes() {
           },
           bubbles: [
             { side: 'right', type: 'thought', text: "This didn't feel like a bad decision while I was making it — each step seemed perfectly reasonable. So why does it now feel like I've gone overboard? What does this say about my spending habits?" },
-            { side: 'right', type: 'thought', text: "Let's figure it out." },
           ],
         },
 

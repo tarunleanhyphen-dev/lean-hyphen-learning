@@ -20,7 +20,7 @@ import { Check, Sparkles } from 'lucide-react';
  * Drag-and-drop was considered, but tap-to-match is more accessible on
  * mobile/tablet, doesn't fight scroll, and works with keyboard naturally.
  */
-export default function DragMatchBoard({ data, onCueClick, onCueCorrect, onCueWrong, onSpeakInsight, onSpeakPrompt, onComplete }) {
+export default function DragMatchBoard({ data, onCueClick, onCueCorrect, onCueWrong, onSpeakInsight, onSpeakPrompt, speakingDone = true, onComplete }) {
   const pairs = data.pairs;
   const [matched, setMatched] = useState({});             // { pairId: true }
   const [pickedTrigger, setPickedTrigger] = useState(null);
@@ -28,6 +28,13 @@ export default function DragMatchBoard({ data, onCueClick, onCueCorrect, onCueWr
   const [openInsight, setOpenInsight] = useState(null);   // pairId
   const [autoSolving, setAutoSolving] = useState(false);
   const userInteractedRef = useRef(false);
+  // Stash latest callbacks in refs so the mount-only effects don't have
+  // to depend on their identity — that's what was causing the prompt to
+  // re-fire on every render.
+  const onSpeakPromptRef = useRef(onSpeakPrompt);
+  onSpeakPromptRef.current = onSpeakPrompt;
+  const onSpeakInsightRef = useRef(onSpeakInsight);
+  onSpeakInsightRef.current = onSpeakInsight;
 
   const triggerOrder = useMemo(() => pairs.map((p) => p.id), [pairs]);
   // Shuffle categories so the order doesn't give it away. Deterministic per mount.
@@ -43,14 +50,15 @@ export default function DragMatchBoard({ data, onCueClick, onCueCorrect, onCueWr
   const allDone = Object.keys(matched).length === pairs.length;
   const firstUnmatched = triggerOrder.find((id) => !matched[id]) || null;
 
-  // Voice prompt on mount: "please match this now". Single fire, parent
-  // decides whether audio is enabled.
+  // Voice prompt fires exactly once, on mount. Empty deps + refs for the
+  // callbacks means React's re-renders can't retrigger this.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const t = setTimeout(() => {
-      onSpeakPrompt?.('Please match each cart trigger to the right reason now.');
-    }, 500);
+      onSpeakPromptRef.current?.('Please match each cart trigger to the right reason now.');
+    }, 600);
     return () => clearTimeout(t);
-  }, [onSpeakPrompt]);
+  }, []);
 
   // Auto-solve if no interaction in 5 s.
   useEffect(() => {
@@ -61,11 +69,13 @@ export default function DragMatchBoard({ data, onCueClick, onCueCorrect, onCueWr
     return () => clearTimeout(t);
   }, [allDone, autoSolving]);
 
-  // Auto-solve loop: pick one unmatched pair every 1.6 s with the same
-  // "trigger first, then category" rhythm the student would use.
+  // Auto-solve loop: pick one unmatched pair every ~1.8 s, but only when
+  // speech from the previous insight has fully finished. This prevents the
+  // narrator from talking over the next match.
   useEffect(() => {
     if (!autoSolving || allDone) return;
-    const stepDelay = 1600;
+    if (!speakingDone) return;  // wait for current insight to finish reading
+    const stepDelay = 600;       // small breath after speech ends
     let cancelled = false;
 
     const solveNext = () => {
@@ -80,13 +90,13 @@ export default function DragMatchBoard({ data, onCueClick, onCueCorrect, onCueWr
         setPickedTrigger(null);
         onCueCorrect?.();
         const matchedPair = pairs.find((p) => p.id === next);
-        if (matchedPair) onSpeakInsight?.(matchedPair);
-      }, stepDelay / 2);
+        if (matchedPair) onSpeakInsightRef.current?.(matchedPair);
+      }, 700);
     };
 
     const t = setTimeout(solveNext, stepDelay);
     return () => { cancelled = true; clearTimeout(t); };
-  }, [autoSolving, allDone, matched, triggerOrder, pairs, onCueCorrect, onSpeakInsight]);
+  }, [autoSolving, allDone, matched, speakingDone, triggerOrder, pairs, onCueCorrect]);
 
   useEffect(() => {
     if (!allDone) return;

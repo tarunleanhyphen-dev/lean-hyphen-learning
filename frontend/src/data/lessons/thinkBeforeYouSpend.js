@@ -604,7 +604,7 @@ function act1Scenes() {
         },
         {
           id: 's3-think-1',
-          duration: 7000,
+          duration: 10000,
           status: '₹3 from free delivery',
           phone: {
             cart: ['shoes', 'socks', 'smartwatch', 'hoodie'],

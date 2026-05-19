@@ -138,39 +138,45 @@ const CHORDS = {
 // Mood definitions tuned so transitions are *audible*, not subtle. The big
 // dimensions of contrast: bus volume, presence of percussion, low-pass cutoff
 // (brightness), and whether the bell melody is present.
+// Modern-poem feel: the bell now plays a real arpeggiated melody (root →
+// fifth → octave → third) on every bar, sliding gently with the chord
+// progression. Calm + reflective moods use the I–V–vi–IV / vi–IV–I–V
+// progressions that anchor most modern indie songs — gives the soundtrack
+// a "song you've heard before" warmth instead of an abstract pad.
 const MOODS = {
   calm: {
-    progression: ['Am', 'Em', 'F', 'C'],
-    hasPad: true, hasBass: true, hasShaker: false, hasBell: false,
-    padGain: 0.05, bassGain: 0.14,
-    busGain: 0.32, lpfHz: 1000,
+    // I–V–vi–IV (C major) — the modern pop / coming-of-age progression.
+    progression: ['C', 'G', 'Am', 'F'],
+    hasPad: true, hasBass: true, hasShaker: false, hasBell: true,
+    padGain: 0.05, bassGain: 0.13, bellGain: 0.07,
+    busGain: 0.34, lpfHz: 1100,
   },
   'app-tempo': {
-    // Browsing / scrolling — adds shaker + a tiny tick on every beat for the
-    // "swiping through the feed" feel, brighter LPF, slightly louder bus.
-    progression: ['Am', 'Em', 'F', 'G'],
-    hasPad: true, hasBass: true, hasShaker: true, hasBell: false,
+    // Browsing / scrolling — same warm C-major key, adds a steady shaker
+    // + eighth-note ticks for the "swiping" feel.
+    progression: ['C', 'G', 'Am', 'F'],
+    hasPad: true, hasBass: true, hasShaker: true, hasBell: true,
     extraTick: true,
-    padGain: 0.055, bassGain: 0.18,
-    busGain: 0.40, lpfHz: 1600,
+    padGain: 0.055, bassGain: 0.18, bellGain: 0.06,
+    busGain: 0.42, lpfHz: 1500,
   },
   thinking: {
-    // Halved bus volume, no bass, no percussion — just a slow pad + bell.
-    // Very obviously quieter than calm/app-tempo.
+    // Quiet, sparse, low — pad + slow bell only. Bus volume halved.
     progression: ['Am', 'Fmaj7', 'C', 'G'],
     hasPad: true, hasBass: false, hasShaker: false, hasBell: true,
-    padGain: 0.04, bellGain: 0.06,
-    busGain: 0.16, lpfHz: 700,
+    padGain: 0.04, bellGain: 0.075,
+    busGain: 0.18, lpfHz: 750,
   },
   reflective: {
-    progression: ['F', 'C', 'Dm', 'Am'],
+    // vi–IV–I–V — gentle major-leaning resolve, perfect for Act 2.
+    progression: ['Am', 'F', 'C', 'G'],
     hasPad: true, hasBass: true, hasShaker: false, hasBell: true,
-    padGain: 0.055, bassGain: 0.10, bellGain: 0.05,
-    busGain: 0.30, lpfHz: 950,
+    padGain: 0.055, bassGain: 0.10, bellGain: 0.075,
+    busGain: 0.32, lpfHz: 1000,
   },
   hit: {
-    // Tense chord (Dm-Bb-A-A), bright LPF, big bus volume bump, plays an
-    // impact swell on entry. This should be impossible to miss.
+    // Tense chord set + bright LPF + big bus bump. Impact swell fires
+    // separately on entry.
     progression: ['Dm', 'Bb', 'A', 'A'],
     hasPad: true, hasBass: true, hasShaker: true, hasBell: false,
     extraTick: true,
@@ -234,19 +240,32 @@ function scheduleShaker(start) {
   src.stop(start + dur + 0.02);
 }
 
-function scheduleBell(freq, start, dur, peak) {
-  // Soft mallet/bell tone — triangle wave, slow attack so it floats above
-  // the pad rather than punching through. Used in thinking/reflective moods.
+function scheduleBellNote(freq, start, dur, peak) {
+  // Single bell note — triangle wave, soft pluck envelope. Used as one
+  // step of the per-bar arpeggio rather than a single held note.
   const o = ctx.createOscillator();
   const g = ctx.createGain();
   o.type = 'triangle';
-  o.frequency.value = freq * 2; // one octave up so the bell reads as melody
+  o.frequency.value = freq;
   g.gain.setValueAtTime(0, start);
-  g.gain.linearRampToValueAtTime(peak, start + 0.5);
+  g.gain.linearRampToValueAtTime(peak, start + 0.08);
   g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
   o.connect(g).connect(lowPassFilter);
   o.start(start);
-  o.stop(start + dur + 0.1);
+  o.stop(start + dur + 0.05);
+}
+
+function scheduleBellMelody(chord, startTime, barDur, peak) {
+  // Walk the chord as a 4-step arpeggio: root↑1oct → fifth↑1oct → octave →
+  // third↑1oct. This gives the soundtrack a song-like top-line that
+  // students will actually whistle along to — much more "modern poem" than
+  // the single sustained note we had before. Each step is a beat long.
+  const beat = barDur / 4;
+  const [root, third, fifth] = chord.notes; // [220, 261.63, 329.63] for Am
+  const arp = [root * 2, fifth * 2, root * 4, third * 2];
+  arp.forEach((f, i) => {
+    scheduleBellNote(f, startTime + beat * i + 0.03, beat * 0.9, peak * (1 - i * 0.08));
+  });
 }
 
 function playImpactSwell() {
@@ -316,8 +335,9 @@ function scheduleBar(barIdx, startTime) {
     }
   }
   if (mood.hasBell) {
-    // Bell on the downbeat of each bar — uses the top note of the chord.
-    scheduleBell(chord.notes[2], startTime + 0.05, BAR * 0.9, mood.bellGain || 0.04);
+    // Per-bar bell arpeggio — root → fifth → octave → third (all up one
+    // octave) gives the soundtrack a real melodic top-line.
+    scheduleBellMelody(chord, startTime, BAR, mood.bellGain || 0.05);
   }
 }
 

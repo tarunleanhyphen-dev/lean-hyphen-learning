@@ -33,14 +33,17 @@ export default function DragMatchBoard({ data, onCueClick, onCueCorrect, onCueWr
   onSpeakPromptRef.current = onSpeakPrompt;
 
   const triggerOrder = useMemo(() => pairs.map((p) => p.id), [pairs]);
-  // Shuffle categories so the order doesn't give it away. Deterministic per mount.
+  // Deterministic non-trivial mapping so rows DON'T align visually — the
+  // student has to actually read each pair instead of pattern-matching by
+  // row index:
+  //   trigger 1 (urgency)        ↦ category in row 3
+  //   trigger 2 (social)         ↦ category in row 4
+  //   trigger 3 (pairing)        ↦ category in row 1
+  //   trigger 4 (free-delivery)  ↦ category in row 2
+  // Category column order: [pairing, free-delivery, urgency, social]
   const categoryOrder = useMemo(() => {
-    const ids = pairs.map((p) => p.id);
-    for (let i = ids.length - 1; i > 0; i -= 1) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [ids[i], ids[j]] = [ids[j], ids[i]];
-    }
-    return ids;
+    const positions = [2, 3, 0, 1]; // index of the trigger-pair to place in this category row
+    return positions.map((triggerIdx) => pairs[triggerIdx]?.id).filter(Boolean);
   }, [pairs]);
 
   const allDone = Object.keys(matched).length === pairs.length;

@@ -1,16 +1,17 @@
-import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles } from 'lucide-react';
 
 /**
  * Word-tile puzzle: build a target sentence by tapping tiles in order.
  * Two of the six tiles are decoys; placing a decoy shakes the slot and bounces
- * the tile back. When the four correct tiles are placed in the right order,
- * the full sentence glows and onComplete fires after a short hold.
+ * the tile back. When the four correct tiles are placed in the right order:
+ *   1. The full definition is spoken aloud (onSpeakDefinition fires once).
+ *   2. Once narration completes (speakingDone flips true), onComplete fires.
  *
  * `data`: { title, instruction, leadIn, slots, tiles: [{id, label, correctIndex|null}], finalLine }
  */
-export default function DefinitionPuzzle({ data, onCueClick, onCueCorrect, onCueWrong, onSpeakDefinition, onComplete }) {
+export default function DefinitionPuzzle({ data, onCueClick, onCueCorrect, onCueWrong, onSpeakDefinition, speakingDone = true, onComplete }) {
   const { tiles, leadIn, slots: slotCount, finalLine } = data;
 
   const [placed, setPlaced] = useState(() => Array(slotCount).fill(null)); // tile ids
@@ -62,17 +63,32 @@ export default function DefinitionPuzzle({ data, onCueClick, onCueCorrect, onCue
     onCueClick?.();
   }, [done, onCueClick]);
 
-  // When all 4 slots filled correctly, speak the full definition aloud (so
-  // students hear it in their ear, not just see it), then fire complete after
-  // enough time for the line + a beat of silence.
+  // Stash callbacks in refs so render-induced identity changes don't keep
+  // re-triggering speech or cancelling the advance timer.
+  const onSpeakDefinitionRef = useRef(onSpeakDefinition);
+  onSpeakDefinitionRef.current = onSpeakDefinition;
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+  const spokeRef = useRef(false);
+
+  // When all 4 slots are filled, mark done and speak the definition (once).
   useEffect(() => {
-    if (placed.every((id) => id !== null)) {
-      setDone(true);
-      onSpeakDefinition?.(data.finalLine);
-      const t = setTimeout(() => onComplete?.(), 6500);
-      return () => clearTimeout(t);
-    }
-  }, [placed, onComplete, onSpeakDefinition, data.finalLine]);
+    if (!placed.every((id) => id !== null)) return;
+    if (spokeRef.current) return;
+    spokeRef.current = true;
+    setDone(true);
+    onSpeakDefinitionRef.current?.(data.finalLine);
+  }, [placed, data.finalLine]);
+
+  // After the narration of the definition finishes, advance to the next
+  // scene with a small breath. speakingDone is true by default when audio
+  // is off, so the advance still happens in muted mode.
+  useEffect(() => {
+    if (!done) return;
+    if (!speakingDone) return;
+    const t = setTimeout(() => onCompleteRef.current?.(), 1400);
+    return () => clearTimeout(t);
+  }, [done, speakingDone]);
 
   return (
     <div className="flex flex-col gap-4">

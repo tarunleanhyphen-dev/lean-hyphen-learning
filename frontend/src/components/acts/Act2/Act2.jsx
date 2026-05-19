@@ -338,6 +338,7 @@ function ActivityRenderer({ kind, onCueClick, onCueCorrect, onCueWrong, onSpeakI
         onCueCorrect={onCueCorrect}
         onCueWrong={onCueWrong}
         onSpeakDefinition={onSpeakDefinition}
+        speakingDone={speakingDone}
         onComplete={() => onComplete({ activity: 'puzzle' })}
       />
     );

@@ -130,6 +130,10 @@ export default function MockShoppingApp({ state = {} }) {
       {view === 'feed' && <>
         <CategoryStrip />
         <HeroCarousel />
+        {/* Big "Trending Fashion" grid lives in the feed so when narration
+           says "she scrolls a little more", the auto-scroll has a real
+           wall of fashion to travel through before the cross-sell nudge. */}
+        <TrendingFashionStrip />
       </>}
 
       {view === 'results' && (
@@ -1523,6 +1527,73 @@ function Row({ label, value, valueClass = 'text-ink-900' }) {
     <div className="flex items-center justify-between">
       <span className="text-ink-700">{label}</span>
       <span className={valueClass}>{value}</span>
+    </div>
+  );
+}
+
+/* =================== Trending Fashion grid ===================
+ * Eight fashion picks rendered as a 2-column card grid. Visuals come from
+ * Microsoft's Fluent UI 3D Emoji (same source as the avatar's thought
+ * clouds, so the style stays coherent). This sits in the feed view so
+ * the auto-scroll on the s2-intro "she scrolls a little more" beat has
+ * something substantial to scroll through before the cross-sell nudge.
+ * Cards are display-only — Tap "Add" does nothing; the lesson controls
+ * actual cart state from the lesson data. */
+const FASHION_PICKS = [
+  { id: 'dress',      label: 'Floral Dress',    price: 1499, img: 'Dress/3D/dress_3d.png',                                    badge: 'Trending' },
+  { id: 'tshirt',     label: 'Crop Top',        price:  799, img: 'T-shirt/3D/t-shirt_3d.png',                                badge: '24% off'  },
+  { id: 'jeans',      label: 'Skinny Jeans',    price: 1799, img: 'Jeans/3D/jeans_3d.png',                                    badge: 'Hot pick' },
+  { id: 'sunnies',    label: 'Sunnies',         price:  499, img: 'Sunglasses/3D/sunglasses_3d.png',                          badge: 'Trending' },
+  { id: 'bag',        label: 'Sling Bag',       price: 1299, img: 'Handbag/3D/handbag_3d.png',                                badge: 'New'      },
+  { id: 'lipstick',   label: 'Velvet Lip',      price:  399, img: 'Lipstick/3D/lipstick_3d.png',                              badge: 'Loved'    },
+  { id: 'sneaker',    label: 'Studio Sneaker',  price: 1999, img: 'Running%20shoe/3D/running_shoe_3d.png',                    badge: 'Trending' },
+  { id: 'earrings',   label: 'Hoops Set',       price:  299, img: 'Ring/3D/ring_3d.png',                                      badge: 'Cute'     },
+];
+const FL_BASE = 'https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/';
+
+function TrendingFashionStrip() {
+  return (
+    <div id="mock-fashion-strip" className="mt-4 px-4">
+      <div className="mb-2 flex items-center justify-between">
+        <div className="text-[12px] font-bold uppercase tracking-wider text-ink-700">✨ Trending Fashion</div>
+        <span className="inline-flex items-center text-[11px] font-semibold text-coral-500">
+          See all <ChevronRight className="h-3 w-3" />
+        </span>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        {FASHION_PICKS.map((p, i) => (
+          <motion.div
+            key={p.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: i * 0.05 }}
+            className="relative overflow-hidden rounded-xl bg-white p-2 ring-1 ring-ink-300/10"
+          >
+            <div className="relative aspect-square overflow-hidden rounded-lg bg-cream-100">
+              <img
+                src={`${FL_BASE}${p.img}`}
+                alt={p.label}
+                loading="lazy"
+                className="absolute inset-0 m-auto h-3/4 w-3/4 select-none object-contain drop-shadow"
+                draggable={false}
+              />
+              <span className="absolute right-1 top-1 z-10 grid h-5 w-5 place-items-center rounded-full bg-white/90 text-ink-700 shadow">
+                <Heart className="h-3 w-3" />
+              </span>
+              <span className="absolute left-1.5 top-1.5 z-10 rounded-full bg-coral-500 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-white">
+                {p.badge}
+              </span>
+            </div>
+            <div className="mt-1.5 line-clamp-1 text-[12px] font-semibold text-ink-900">{p.label}</div>
+            <div className="mt-0.5 flex items-center justify-between">
+              <span className="text-[13px] font-extrabold text-ink-900">₹{p.price.toLocaleString('en-IN')}</span>
+              <button className="rounded-md bg-cream-100 px-2 py-1 text-[10px] font-bold text-coral-600">
+                Add
+              </button>
+            </div>
+          </motion.div>
+        ))}
+      </div>
     </div>
   );
 }

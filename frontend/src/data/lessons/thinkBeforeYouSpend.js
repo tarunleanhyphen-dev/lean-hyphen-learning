@@ -310,11 +310,15 @@ function act1Scenes() {
       emotion: 'curious',
       phases: [
         {
+          /* The phone auto-scrolls through the Trending Fashion grid + the
+           * flash sale strip while narration plays — so when the next phase
+           * snaps the "Pair your shoes" banner in, the student has just
+           * seen a wall of fashion and the cross-sell feels organic. */
           id: 's2-intro',
-          duration: 4500,
+          duration: 9500,
           status: 'Scrolling for more',
           narration: 'But she does not log off. She scrolls a little more — and the app starts responding to her choices.',
-          phone: after(['shoes'], { scrollHint: true, scrollTo: 'flash-strip' }),
+          phone: after(['shoes'], { scrollHint: true }),
         },
 
         /* --- Wave 1: Cross-sell — socks.

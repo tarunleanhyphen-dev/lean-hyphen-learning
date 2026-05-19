@@ -84,8 +84,13 @@ export default function ShanayaAvatar({ emotion = 'neutral', speaking = false, w
       <motion.div
         animate={bob}
         transition={{ duration: emotion === 'shocked' ? 0.6 : 3.8, repeat: Infinity, ease: 'easeInOut' }}
-        className={`relative ${sizeClass} overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#FFE0E9] via-[#FFD0C0] to-[#FFE5B4] shadow-2xl ring-[4px] ring-white/80`}
+        className={`relative ${sizeClass} overflow-hidden rounded-[2rem] shadow-2xl ring-[4px] ring-white/80`}
       >
+        {/* Room scene behind Shanaya. The avataaars character has a
+           transparent background, so the wall, window, picture, plant, and
+           floor all show through around her — she finally looks like she's
+           sitting in her actual room rather than floating in a peach blob. */}
+        <RoomScene />
         <AnimatePresence mode="wait">
           <motion.img
             key={emotion}
@@ -139,5 +144,96 @@ export default function ShanayaAvatar({ emotion = 'neutral', speaking = false, w
         )}
       </motion.div>
     </div>
+  );
+}
+
+/* =================== Room scene behind the avatar ===================
+ * Flat-illustrated bedroom in the same warm peach palette as the rest of
+ * Act 1's left card. Stylised, not photorealistic, so it matches the
+ * avataaars character's flat-vector look. Includes:
+ *   - Soft peach wall + warm wood floor
+ *   - Window with sky + curtains (top-left)
+ *   - Heart picture-frame on the wall (top-right)
+ *   - Potted plant in the corner (right of floor)
+ *   - A few sparkles for charm
+ *
+ * The whole SVG is non-interactive and sits at z-index 0; the avataaars
+ * image is on top of it with a transparent background, so the room peeks
+ * around Shanaya's silhouette. */
+function RoomScene() {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 320 320"
+      preserveAspectRatio="xMidYMid slice"
+      className="absolute inset-0 h-full w-full"
+    >
+      <defs>
+        <linearGradient id="lh-wall" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"  stopColor="#FFE0E9" />
+          <stop offset="100%" stopColor="#FFD0C0" />
+        </linearGradient>
+        <linearGradient id="lh-floor" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"  stopColor="#E8B98A" />
+          <stop offset="100%" stopColor="#C99B6D" />
+        </linearGradient>
+        <linearGradient id="lh-sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"  stopColor="#CDEEF9" />
+          <stop offset="100%" stopColor="#A8D8E8" />
+        </linearGradient>
+      </defs>
+
+      {/* Wall + floor */}
+      <rect width="320" height="240" fill="url(#lh-wall)" />
+      <rect y="240" width="320" height="80" fill="url(#lh-floor)" />
+      <rect y="237" width="320" height="6" fill="#B8855F" />
+
+      {/* Window — top-left */}
+      <rect x="20" y="22"  width="86" height="70" fill="#A07050" rx="4" />
+      <rect x="24" y="26"  width="78" height="62" fill="url(#lh-sky)" rx="2" />
+      <circle cx="86" cy="40" r="6" fill="#FFF7C8" />
+      <rect x="24" y="55"  width="78" height="3" fill="#A07050" />
+      <rect x="61" y="26"  width="3"  height="62" fill="#A07050" />
+      {/* Curtains */}
+      <path d="M10 22 Q14 80 8 96 Q18 90 24 96 L24 22 Z" fill="#FF8FAB" opacity="0.92" />
+      <path d="M116 22 Q112 80 118 96 Q108 90 102 96 L102 22 Z" fill="#FF8FAB" opacity="0.92" />
+
+      {/* Heart picture frame — top-right */}
+      <rect x="215" y="32" width="76" height="62" fill="#FFFFFF" stroke="#A07050" strokeWidth="3" rx="3" />
+      <path
+        d="M253 80
+           C246 73 233 63 233 51
+           C233 44 239 39 246 39
+           C250 39 253 41 253 41
+           C253 41 256 39 260 39
+           C267 39 273 44 273 51
+           C273 63 260 73 253 80 Z"
+        fill="#FF6B6B"
+      />
+
+      {/* Pinboard / small sticky notes — center wall */}
+      <rect x="138" y="118" width="48" height="36" fill="#FFE9B0" stroke="#C99B6D" strokeWidth="1.5" transform="rotate(-3 162 136)" />
+      <rect x="180" y="128" width="32" height="28" fill="#C7E8B5" stroke="#7BC470" strokeWidth="1.5" transform="rotate(4 196 142)" />
+
+      {/* Potted plant — floor right */}
+      <rect x="252" y="248" width="42" height="48" fill="#A85F3A" rx="3" />
+      <rect x="252" y="248" width="42" height="6"  fill="#8E4E2E" />
+      <ellipse cx="273" cy="244" rx="28" ry="16" fill="#7BC470" />
+      <ellipse cx="265" cy="234" rx="14" ry="11" fill="#9ED88E" />
+      <ellipse cx="282" cy="232" rx="12" ry="9"  fill="#9ED88E" />
+
+      {/* Bed corner peek — bottom-left */}
+      <rect x="-10" y="260" width="120" height="60" fill="#F7C4D0" rx="6" />
+      <rect x="-10" y="260" width="120" height="14" fill="#E89AAE" rx="6" />
+      <circle cx="40" cy="282" r="8" fill="#FFFFFF" opacity="0.7" />
+
+      {/* Sparkles for charm */}
+      <g fill="#FFD23F" opacity="0.85">
+        <circle cx="155" cy="38"  r="2.5" />
+        <circle cx="195" cy="68"  r="1.8" />
+        <circle cx="135" cy="78"  r="2"   />
+        <circle cx="195" cy="180" r="1.6" />
+      </g>
+    </svg>
   );
 }

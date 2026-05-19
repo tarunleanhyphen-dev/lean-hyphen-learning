@@ -81,6 +81,10 @@ export default function Act1({ onComplete }) {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [speaker, setSpeaker] = useState(null); // 'shanaya' | 'narrator' | null
   const [wordTick, setWordTick] = useState(0);
+  // Real-time speech amplitude (0–1), sampled ~60×/s from the audio
+  // analyser. Drives ShanayaAvatar's mouth open/close so lip-sync actually
+  // matches the audio waveform instead of pulsing on every word.
+  const mouthRef = useRef(0);
 
   const { sessionId, audioEnabled, setAudioEnabled, setAudioDismissed, setReflection, setActStatus, state: lessonState } = useLesson();
   // Hold the very first phase until the user has decided about audio —
@@ -127,8 +131,12 @@ export default function Act1({ onComplete }) {
   useEffect(() => {
     setSpeechCallbacks({
       onStart: (who) => { setIsSpeaking(true); setSpeaker(who || 'shanaya'); },
-      onEnd:   () => { setIsSpeaking(false); setSpeaker(null); },
+      onEnd:   () => { setIsSpeaking(false); setSpeaker(null); mouthRef.current = 0; },
       onWord:  () => setWordTick((t) => t + 1),
+      // Stash amplitude into a ref (not state) so 60-fps updates don't
+      // cause Act 1 to re-render every frame. ShanayaAvatar reads from
+      // the ref on its own RAF loop.
+      onAmplitude: (v) => { mouthRef.current = v; },
     });
     return () => setSpeechCallbacks(null);
   }, []);
@@ -334,7 +342,13 @@ export default function Act1({ onComplete }) {
             <div className="mt-2 flex flex-col">
               <div className="relative flex items-start gap-3 sm:gap-5">
                 <div className="relative shrink-0">
-                  <ShanayaAvatar emotion={currentEmotion} speaking={isSpeaking && speaker === 'shanaya'} wordTick={wordTick} size="xl" />
+                  <ShanayaAvatar
+                    emotion={currentEmotion}
+                    speaking={isSpeaking && speaker === 'shanaya'}
+                    wordTick={wordTick}
+                    amplitudeRef={mouthRef}
+                    size="xl"
+                  />
                   {/* Imagination clouds — only render when the current phase
                      supplies imagery (used by Scene 0's "she's picturing
                      birthday at the café / friends / outfits" beats). */}

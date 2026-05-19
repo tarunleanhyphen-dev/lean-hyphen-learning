@@ -36,6 +36,8 @@ export default function Act2({ onComplete }) {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [speaker, setSpeaker] = useState(null); // 'shanaya' | 'narrator' | null
   const [wordTick, setWordTick] = useState(0);
+  // Real-time speech amplitude (0–1) — drives ShanayaAvatar's mouth.
+  const mouthRef = useRef(0);
 
   const seq = useSequencer(phases, { holdWhile: isSpeaking });
   const sceneIdx = phaseToScene[seq.index] ?? 0;
@@ -58,8 +60,11 @@ export default function Act2({ onComplete }) {
   useEffect(() => {
     setSpeechCallbacks({
       onStart: (who) => { setIsSpeaking(true); setSpeaker(who || 'shanaya'); },
-      onEnd:   () => { setIsSpeaking(false); setSpeaker(null); },
+      onEnd:   () => { setIsSpeaking(false); setSpeaker(null); mouthRef.current = 0; },
       onWord:  () => setWordTick((t) => t + 1),
+      // Real-time amplitude into a ref so the 60-fps updates don't
+      // re-render Act 2 every frame; the avatar reads it directly.
+      onAmplitude: (v) => { mouthRef.current = v; },
     });
     return () => setSpeechCallbacks(null);
   }, []);
@@ -225,7 +230,13 @@ export default function Act2({ onComplete }) {
             <div className="mt-2 flex flex-col">
               <div className="flex items-start gap-3 sm:gap-5">
                 <div className="shrink-0">
-                  <ShanayaAvatar emotion={currentEmotion} speaking={isSpeaking && speaker === 'shanaya'} wordTick={wordTick} size="xl" />
+                  <ShanayaAvatar
+                    emotion={currentEmotion}
+                    speaking={isSpeaking && speaker === 'shanaya'}
+                    wordTick={wordTick}
+                    amplitudeRef={mouthRef}
+                    size="xl"
+                  />
                 </div>
                 <div className="min-w-0 flex-1 pt-2 sm:pt-4">
                   <ThoughtBubble bubbles={activeBubbles} position="right" />

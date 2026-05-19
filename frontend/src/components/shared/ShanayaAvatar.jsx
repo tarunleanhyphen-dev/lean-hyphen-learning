@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { createAvatar } from '@dicebear/core';
 import * as avataaars from '@dicebear/avataaars';
@@ -55,9 +55,50 @@ function dataUriFor(emotion) {
   }).toDataUri();
 }
 
-export default function ShanayaAvatar({ emotion = 'neutral', speaking = false, wordTick = 0, size = 'xl' }) {
+export default function ShanayaAvatar({ emotion = 'neutral', speaking = false, wordTick = 0, amplitudeRef, size = 'xl' }) {
   const face = EMOTIONS[emotion] || EMOTIONS.neutral;
   const uri = useMemo(() => dataUriFor(emotion), [emotion]);
+
+  // Smoothed real-time mouth openness, driven by the audio analyser's
+  // amplitude ref. A RAF loop reads the latest amplitude and runs it
+  // through a low-pass filter (alpha = 0.32) so the mouth doesn't twitch
+  // on every micro-spike. Falls back to wordTick-based pulsing if no
+  // amplitude ref is provided.
+  const [mouthOpen, setMouthOpen] = useState(0);
+  useEffect(() => {
+    if (!speaking) {
+      setMouthOpen(0);
+      return undefined;
+    }
+    let raf = 0;
+    let smoothed = 0;
+    const tick = () => {
+      const raw = amplitudeRef?.current ?? 0;
+      // Re-shape: speech sits in a fairly narrow amplitude band; boost
+      // mid values and clamp.
+      const boosted = Math.min(1, Math.max(0, (raw - 0.04) * 1.9));
+      smoothed = smoothed * 0.68 + boosted * 0.32;
+      setMouthOpen(smoothed);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [speaking, amplitudeRef]);
+
+  // Idle blink — every 4–7 s while NOT speaking, briefly squash the
+  // eye-line area so Shanaya feels alive between phases. Skipped during
+  // speech so the speaking mouth motion stays the focal point.
+  const [blink, setBlink] = useState(false);
+  useEffect(() => {
+    if (speaking) return undefined;
+    const next = () => {
+      setBlink(true);
+      setTimeout(() => setBlink(false), 140);
+    };
+    const delay = 4000 + Math.random() * 3000;
+    const id = setTimeout(next, delay);
+    return () => clearTimeout(id);
+  }, [speaking, blink]);
 
   const bob = emotion === 'shocked'
     ? { y: [0, -5, 3, -2, 0] }
@@ -115,33 +156,69 @@ export default function ShanayaAvatar({ emotion = 'neutral', speaking = false, w
         )}
 
         {/*
-          Lip-sync overlay. Sits on top of the static SVG mouth and animates
-          open/closed. On every word boundary the `key={wordTick}` flip resets
-          the animation, so the mouth moves roughly in time with each word.
-          The ~60% top offset centres over the avataaars mouth.
+          Real-time lip-sync. The amplitude RAF loop above computes a
+          smoothed `mouthOpen` value (0–1) every frame. We render two
+          layered SVG shapes positioned over the avataaars mouth:
+            - The lip line (top lip, always visible while speaking)
+            - The oral cavity (a small dark oval that grows when open)
+          mouthOpen scales the cavity's height, so the mouth genuinely
+          opens and closes in time with the audio waveform instead of
+          flashing on every word boundary.
+
+          Position 60.5% from the top of the avatar block matches where
+          avataaars renders its static mouth shape. wordTick is no longer
+          used to drive animation but is kept in the API for backwards
+          compatibility with callers that haven't been updated.
         */}
         {speaking && (
-          <motion.div
-            key={`lip-${wordTick}`}
+          <div
             aria-hidden
-            initial={{ scaleY: 0.3, opacity: 0.85 }}
-            animate={{ scaleY: [0.3, 1.25, 0.45, 0.95, 0.5], opacity: [0.85, 1, 0.85] }}
-            transition={{ duration: 0.42, ease: 'easeInOut' }}
-            style={{ top: '60.5%', background: 'rgba(120, 36, 28, 0.9)' }}
-            className="pointer-events-none absolute left-1/2 z-10 h-2 w-6 origin-center -translate-x-1/2 rounded-full sm:h-2.5 sm:w-7"
-          />
+            style={{ top: '60.2%' }}
+            className="pointer-events-none absolute left-1/2 z-10 -translate-x-1/2 -translate-y-1/2"
+          >
+            {/* Soft halo behind the mouth, tied to amplitude */}
+            <motion.div
+              animate={{ opacity: 0.18 + mouthOpen * 0.35, scale: 0.9 + mouthOpen * 0.45 }}
+              transition={{ duration: 0.12, ease: 'easeOut' }}
+              className="absolute left-1/2 top-1/2 h-7 w-12 -translate-x-1/2 -translate-y-1/2 rounded-full bg-coral-500/40 blur-md sm:h-8 sm:w-14"
+            />
+            {/* Oral cavity — opens vertically with amplitude */}
+            <motion.div
+              animate={{
+                height: 2 + Math.round(mouthOpen * 12),
+                opacity: 0.78 + mouthOpen * 0.18,
+              }}
+              transition={{ duration: 0.08, ease: 'linear' }}
+              style={{ background: 'rgba(90, 22, 18, 0.92)' }}
+              className="relative w-6 origin-center rounded-full sm:w-7"
+            />
+            {/* Lip highlight — subtle thin line at top of cavity */}
+            <span
+              aria-hidden
+              className="pointer-events-none absolute left-1/2 top-1/2 h-[1.5px] w-7 -translate-x-1/2 -translate-y-[7px] rounded-full bg-coral-400/80 sm:w-8"
+            />
+          </div>
         )}
-        {speaking && (
-          <motion.div
-            key={`lip-halo-${wordTick}`}
-            aria-hidden
-            initial={{ scale: 0.6, opacity: 0.5 }}
-            animate={{ scale: 1.6, opacity: 0 }}
-            transition={{ duration: 0.55, ease: 'easeOut' }}
-            style={{ top: '60.5%' }}
-            className="pointer-events-none absolute left-1/2 z-10 h-3 w-9 -translate-x-1/2 rounded-full bg-coral-500/30 blur-sm sm:h-4 sm:w-10"
-          />
-        )}
+
+        {/* Idle eye-blink overlay — a thin band of skin colour briefly
+           covers the eyes between speech to suggest a natural blink. */}
+        <AnimatePresence>
+          {blink && !speaking && (
+            <motion.div
+              key="blink"
+              aria-hidden
+              initial={{ scaleY: 0, opacity: 0 }}
+              animate={{ scaleY: 1, opacity: 1 }}
+              exit={{ scaleY: 0, opacity: 0 }}
+              transition={{ duration: 0.12, ease: 'easeOut' }}
+              style={{
+                top: '40%',
+                background: 'linear-gradient(180deg, rgba(237,185,138,0) 0%, rgba(237,185,138,0.95) 35%, rgba(237,185,138,0.95) 65%, rgba(237,185,138,0) 100%)',
+              }}
+              className="pointer-events-none absolute left-1/2 z-[5] h-3 w-16 -translate-x-1/2 origin-top rounded-sm sm:w-20"
+            />
+          )}
+        </AnimatePresence>
       </motion.div>
     </div>
   );

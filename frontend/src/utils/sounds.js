@@ -445,14 +445,86 @@ export function setMusicMood(mood) {
 let speakStartHandler = null;
 let speakEndHandler = null;
 let speakBoundaryHandler = null;
+let speakAmplitudeHandler = null;
 let activeUtterances = 0;
 
 /** Register callbacks so the avatar can mouth-animate while speaking.
- *  onWord fires roughly per word for lip-sync. */
+ *  - onStart(who):    speech started ('shanaya' or 'narrator')
+ *  - onEnd():         all queued speech finished
+ *  - onWord():        approximate per-word tick (still used for fallback lip-sync)
+ *  - onAmplitude(v):  real-time audio amplitude 0–1, sampled ~60 times/sec
+ *                     from the audio element via Web Audio AnalyserNode.
+ *                     This is what drives the avatar's mouth to actually
+ *                     open and close in time with the speech waveform. */
 export function setSpeechCallbacks(callbacks) {
   speakStartHandler = callbacks?.onStart || null;
   speakEndHandler = callbacks?.onEnd || null;
   speakBoundaryHandler = callbacks?.onWord || null;
+  speakAmplitudeHandler = callbacks?.onAmplitude || null;
+}
+
+/* ---------------------- Speech amplitude analyser --------------------------
+ *
+ * A single AnalyserNode lives on the AudioContext; each <audio> element
+ * we create for a TTS chunk gets routed through `createMediaElementSource`
+ * → analyser → destination. Once playback starts we run a RAF loop that
+ * samples byte-frequency data, averages the speech-band bins (roughly
+ * 100–2 kHz), normalises to 0–1, and forwards it to the avatar via
+ * onAmplitude.
+ *
+ * `createMediaElementSource` can only be called once per element; we
+ * cache the source on the element itself (`__lhSource`) so reconnecting
+ * an already-routed element is a no-op. CORS: the TTS proxy serves
+ * audio same-origin (via Vercel rewrites in prod and Vite proxy in dev)
+ * and we set `audio.crossOrigin = 'anonymous'`, so the analyser can read
+ * the buffer.
+ */
+let speechAnalyser = null;
+let amplitudeRafId = null;
+
+function ensureSpeechAnalyser() {
+  if (speechAnalyser || !ensureCtx()) return speechAnalyser;
+  speechAnalyser = ctx.createAnalyser();
+  speechAnalyser.fftSize = 256;
+  speechAnalyser.smoothingTimeConstant = 0.55;
+  return speechAnalyser;
+}
+
+function routeAudioToAnalyser(audio) {
+  if (!ensureSpeechAnalyser() || audio.__lhSource) return;
+  try {
+    const source = ctx.createMediaElementSource(audio);
+    source.connect(speechAnalyser);
+    speechAnalyser.connect(ctx.destination);
+    audio.__lhSource = source;
+  } catch {
+    // Already routed, or browser doesn't support it — fall back to fake
+    // word-tick mouth animation, which the avatar still listens for.
+  }
+}
+
+function startAmplitudeLoop() {
+  if (amplitudeRafId || !speechAnalyser) return;
+  const data = new Uint8Array(speechAnalyser.frequencyBinCount);
+  // Bins 3–32 in a 256-bin FFT at 48 kHz sample rate roughly cover the
+  // speech band (~280 Hz – 3 kHz). That's where vocal energy actually
+  // lives, so the mouth tracks dialogue prosody instead of pad/bass.
+  const start = 3, end = Math.min(32, data.length);
+  const tick = () => {
+    speechAnalyser.getByteFrequencyData(data);
+    let sum = 0;
+    for (let i = start; i < end; i += 1) sum += data[i];
+    const avg = sum / (end - start);     // 0–255
+    speakAmplitudeHandler?.(avg / 255);
+    amplitudeRafId = requestAnimationFrame(tick);
+  };
+  amplitudeRafId = requestAnimationFrame(tick);
+}
+
+function stopAmplitudeLoop() {
+  if (amplitudeRafId) cancelAnimationFrame(amplitudeRafId);
+  amplitudeRafId = null;
+  speakAmplitudeHandler?.(0);
 }
 
 /* ----------------------------- Speech queue --------------------------------
@@ -605,6 +677,11 @@ function playChunkSequence(chunks, i, who, volume, onFinished) {
   audio.playbackRate = who === 'shanaya' ? 1.0 : 0.92;
   audio.crossOrigin = 'anonymous';
 
+  // Route this chunk through the Web Audio analyser so the avatar can
+  // read real-time amplitude (drives accurate mouth open/close instead
+  // of the fake "tick on every word" pulse).
+  routeAudioToAnalyser(audio);
+
   if (i === 0 && import.meta.env?.DEV) {
     // eslint-disable-next-line no-console
     console.log('[cloudSpeak] 🔊', who, 'rate=', audio.playbackRate, '→', text(chunks));
@@ -617,19 +694,31 @@ function playChunkSequence(chunks, i, who, volume, onFinished) {
 
   let lastTick = -1;
   audio.ontimeupdate = () => {
-    // Emit a "word boundary" every ~280ms of playback for lip-sync.
+    // Emit a "word boundary" every ~280ms of playback. Kept as a fallback
+    // for browsers where createMediaElementSource fails (so the avatar
+    // can still mouth-pulse off word ticks if the analyser isn't reading).
     if (audio.currentTime - lastTick >= 0.28) {
       lastTick = audio.currentTime;
       speakBoundaryHandler?.();
     }
   };
-  audio.onended = () => playChunkSequence(chunks, i + 1, who, volume, onFinished);
+  audio.onended = () => {
+    // Stop the amplitude loop between chunks if there are no more chunks
+    // queued for this utterance — the next chunk (if any) will start it
+    // back up via its own play() promise.
+    if (i + 1 >= chunks.length) stopAmplitudeLoop();
+    playChunkSequence(chunks, i + 1, who, volume, onFinished);
+  };
   audio.onerror = () => {
     // eslint-disable-next-line no-console
     console.warn('[cloudSpeak] audio error on chunk', i, '— skipping');
+    if (i + 1 >= chunks.length) stopAmplitudeLoop();
     playChunkSequence(chunks, i + 1, who, volume, onFinished);
   };
-  audio.play().catch((err) => {
+  audio.play().then(() => {
+    // play() resolved → audio is actually flowing → start sampling.
+    startAmplitudeLoop();
+  }).catch((err) => {
     // eslint-disable-next-line no-console
     console.warn('[cloudSpeak] play() rejected', err.message);
     playChunkSequence(chunks, i + 1, who, volume, onFinished);

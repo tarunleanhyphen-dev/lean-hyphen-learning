@@ -70,6 +70,14 @@ export default function DefinitionPuzzle({ data, onCueClick, onCueCorrect, onCue
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
   const spokeRef = useRef(false);
+  // Track whether we've actually observed the definition narration starting.
+  // Without this, the advance effect can fire immediately because
+  // speakingDone defaults to true — speech hasn't started yet but the gate
+  // is already open, and the next scene comes up before the line is read.
+  const sawSpeechRef = useRef(false);
+  useEffect(() => {
+    if (!speakingDone) sawSpeechRef.current = true;
+  }, [speakingDone]);
 
   // When all 4 slots are filled, mark done and speak the definition (once).
   useEffect(() => {
@@ -80,14 +88,21 @@ export default function DefinitionPuzzle({ data, onCueClick, onCueCorrect, onCue
     onSpeakDefinitionRef.current?.(data.finalLine);
   }, [placed, data.finalLine]);
 
-  // After the narration of the definition finishes, advance to the next
-  // scene with a small breath. speakingDone is true by default when audio
-  // is off, so the advance still happens in muted mode.
+  // Advance only after the narration genuinely runs and finishes. In muted
+  // mode speech never starts, so a 4 s fallback ensures the puzzle still
+  // moves on for students who turned audio off.
   useEffect(() => {
     if (!done) return;
-    if (!speakingDone) return;
-    const t = setTimeout(() => onCompleteRef.current?.(), 1400);
-    return () => clearTimeout(t);
+    let cancelled = false;
+    const fallback = setTimeout(() => {
+      if (!cancelled) onCompleteRef.current?.();
+    }, 4000);
+    if (speakingDone && sawSpeechRef.current) {
+      clearTimeout(fallback);
+      const t = setTimeout(() => onCompleteRef.current?.(), 1400);
+      return () => { cancelled = true; clearTimeout(t); };
+    }
+    return () => { cancelled = true; clearTimeout(fallback); };
   }, [done, speakingDone]);
 
   return (

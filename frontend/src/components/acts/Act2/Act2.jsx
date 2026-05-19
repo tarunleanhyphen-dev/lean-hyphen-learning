@@ -347,7 +347,6 @@ function ActivityRenderer({ kind, onCueClick, onCueCorrect, onCueWrong, onSpeakI
     return (
       <FrameworkCard
         data={act2Activities.framework}
-        onCueClick={onCueClick}
         onReveal={onRevealBullet}
         speakingDone={speakingDone}
         onComplete={() => onComplete({ activity: 'framework' })}

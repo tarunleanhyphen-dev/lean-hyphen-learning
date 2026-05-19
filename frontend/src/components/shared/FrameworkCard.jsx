@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Pause, Check } from 'lucide-react';
 
@@ -13,25 +13,52 @@ import { Pause, Check } from 'lucide-react';
  *
  * `data`: { title, intro, bullets: [{id, emoji, label, question, detail}], closer }
  */
-export default function FrameworkCard({ data, onCueClick, onReveal, speakingDone = true, onComplete }) {
+export default function FrameworkCard({ data, onReveal, speakingDone = true, onComplete }) {
   const [revealed, setRevealed] = useState(0);
   const total = data.bullets.length;
   const fullyRevealed = revealed >= total;
 
-  // Reveal the next bullet once the current one's narration finishes (or a
-  // 4.5s safety timer fires if speech is muted/never came back).
+  // Stash callbacks in refs so render-induced identity changes don't
+  // re-trigger reveals or the auto-advance timer.
+  const onRevealRef = useRef(onReveal);
+  onRevealRef.current = onReveal;
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+  // Track whether we've actually observed the current bullet's narration
+  // start before we let speakingDone gate the next reveal — otherwise the
+  // effect fires immediately because speakingDone defaults to true.
+  const sawSpeechRef = useRef(false);
+  useEffect(() => {
+    if (!speakingDone) sawSpeechRef.current = true;
+  }, [speakingDone]);
+
+  // Reveal the next bullet once the current one's narration finishes.
   useEffect(() => {
     if (fullyRevealed) return;
-    if (revealed > 0 && !speakingDone) return; // wait for TTS to finish
-    const delay = revealed === 0 ? 600 : 700; // small visual pause before next
+    if (revealed > 0 && !speakingDone) return;       // narration still playing
+    if (revealed > 0 && !sawSpeechRef.current) return; // narration hasn't started yet
+    const delay = revealed === 0 ? 600 : 700;
     const t = setTimeout(() => {
       const next = revealed + 1;
+      sawSpeechRef.current = false; // reset for the next bullet
       setRevealed(next);
       const bullet = data.bullets[next - 1];
-      if (bullet) onReveal?.(bullet);
+      if (bullet) onRevealRef.current?.(bullet);
     }, delay);
     return () => clearTimeout(t);
-  }, [revealed, fullyRevealed, speakingDone, data.bullets, onReveal]);
+  }, [revealed, fullyRevealed, speakingDone, data.bullets]);
+
+  // After the last bullet's narration completes, advance to the next scene
+  // automatically — no "Got it" button click required.
+  const advancedRef = useRef(false);
+  useEffect(() => {
+    if (!fullyRevealed) return;
+    if (!speakingDone) return;
+    if (advancedRef.current) return;
+    advancedRef.current = true;
+    const t = setTimeout(() => onCompleteRef.current?.(), 2200);
+    return () => clearTimeout(t);
+  }, [fullyRevealed, speakingDone]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -86,18 +113,14 @@ export default function FrameworkCard({ data, onCueClick, onReveal, speakingDone
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.1 }}
-            className="flex flex-col gap-3 rounded-2xl bg-gradient-to-br from-teal-500/15 via-white to-saffron-50 p-4 ring-1 ring-teal-500/40 shadow-md"
+            className="flex items-start gap-3 rounded-2xl bg-gradient-to-br from-teal-500/15 via-white to-saffron-50 p-4 ring-1 ring-teal-500/40 shadow-md"
           >
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-teal-500 text-white">
+              <Check className="h-4 w-4" />
+            </span>
             <p className="text-[13.5px] leading-relaxed text-ink-900 sm:text-sm">
               {data.closer}
             </p>
-            <button
-              type="button"
-              onClick={() => { onCueClick?.(); onComplete?.(); }}
-              className="self-end inline-flex items-center gap-2 rounded-full bg-saffron-500 px-4 py-2 text-[12px] font-bold uppercase tracking-widest text-ink-900 shadow-lg shadow-saffron-500/30 transition hover:bg-saffron-400 active:scale-[0.98]"
-            >
-              <Check className="h-4 w-4" /> Got it — let's go
-            </button>
           </motion.div>
         )}
       </AnimatePresence>

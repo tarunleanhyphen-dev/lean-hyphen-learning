@@ -54,9 +54,14 @@ export const lesson = {
  * same 3D illustrations Microsoft uses across Teams / Office — way more
  * "video-like" than the platform emoji font. The first arg is the
  * directory name (encoded for the URL), the second is the filename slug.
- * ThoughtImagery falls back to the regular emoji glyph if any URL 404s. */
-const FL = (dir, file) =>
-  `https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/${dir}/3D/${file}_3d.png`;
+ * ThoughtImagery falls back to the regular emoji glyph if any URL 404s.
+ *
+ * Declared as a function (not const) so it HOISTS — `act1Scenes()` runs
+ * at module-init time via `export const lesson = { ..., scenes: act1Scenes() }`
+ * above this definition, and FL needs to be reachable from inside that call. */
+function FL(dir, file) {
+  return `https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/${dir}/3D/${file}_3d.png`;
+}
 
 function act1Scenes() {
   /* helper: spread a long phone-state block without retyping */

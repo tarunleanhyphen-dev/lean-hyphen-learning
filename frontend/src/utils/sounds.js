@@ -455,31 +455,61 @@ export function setSpeechCallbacks(callbacks) {
   speakBoundaryHandler = callbacks?.onWord || null;
 }
 
+/* ----------------------------- Speech queue --------------------------------
+ *
+ * Every speak() request joins a FIFO queue. The processor plays them one at
+ * a time, so multiple bubbles in the same phase (or a bubble + a narration
+ * line) read back-to-back instead of cancelling each other mid-sentence.
+ *
+ * Before this queue existed, speak() called cloudSpeak() which called
+ * cancelCloudSpeech() — meaning each new speak request killed the previous
+ * audio mid-flight. Users heard "half a sentence then jumps to the next".
+ *
+ * isSpeaking stays true the entire time the queue is being processed (since
+ * the start handler fires when each item begins and the end handler only
+ * fires when the queue is empty). So sequencer holds and FrameworkCard /
+ * DefinitionPuzzle gates that key on speakingDone still behave correctly.
+ */
+
+let speechQueue = [];
+let processing = false;
+
 export function speak(text, opts = {}) {
-  if (!text) return;
-  if (muted) {
-    // eslint-disable-next-line no-console
-    console.warn('[speak] muted — turn on Audio to hear:', text.slice(0, 50));
-    return;
-  }
-  // Fire the start handler SYNCHRONOUSLY before the network round-trip.
-  // Otherwise the sequencer (which uses `isSpeaking` as a hold) starts its
-  // auto-advance timer during the 200–500 ms it takes to fetch + play() the
-  // MP3, and short phases can advance before TTS even begins — which is
-  // exactly the "text not read fully" symptom the user reported.
-  //
-  // The `who` is forwarded so the avatar can decide whether to lip-sync
-  // (Shanaya speaking) or stay still (narrator speaking).
-  activeUtterances += 1;
-  speakStartHandler?.(opts.who || 'shanaya');
-  cloudSpeak(text, opts);
+  if (!text || muted) return;
+  speechQueue.push({ text, opts });
+  processSpeechQueue();
+}
+
+function processSpeechQueue() {
+  if (processing) return;
+  const next = speechQueue.shift();
+  if (!next) return;
+  processing = true;
+
+  // Fire start handler SYNCHRONOUSLY so the sequencer's holdWhile sees the
+  // speak immediately (before the 200–500 ms network round-trip to fetch
+  // the MP3). Forwards `who` so the avatar lip-syncs only on Shanaya lines.
+  speakStartHandler?.(next.opts.who || 'shanaya');
+
+  cloudSpeakOnce(next.text, next.opts, () => {
+    processing = false;
+    if (speechQueue.length > 0) {
+      // Small breath between back-to-back utterances so they don't blur.
+      setTimeout(processSpeechQueue, 180);
+    } else {
+      // Queue empty — fire the end handler exactly once.
+      speakEndHandler?.();
+    }
+  });
 }
 
 export function cancelSpeech() {
   if ('speechSynthesis' in window) {
     try { speechSynthesis.cancel(); } catch {}
   }
+  speechQueue = [];
   cancelCloudSpeech();
+  processing = false;
   activeUtterances = 0;
   speakEndHandler?.();
 }
@@ -524,20 +554,35 @@ export function cancelCloudSpeech() {
   }
 }
 
-export function cloudSpeak(text, { who = 'shanaya', volume = 1 } = {}) {
-  if (muted || !text) return;
+/* Play one utterance through the cloud TTS pipeline. The queue processor
+ * calls this; never call it directly (you'll bypass queueing and risk
+ * cancelling whatever's currently playing). The `done` callback fires
+ * exactly once when the final chunk finishes — that's the queue's signal
+ * to start the next item. */
+function cloudSpeakOnce(text, { who = 'shanaya', volume = 1 } = {}, done) {
+  if (muted || !text) { done?.(); return; }
   cancelCloudSpeech();
   // Expand prices/digits into English words BEFORE stripping emoji + chunking.
   // Without this, hi-IN Swara/Madhur read "3,596" with Hindi number prosody
   // inside an English sentence — which is exactly what the user wants gone.
   const chunks = chunkForTTS(stripEmoji(expandNumbersForTTS(text)));
-  playChunkSequence(chunks, 0, who, volume);
+  if (chunks.length === 0) { done?.(); return; }
+  activeUtterances += 1;
+  playChunkSequence(chunks, 0, who, volume, () => {
+    activeUtterances = Math.max(0, activeUtterances - 1);
+    done?.();
+  });
 }
 
-function playChunkSequence(chunks, i, who, volume) {
+/* Backwards-compatible wrapper: anything that still calls cloudSpeak() goes
+ * through the queue so timing stays consistent. */
+export function cloudSpeak(text, opts = {}) {
+  speak(text, opts);
+}
+
+function playChunkSequence(chunks, i, who, volume, onFinished) {
   if (i >= chunks.length) {
-    activeUtterances = Math.max(0, activeUtterances - 1);
-    if (activeUtterances === 0) speakEndHandler?.();
+    onFinished?.();
     return;
   }
   // The `v` query param cache-busts when we change voices on the backend.
@@ -578,16 +623,16 @@ function playChunkSequence(chunks, i, who, volume) {
       speakBoundaryHandler?.();
     }
   };
-  audio.onended = () => playChunkSequence(chunks, i + 1, who, volume);
+  audio.onended = () => playChunkSequence(chunks, i + 1, who, volume, onFinished);
   audio.onerror = () => {
     // eslint-disable-next-line no-console
     console.warn('[cloudSpeak] audio error on chunk', i, '— skipping');
-    playChunkSequence(chunks, i + 1, who, volume);
+    playChunkSequence(chunks, i + 1, who, volume, onFinished);
   };
   audio.play().catch((err) => {
     // eslint-disable-next-line no-console
     console.warn('[cloudSpeak] play() rejected', err.message);
-    playChunkSequence(chunks, i + 1, who, volume);
+    playChunkSequence(chunks, i + 1, who, volume, onFinished);
   });
 }
 

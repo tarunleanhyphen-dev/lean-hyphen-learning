@@ -341,7 +341,7 @@ export default function Act1({ onComplete }) {
                   <ThoughtImagery items={phase?.imagery || []} />
                 </div>
                 <div className="min-w-0 flex-1 pt-2 sm:pt-4">
-                  <ThoughtBubble bubbles={activeBubbles} position="left" />
+                  <ThoughtBubble bubbles={activeBubbles} position="right" />
                 </div>
               </div>
 

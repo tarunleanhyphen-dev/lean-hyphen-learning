@@ -266,7 +266,7 @@ export default function Act2({ onComplete }) {
                 onSpeakInsight={(pair) => audioEnabled && speak(`${pair.insight.label}. ${pair.insight.detail}`, { who: 'shanaya' })}
                 onSpeakDefinition={(line) => audioEnabled && speak(line, { who: 'shanaya' })}
                 onSpeakPrompt={(text) => audioEnabled && speak(text, { who: 'narrator' })}
-                onRevealBullet={(b) => audioEnabled && speak(`${b.label}. ${b.question}. ${b.detail}`, { who: 'shanaya' })}
+                onRevealBullet={(b) => audioEnabled && speak(`${b.label}. ${b.question}`, { who: 'shanaya' })}
                 speakingDone={!isSpeaking}
                 onComplete={(payload) => handleActivityComplete(activity.kind, payload || {})}
               />

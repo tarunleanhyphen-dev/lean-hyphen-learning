@@ -93,7 +93,9 @@ export default function DefinitionPuzzle({ data, onCueClick, onCueCorrect, onCue
       onCompleteRef.current?.();
     };
     if (!speakingDone) {
-      const cap = setTimeout(fire, 8000);
+      // 12 s cap is longer than the 17-word definition (~7-8 s), so the
+      // line is never cut off mid-sentence.
+      const cap = setTimeout(fire, 12000);
       return () => clearTimeout(cap);
     }
     const t = setTimeout(fire, 1400);

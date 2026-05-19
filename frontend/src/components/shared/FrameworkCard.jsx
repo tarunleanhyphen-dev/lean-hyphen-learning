@@ -41,11 +41,14 @@ export default function FrameworkCard({ data, onReveal, speakingDone = true, onC
       if (bullet) onRevealRef.current?.(bullet);
     };
     if (revealed > 0 && !speakingDone) {
-      // Speech is in flight — wait for it, but with a hard cap.
-      const t = setTimeout(revealNext, 8000);
+      // Speech is in flight — wait. Cap is 12 s, longer than the longest
+      // bullet narration (~4 s), so a bullet is never cut off mid-sentence.
+      const t = setTimeout(revealNext, 12000);
       return () => clearTimeout(t);
     }
-    const delay = revealed === 0 ? 700 : 1600;
+    // ~1.2 s breath between bullets — bullets are short enough now that a
+    // longer pause feels sluggish. Aim for ~30 s total for all 5.
+    const delay = revealed === 0 ? 700 : 1200;
     const t = setTimeout(revealNext, delay);
     return () => clearTimeout(t);
   }, [revealed, fullyRevealed, speakingDone, data.bullets]);

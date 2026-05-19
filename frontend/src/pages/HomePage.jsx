@@ -19,7 +19,7 @@ export default function HomePage() {
         </a>
       </header>
 
-      <main className="mt-16 flex flex-col items-start gap-8 sm:mt-24">
+      <main className="mt-6 flex flex-col items-start gap-6 sm:mt-8">
         <span className="chip bg-saffron-500/15 text-saffron-400">
           <Sparkles className="h-3 w-3" /> Module · {lesson.module}
         </span>

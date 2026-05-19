@@ -85,7 +85,7 @@ function act1Scenes() {
       phases: [
         {
           id: 's0-intro',
-          duration: 12000,
+          duration: 8000,
           status: 'Meet Shanaya',
           emotion: 'happy',
           // Spelling out "thirteen" so the hi-IN Swara/Madhur voices read
@@ -103,7 +103,7 @@ function act1Scenes() {
         },
         {
           id: 's0-birthday',
-          duration: 12000,
+          duration: 8000,
           status: 'Birthday is two days away',
           emotion: 'excited',
           narration: 'Her birthday is just two days away — her group is planning to celebrate at a cute café nearby.',
@@ -122,7 +122,7 @@ function act1Scenes() {
            * (and gives the right column something to read while the cafe
            * imagery floats in). */
           id: 's0-group-chat',
-          duration: 13000,
+          duration: 12000,
           status: 'Group chat is going wild',
           emotion: 'tempted',
           bubbles: [
@@ -140,7 +140,7 @@ function act1Scenes() {
         },
         {
           id: 's0-vision',
-          duration: 14000,
+          duration: 10000,
           status: 'Imagining the day',
           emotion: 'happy',
           bubbles: [
@@ -210,7 +210,7 @@ function act1Scenes() {
         },
         {
           id: 's1-search',
-          duration: 3600,
+          duration: 5000,
           status: 'Searching for shoes',
           narration: 'She taps the search bar and types one word.',
           phone: { search: 'shoes', view: 'feed' },
@@ -222,7 +222,7 @@ function act1Scenes() {
            * duration is padded so the animation finishes well before the
            * phase auto-advances. */
           id: 's1-results',
-          duration: 7500,
+          duration: 9000,
           status: 'Browsing results',
           phone: { search: 'shoes', view: 'results', scrollHint: true },
           narration: 'A grid of options appears. She scrolls — there are dozens.',
@@ -233,7 +233,7 @@ function act1Scenes() {
            * the top so the highlighted card is in frame, and the hover
            * effect pulses around it. */
           id: 's1-results-scan',
-          duration: 5500,
+          duration: 6000,
           status: 'Spotting the white sneakers',
           phone: { search: 'shoes', view: 'results', hover: 'shoes', scrollToTop: true },
           bubbles: [
@@ -242,7 +242,7 @@ function act1Scenes() {
         },
         {
           id: 's1-show-shoes',
-          duration: 5800,
+          duration: 7000,
           status: 'Reading the product details',
           phone: { search: 'shoes', view: 'detail', showProduct: 'shoes' },
           bubbles: [
@@ -251,14 +251,14 @@ function act1Scenes() {
         },
         {
           id: 's1-tap',
-          duration: 1800,
+          duration: 4000,
           status: 'Tapping Add to Cart',
           phone: { search: 'shoes', view: 'detail', showProduct: 'shoes', tapTarget: 'primary-cta' },
           cue: 'tap',
         },
         {
           id: 's1-add-shoes',
-          duration: 3800,
+          duration: 5800,
           status: 'Sneakers added',
           phone: { search: 'shoes', view: 'detail', showProduct: 'shoes', cart: ['shoes'], floatAdd: 'shoes', toast: 'Sneakers added · ₹1,499' },
           cue: 'add',
@@ -266,7 +266,7 @@ function act1Scenes() {
         },
         {
           id: 's1-validate',
-          duration: 4800,
+          duration: 5800,
           status: 'On plan: ₹1,499 of ₹1,500',
           phone: { search: 'shoes', view: 'detail', showProduct: 'shoes', cart: ['shoes'], badge: 'Smart budget pick ✓' },
           bubbles: [
@@ -315,7 +315,7 @@ function act1Scenes() {
            * snaps the "Pair your shoes" banner in, the student has just
            * seen a wall of fashion and the cross-sell feels organic. */
           id: 's2-intro',
-          duration: 9500,
+          duration: 5500,
           status: 'Scrolling for more',
           narration: 'But she does not log off. She scrolls a little more — and the app starts responding to her choices.',
           phone: after(['shoes'], { scrollHint: true }),
@@ -383,7 +383,7 @@ function act1Scenes() {
         },
         {
           id: 's2-w1-tap-add',
-          duration: 1600,
+          duration: 3600,
           status: 'Tapping Add to Cart',
           phone: { cart: ['shoes'], view: 'detail', showProduct: 'socks', tapTarget: 'primary-cta' },
           cue: 'tap',
@@ -414,7 +414,7 @@ function act1Scenes() {
         },
         {
           id: 's2-w2-tap-rec',
-          duration: 1600,
+          duration: 3600,
           status: 'Tapping the smartwatch',
           phone: after(['shoes', 'socks'], {
             recommendations: ['smartwatch'],
@@ -444,7 +444,7 @@ function act1Scenes() {
         },
         {
           id: 's2-w2-tap-add',
-          duration: 1600,
+          duration: 2600,
           status: 'Tapping Add to Cart',
           phone: { cart: ['shoes', 'socks'], view: 'detail', showProduct: 'smartwatch', socialProofBadge: '12K bought this week', tapTarget: 'primary-cta' },
           cue: 'tap',
@@ -486,7 +486,7 @@ function act1Scenes() {
         },
         {
           id: 's2-w3-tap-rec',
-          duration: 1600,
+          duration: 2600,
           status: 'Tapping the hoodie',
           phone: after(['shoes', 'socks', 'smartwatch'], {
             recommendations: ['hoodie', 'hoodie-2', 'hoodie-3'],
@@ -526,7 +526,7 @@ function act1Scenes() {
         },
         {
           id: 's2-w3-tap-add',
-          duration: 1600,
+          duration: 2600,
           status: 'Tapping Add to Cart',
           phone: { cart: ['shoes', 'socks', 'smartwatch'], view: 'detail', showProduct: 'hoodie', urgencyMinutes: 5, onlyXLeft: 2, tapTarget: 'primary-cta' },
           cue: 'tap',
@@ -674,7 +674,7 @@ function act1Scenes() {
         },
         {
           id: 's3-fbt-tap-add',
-          duration: 1800,
+          duration: 2800,
           status: 'Tapping Add on the cleaning kit',
           phone: {
             cart: ['shoes', 'socks', 'smartwatch', 'hoodie'],
@@ -832,7 +832,7 @@ function act1Scenes() {
         },
         {
           id: 's4-pay-tap',
-          duration: 1800,
+          duration: 2800,
           status: 'Tapping Pay',
           phone: {
             cart: ['shoes', 'socks', 'smartwatch', 'hoodie', 'cleaning-kit'],

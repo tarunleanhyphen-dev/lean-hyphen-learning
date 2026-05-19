@@ -26,15 +26,11 @@ export default function DragMatchBoard({ data, onCueClick, onCueCorrect, onCueWr
   const [pickedTrigger, setPickedTrigger] = useState(null);
   const [wrongPulse, setWrongPulse] = useState(null);     // pairId-pairId
   const [openInsight, setOpenInsight] = useState(null);   // pairId
-  const [autoSolving, setAutoSolving] = useState(false);
-  const userInteractedRef = useRef(false);
-  // Stash latest callbacks in refs so the mount-only effects don't have
-  // to depend on their identity — that's what was causing the prompt to
-  // re-fire on every render.
+  // Stash the prompt callback in a ref so the mount-only effect doesn't
+  // have to depend on its identity — that's what was making the prompt
+  // re-fire every render.
   const onSpeakPromptRef = useRef(onSpeakPrompt);
   onSpeakPromptRef.current = onSpeakPrompt;
-  const onSpeakInsightRef = useRef(onSpeakInsight);
-  onSpeakInsightRef.current = onSpeakInsight;
 
   const triggerOrder = useMemo(() => pairs.map((p) => p.id), [pairs]);
   // Shuffle categories so the order doesn't give it away. Deterministic per mount.
@@ -50,8 +46,8 @@ export default function DragMatchBoard({ data, onCueClick, onCueCorrect, onCueWr
   const allDone = Object.keys(matched).length === pairs.length;
   const firstUnmatched = triggerOrder.find((id) => !matched[id]) || null;
 
-  // Voice prompt fires exactly once, on mount. Empty deps + refs for the
-  // callbacks means React's re-renders can't retrigger this.
+  // Voice prompt fires exactly once, on mount. Empty deps + ref for the
+  // callback means React's re-renders can't retrigger this.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const t = setTimeout(() => {
@@ -60,55 +56,18 @@ export default function DragMatchBoard({ data, onCueClick, onCueCorrect, onCueWr
     return () => clearTimeout(t);
   }, []);
 
-  // Auto-solve if no interaction in 5 s.
-  useEffect(() => {
-    if (allDone || autoSolving) return;
-    const t = setTimeout(() => {
-      if (!userInteractedRef.current) setAutoSolving(true);
-    }, 5000);
-    return () => clearTimeout(t);
-  }, [allDone, autoSolving]);
-
-  // Auto-solve loop: pick one unmatched pair every ~1.8 s, but only when
-  // speech from the previous insight has fully finished. This prevents the
-  // narrator from talking over the next match.
-  useEffect(() => {
-    if (!autoSolving || allDone) return;
-    if (!speakingDone) return;  // wait for current insight to finish reading
-    const stepDelay = 600;       // small breath after speech ends
-    let cancelled = false;
-
-    const solveNext = () => {
-      if (cancelled) return;
-      const next = triggerOrder.find((id) => !matched[id]);
-      if (!next) return;
-      setPickedTrigger(next);
-      setTimeout(() => {
-        if (cancelled) return;
-        setMatched((m) => ({ ...m, [next]: true }));
-        setOpenInsight(next);
-        setPickedTrigger(null);
-        onCueCorrect?.();
-        const matchedPair = pairs.find((p) => p.id === next);
-        if (matchedPair) onSpeakInsightRef.current?.(matchedPair);
-      }, 700);
-    };
-
-    const t = setTimeout(solveNext, stepDelay);
-    return () => { cancelled = true; clearTimeout(t); };
-  }, [autoSolving, allDone, matched, speakingDone, triggerOrder, pairs, onCueCorrect]);
-
+  // Wait for the student to match all four pairs themselves, THEN wait for
+  // the last insight's narration to fully finish, then advance. No auto-
+  // solve fallback — every learner does the matching by hand.
   useEffect(() => {
     if (!allDone) return;
+    if (!speakingDone) return;
     const t = setTimeout(() => onComplete?.(), 1400);
     return () => clearTimeout(t);
-  }, [allDone, onComplete]);
-
-  const markUserInteraction = () => { userInteractedRef.current = true; };
+  }, [allDone, speakingDone, onComplete]);
 
   const pickTrigger = useCallback((id) => {
     if (matched[id]) return;
-    markUserInteraction();
     onCueClick?.();
     setPickedTrigger((cur) => (cur === id ? null : id));
   }, [matched, onCueClick]);
@@ -116,7 +75,6 @@ export default function DragMatchBoard({ data, onCueClick, onCueCorrect, onCueWr
   const pickCategory = useCallback((id) => {
     if (!pickedTrigger) return;
     if (matched[id]) return;
-    markUserInteraction();
     if (pickedTrigger === id) {
       setMatched((m) => ({ ...m, [id]: true }));
       setOpenInsight(id);
@@ -130,7 +88,7 @@ export default function DragMatchBoard({ data, onCueClick, onCueCorrect, onCueWr
       setTimeout(() => setWrongPulse(null), 500);
       setPickedTrigger(null);
     }
-  }, [pickedTrigger, matched, onCueCorrect, onCueWrong]);
+  }, [pickedTrigger, matched, onCueCorrect, onCueWrong, onSpeakInsight, pairs]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -169,15 +127,15 @@ export default function DragMatchBoard({ data, onCueClick, onCueCorrect, onCueWr
                 onClick={() => pickTrigger(id)}
                 animate={shake
                   ? { x: [0, -6, 6, -4, 4, 0] }
-                  : (id === firstUnmatched && !pickedTrigger && !autoSolving
+                  : (id === firstUnmatched && !pickedTrigger
                       ? { x: 0, boxShadow: ['0 0 0 0 rgba(255,159,28,0)', '0 0 0 5px rgba(255,159,28,0.35)', '0 0 0 0 rgba(255,159,28,0)'] }
                       : { x: 0 })}
                 transition={shake
                   ? { duration: 0.4 }
-                  : (id === firstUnmatched && !pickedTrigger && !autoSolving
+                  : (id === firstUnmatched && !pickedTrigger
                       ? { duration: 1.6, repeat: Infinity }
                       : { duration: 0.4 })}
-                disabled={isMatched || autoSolving}
+                disabled={isMatched}
                 className={[
                   'group relative text-left rounded-2xl px-4 py-3 ring-1 transition shadow-sm min-h-[78px] flex items-center',
                   isMatched

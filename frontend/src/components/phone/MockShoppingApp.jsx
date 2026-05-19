@@ -47,9 +47,50 @@ export default function MockShoppingApp({ state = {} }) {
     // Two requestAnimationFrames so the DOM has settled after a phase change
     // before we look up the target node — sometimes the new section just
     // mounted in the same React tick and isn't measurable yet.
-    let raf1, raf2, anim;
+    let raf1, raf2, anim, delayedStart;
+
+    const runScrollHint = () => {
+      // Snap to top first so the "she scrolls" motion always reads as a
+      // downward journey, regardless of where the scroller was sitting.
+      scroller.scrollTop = 0;
+      // Wait one frame so the new content (search-results grid) is laid
+      // out and scrollHeight is final.
+      delayedStart = requestAnimationFrame(() => {
+        const start = scroller.scrollTop;
+        const maxScroll = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
+        const target = Math.min(maxScroll, start + Math.max(600, maxScroll * 0.9));
+        const dur = 3600;
+        const startTime = performance.now();
+        const tick = (t) => {
+          const p = Math.min(1, (t - startTime) / dur);
+          const eased = p < 0.5
+            ? 4 * p * p * p
+            : 1 - Math.pow(-2 * p + 2, 3) / 2;
+          scroller.scrollTop = start + (target - start) * eased;
+          if (p < 1) anim = requestAnimationFrame(tick);
+        };
+        anim = requestAnimationFrame(tick);
+      });
+    };
+
     raf1 = requestAnimationFrame(() => {
       raf2 = requestAnimationFrame(() => {
+        // scrollHint takes priority over the view-change reset, so when
+        // narration says "she scrolls" on the results page, the phone
+        // actually scrolls instead of just snapping to top.
+        if (state.scrollHint) {
+          runScrollHint();
+          return;
+        }
+
+        // Explicit "scroll back to top" trigger — used after a scrollHint
+        // animation when the next phase needs to highlight content near
+        // the top of the same view.
+        if (state.scrollToTop) {
+          scroller.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        }
+
         // Reset to top when a new full-screen view (results/detail/payment) loads.
         if (state.view && state.view !== 'feed') {
           scroller.scrollTo({ top: 0, behavior: 'smooth' });
@@ -62,31 +103,7 @@ export default function MockShoppingApp({ state = {} }) {
           if (target) {
             const targetTop = target.offsetTop - 24;
             scroller.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
-            return;
           }
-        }
-
-        // Continuous "she's scrolling" hint — drives the phone scroller
-        // through the full content over ~4s, with a brief pause near the
-        // bottom + a snap back to highlight the next recommendation. The
-        // user feedback called out that when narration says "she scrolls",
-        // the phone barely moved; this makes the scroll obvious.
-        if (state.scrollHint) {
-          const start = scroller.scrollTop;
-          const maxScroll = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
-          const target = Math.min(maxScroll, start + Math.max(720, maxScroll * 0.85));
-          const dur = 3600;
-          const startTime = performance.now();
-          const tick = (t) => {
-            const p = Math.min(1, (t - startTime) / dur);
-            // ease-in-out cubic — slow start, fast middle, gentle finish
-            const eased = p < 0.5
-              ? 4 * p * p * p
-              : 1 - Math.pow(-2 * p + 2, 3) / 2;
-            scroller.scrollTop = start + (target - start) * eased;
-            if (p < 1) anim = requestAnimationFrame(tick);
-          };
-          anim = requestAnimationFrame(tick);
         }
       });
     });
@@ -94,9 +111,10 @@ export default function MockShoppingApp({ state = {} }) {
     return () => {
       cancelAnimationFrame(raf1);
       cancelAnimationFrame(raf2);
+      if (delayedStart) cancelAnimationFrame(delayedStart);
       if (anim) cancelAnimationFrame(anim);
     };
-  }, [state.view, state.scrollTo, state.scrollHint, state.recommendations?.length, state.deliveryBanner, state.highlight, state.flashDeal, state.showProduct, state.cartOpen]);
+  }, [state.view, state.scrollTo, state.scrollHint, state.scrollToTop, state.recommendations?.length, state.deliveryBanner, state.highlight, state.flashDeal, state.showProduct, state.cartOpen]);
 
   return (
     <div ref={rootRef} className={`relative min-h-full bg-cream-50 pb-32 ${state.silent ? 'saturate-50' : ''}`}>

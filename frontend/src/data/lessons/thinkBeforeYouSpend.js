@@ -180,17 +180,25 @@ function act1Scenes() {
           cue: 'click',
         },
         {
+          /* When narration says "she scrolls", the phone should actually
+           * scroll. scrollHint triggers the 3.6 s scroll-down animation;
+           * duration is padded so the animation finishes well before the
+           * phase auto-advances. */
           id: 's1-results',
-          duration: 6500,
+          duration: 7500,
           status: 'Browsing results',
           phone: { search: 'shoes', view: 'results', scrollHint: true },
           narration: 'A grid of options appears. She scrolls — there are dozens.',
         },
         {
+          /* After the scroll, she "spots" the white sneakers — which are
+           * the first card in the grid. scrollToTop snaps the view back to
+           * the top so the highlighted card is in frame, and the hover
+           * effect pulses around it. */
           id: 's1-results-scan',
           duration: 5500,
           status: 'Spotting the white sneakers',
-          phone: { search: 'shoes', view: 'results', hover: 'shoes', scrollHint: true },
+          phone: { search: 'shoes', view: 'results', hover: 'shoes', scrollToTop: true },
           bubbles: [
             { side: 'right', type: 'thought', text: 'White sneakers. ₹1,499 — that is on budget.' },
           ],
@@ -1071,13 +1079,22 @@ export const products = {
 
 /* Distinct shoe images for the search-results grid (so they don't all look
  * the same as the main product). All free-for-commercial Unsplash photos. */
+/* Distinct shoe images for the results page. 12 cards = enough vertical
+ * content for the scroll-hint animation to traverse a real distance — when
+ * narration says "she scrolls", students see the grid scroll meaningfully. */
 export const SHOE_GRID = [
   { key: 'shoes',          image: UN('1622760806364-5ccac8096b59'), name: 'White Sneakers',     tagline: 'Trending',     price: 1499, rating: 4.5 },
   { key: 'shoe-black',     image: UN('1596565206601-eb1c83627d49'), name: 'Black Runner Pro',   tagline: 'Sporty pick',  price: 1799, rating: 4.4 },
   { key: 'shoe-court',     image: UN('1650320079970-b4ee8f0dae33'), name: 'Court Low',          tagline: 'Best seller',  price: 1299, rating: 4.3 },
-  { key: 'shoe-studio',    image: UN('1560769629-975ec94e6a86'), name: 'Studio Lite',        tagline: 'Limited drop', price: 1999, rating: 4.6 },
+  { key: 'shoe-studio',    image: UN('1560769629-975ec94e6a86'),    name: 'Studio Lite',        tagline: 'Limited drop', price: 1999, rating: 4.6 },
   { key: 'shoe-canvas',    image: UN('1689357642277-65228ee23680'), name: 'Canvas Classic',     tagline: 'Everyday',     price: 1099, rating: 4.2 },
-  { key: 'shoe-pastel',    image: UN('1622760806364-5ccac8096b59'), name: 'Pastel Glide',       tagline: 'New colour',   price: 1399, rating: 4.4 },
+  { key: 'shoe-pastel',    image: UN('1542291026-7eec264c27ff'),    name: 'Pastel Glide',       tagline: 'New colour',   price: 1399, rating: 4.4 },
+  { key: 'shoe-chunky',    image: UN('1600185365778-d2a4dc6bd1c5'), name: 'Chunky Walker',      tagline: 'Bold pick',    price: 2099, rating: 4.5 },
+  { key: 'shoe-runner',    image: UN('1595950653106-6c9ebd614d3a'), name: 'Air Runner',         tagline: 'Cushioned',    price: 1899, rating: 4.6 },
+  { key: 'shoe-school',    image: UN('1525966222134-fcfa99b8ae77'), name: 'Daily School',       tagline: 'Comfort',      price: 999,  rating: 4.1 },
+  { key: 'shoe-festive',   image: UN('1543163521-1bf539c55dd2'),    name: 'Festive Slip-On',    tagline: 'Stylish',      price: 1599, rating: 4.3 },
+  { key: 'shoe-retro',     image: UN('1551107696-a4b0c5a0d9a2'),    name: 'Retro Court',        tagline: 'Throwback',    price: 1699, rating: 4.5 },
+  { key: 'shoe-mesh',      image: UN('1608231387042-66d1773070a5'), name: 'Mesh Lite',          tagline: 'Breathable',   price: 1199, rating: 4.2 },
 ];
 
 export const freeDeliveryThreshold = 3599;

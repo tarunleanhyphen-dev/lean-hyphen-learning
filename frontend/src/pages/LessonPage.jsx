@@ -27,8 +27,15 @@ export default function LessonPage() {
     const order = ['act1', 'act2', 'act3', 'act4'];
     const idx = order.indexOf(actId);
     const next = order[idx + 1];
-    if (next) navigate(`/lesson/${lessonId}/${next}`);
-    else navigate('/');
+    // If the next act exists AND is actually playable, go there. Otherwise
+    // (no next act, or next act is coming-soon) drop back to the home page.
+    // Right now Act 3 + Act 4 are coming-soon, so finishing Act 2 lands the
+    // student on the home page rather than a placeholder.
+    if (next && lesson.acts[next] && lesson.acts[next].status !== 'coming-soon') {
+      navigate(`/lesson/${lessonId}/${next}`);
+    } else {
+      navigate('/');
+    }
   }, [actId, lessonId, navigate]);
 
   return <ActComponent onComplete={handleComplete} />;

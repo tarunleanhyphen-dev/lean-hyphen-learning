@@ -1111,21 +1111,16 @@ function act2Scenes() {
           narration: 'Knowing the trick is half the answer. Here is a five-question pause that beats it.',
         },
         {
+          /* This is the LAST phase of Act 2. Clicking "Finish Act 2" on
+           * the FrameworkCard completes the activity, the sequencer sees
+           * it as the last phase, and onComplete navigates straight back
+           * to the home page (Act 3 is still coming-soon). No bridge beat
+           * after — the user closes the act on their own click. */
           id: 's8-framework',
           hold: true,
           status: 'Five questions to pause',
           emotion: 'happy',
           activity: { kind: 'framework', id: 'pause-and-think' },
-        },
-        {
-          id: 's8-bridge',
-          duration: 9500,
-          status: 'Ready for the real world',
-          emotion: 'excited',
-          bubbles: [
-            { side: 'right', type: 'thought', text: 'Plan. Need. Budget. Wait. Trade-off. I can remember that.' },
-          ],
-          narration: 'Next, four real-life money moments. Use the pause — and see how it feels in practice.',
         },
       ],
     },

@@ -53,24 +53,22 @@ export default function FrameworkCard({ data, onReveal, speakingDone = true, onC
     return () => clearTimeout(t);
   }, [revealed, fullyRevealed, speakingDone, data.bullets]);
 
-  // After the last bullet's narration completes, advance automatically.
-  // Hard cap of 6 s in case narration somehow never finishes.
-  const advancedRef = useRef(false);
+  // After all bullets finish reading, we ENABLE a "Finish Act 2" button
+  // but do NOT auto-advance — the user closes the act manually.
+  const [readyToFinish, setReadyToFinish] = useState(false);
   useEffect(() => {
     if (!fullyRevealed) return;
-    if (advancedRef.current) return;
-    const fire = () => {
-      if (advancedRef.current) return;
-      advancedRef.current = true;
-      onCompleteRef.current?.();
-    };
+    if (readyToFinish) return;
+    // Wait for the last bullet's narration to wrap (or 6s safety fallback)
+    // before the button appears, so the button doesn't compete with the
+    // narrator finishing the line.
     if (speakingDone) {
-      const t = setTimeout(fire, 2200);
+      const t = setTimeout(() => setReadyToFinish(true), 1500);
       return () => clearTimeout(t);
     }
-    const fallback = setTimeout(fire, 6000);
+    const fallback = setTimeout(() => setReadyToFinish(true), 6000);
     return () => clearTimeout(fallback);
-  }, [fullyRevealed, speakingDone]);
+  }, [fullyRevealed, speakingDone, readyToFinish]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -125,14 +123,29 @@ export default function FrameworkCard({ data, onReveal, speakingDone = true, onC
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.1 }}
-            className="flex items-start gap-3 rounded-2xl bg-gradient-to-br from-teal-500/15 via-white to-saffron-50 p-4 ring-1 ring-teal-500/40 shadow-md"
+            className="flex flex-col gap-3 rounded-2xl bg-gradient-to-br from-teal-500/15 via-white to-saffron-50 p-4 ring-1 ring-teal-500/40 shadow-md"
           >
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-teal-500 text-white">
-              <Check className="h-4 w-4" />
-            </span>
-            <p className="text-[13.5px] leading-relaxed text-ink-900 sm:text-sm">
-              {data.closer}
-            </p>
+            <div className="flex items-start gap-3">
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-teal-500 text-white">
+                <Check className="h-4 w-4" />
+              </span>
+              <p className="text-[13.5px] leading-relaxed text-ink-900 sm:text-sm">
+                {data.closer}
+              </p>
+            </div>
+            <button
+              type="button"
+              disabled={!readyToFinish}
+              onClick={() => onCompleteRef.current?.()}
+              className={[
+                'self-end inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[12px] font-bold uppercase tracking-widest shadow-lg transition active:scale-[0.98]',
+                readyToFinish
+                  ? 'bg-saffron-500 text-ink-900 shadow-saffron-500/30 hover:bg-saffron-400'
+                  : 'bg-ink-300/40 text-ink-500 cursor-not-allowed shadow-none',
+              ].join(' ')}
+            >
+              <Check className="h-4 w-4" /> Finish Act 2
+            </button>
           </motion.div>
         )}
       </AnimatePresence>

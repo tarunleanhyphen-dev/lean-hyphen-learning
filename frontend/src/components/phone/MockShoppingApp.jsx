@@ -15,10 +15,14 @@ const CATEGORIES = [
   { id: 'jewelry',  label: 'Jewelry',  emoji: '💍' },
 ];
 
+// Built from freeDeliveryThreshold so the hero banner, the cart-focus
+// banner, and the lesson's "she's ₹3 away" beat all reference the same
+// number. Bump the threshold in thinkBeforeYouSpend.js and every surface
+// updates automatically.
 const HERO_SLIDES = [
   { id: 'birthday', title: 'Birthday Sale', sub: '30% OFF · ends tonight', tone: 'from-coral-500 to-saffron-500', emoji: '🎂' },
   { id: 'flash',    title: 'Flash Drop',     sub: 'New sneakers · while stocks last', tone: 'from-burgundy-500 to-coral-500', emoji: '⚡' },
-  { id: 'free',     title: 'Free Delivery',  sub: 'On orders above ₹2,999',           tone: 'from-teal-500 to-saffron-500', emoji: '🚚' },
+  { id: 'free',     title: 'Free Delivery',  sub: `On orders above ₹${freeDeliveryThreshold.toLocaleString('en-IN')}`, tone: 'from-teal-500 to-saffron-500', emoji: '🚚' },
 ];
 
 export default function MockShoppingApp({ state = {} }) {

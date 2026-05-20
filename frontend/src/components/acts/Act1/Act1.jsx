@@ -4,6 +4,7 @@ import { PauseCircle, PlayCircle, RotateCcw, ChevronRight, ChevronLeft } from 'l
 import PhoneFrame from '../../shared/PhoneFrame.jsx';
 import ThoughtBubble from '../../shared/ThoughtBubble.jsx';
 import ThoughtImagery from '../../shared/ThoughtImagery.jsx';
+import SceneVignette from '../../shared/SceneVignette.jsx';
 import ShanayaAvatar from '../../shared/ShanayaAvatar.jsx';
 import LiveStatus from '../../shared/LiveStatus.jsx';
 import SceneProgress from '../../shared/SceneProgress.jsx';
@@ -398,13 +399,22 @@ export default function Act1({ onComplete }) {
                     amplitudeRef={mouthRef}
                     size="xl"
                   />
-                  {/* Imagination clouds — only render when the current phase
-                     supplies imagery (used by Scene 0's "she's picturing
-                     birthday at the café / friends / outfits" beats). */}
-                  <ThoughtImagery items={phase?.imagery || []} />
+                  {/* Static imagination clouds — only render when the
+                     current phase supplies imagery AND no richer vignette
+                     is in play. Scene 0 now uses SceneVignette below. */}
+                  {!phase?.vignette && <ThoughtImagery items={phase?.imagery || []} />}
                 </div>
                 <div className="min-w-0 flex-1 pt-2 sm:pt-4">
-                  <ThoughtBubble bubbles={activeBubbles} position="right" />
+                  {phase?.vignette ? (
+                    <div className="flex flex-col gap-3">
+                      <SceneVignette kind={phase.vignette} />
+                      {activeBubbles.length > 0 && (
+                        <ThoughtBubble bubbles={activeBubbles} position="right" />
+                      )}
+                    </div>
+                  ) : (
+                    <ThoughtBubble bubbles={activeBubbles} position="right" />
+                  )}
                 </div>
               </div>
 

@@ -59,8 +59,7 @@ function emotionFor(phase, sceneEmotion) {
   if (id === 's3-banner-in') return 'shocked';
   if (id.startsWith('s3-think') || id.startsWith('s3-fbt-bubble')) return 'tempted';
   if (id === 's3-unlock') return 'excited';
-  if (id === 's4-freeze' || id === 's4-cart-open' || id === 's4-total-build') return 'shocked';
-  if (id === 's4-gap') return 'unsettled';
+  if (id === 's4-freeze' || id === 's4-cart-open') return 'shocked';
   if (id.startsWith('s4-realisation')) return 'guilty';
   if (id === 's4-reflect' || id === 's4-mcq') return 'realised';
   return sceneEmotion;
@@ -308,6 +307,14 @@ export default function Act1({ onComplete }) {
   const cartIds = phoneState.cart || [];
   const cartTotal = cartIds.reduce((s, id) => s + (products[id]?.price || 0), 0);
 
+  // Phases 1–8 are pure storytelling (s0-intro / birthday / group-chat /
+  // vision / app-open + s1-open / s1-intent-1 / s1-intent-2). Shanaya isn't
+  // browsing the shopping app yet — she's narrating context — so we hide the
+  // phone column entirely and let the left card take full width. The phone
+  // appears from phase 9 (seq.index >= 8 → s1-search) when she actually
+  // opens the app and types her first search.
+  const showPhone = seq.index >= 8;
+
   // Stats handed to the celebration modal. Computed lazily off cart, the
   // tricks-spotted count, and the wall-clock duration since mount. Lives
   // here (after cartIds / cartTotal) to avoid the TDZ.
@@ -372,12 +379,12 @@ export default function Act1({ onComplete }) {
       <SceneProgress current={seq.index} total={phases.length} label={scene.title} />
 
       {/* Stage */}
-      <div className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-[1.05fr_0.95fr] lg:gap-6">
+      <div className={`grid grid-cols-1 items-stretch gap-4 sm:gap-5 ${showPhone ? 'md:grid-cols-[1.05fr_0.95fr] md:gap-5 lg:gap-6' : 'mx-auto w-full max-w-3xl'}`}>
         {/* LEFT */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#F8EFE0] via-[#FBF4E6] to-[#FFE9D9] p-4 ring-1 ring-ink-300/15 sm:p-6 lg:p-7">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#F8EFE0] via-[#FBF4E6] to-[#FFE9D9] p-3 ring-1 ring-ink-300/15 sm:p-5 md:p-6 lg:p-7">
           <RoomBackdrop ambience={scene.ambience} />
 
-          <div className="relative flex h-full min-h-[640px] flex-col">
+          <div className="relative flex h-full min-h-[520px] flex-col sm:min-h-[580px] md:min-h-[600px] lg:min-h-[640px]">
             {/* Scene tag */}
             <div className="flex items-center justify-between">
               <div className="text-[11px] font-bold uppercase tracking-widest text-ink-500">
@@ -459,15 +466,19 @@ export default function Act1({ onComplete }) {
         {/* RIGHT — top-aligned with the scene tag row on the left column.
            Negative top margin pulls the phone column up so the phone's top
            edge sits flush with the left card's top, not the bottom of the
-           InsightCallout (which only renders when there's an insight). */}
-        <div className="relative flex flex-col items-stretch -mt-1 sm:-mt-2">
-          <InsightCallout insight={phase?.insight} />
-          <div className="flex justify-center">
-            <PhoneFrame dim={phoneState.dim}>
-              <MockShoppingApp state={phoneState} />
-            </PhoneFrame>
+           InsightCallout (which only renders when there's an insight).
+           Hidden during scenes 1–7 (pure storytelling); appears from scene 8
+           when Shanaya actually opens the shopping app. */}
+        {showPhone && (
+          <div className="relative flex flex-col items-stretch -mt-1 sm:-mt-2">
+            <InsightCallout insight={phase?.insight} />
+            <div className="flex justify-center">
+              <PhoneFrame dim={phoneState.dim}>
+                <MockShoppingApp state={phoneState} />
+              </PhoneFrame>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Reflection (free text) */}

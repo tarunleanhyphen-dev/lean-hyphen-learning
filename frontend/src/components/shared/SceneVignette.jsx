@@ -495,103 +495,277 @@ function Vision() {
   return (
     <SceneShell from="#FFE5B4" to="#FFE0E9">
       <defs>
-        <linearGradient id="mirror-frame" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"   stopColor="#FFE3A8" />
-          <stop offset="50%"  stopColor="#D4A574" />
-          <stop offset="100%" stopColor="#8E5A36" />
+        {/* Outfit board paper */}
+        <linearGradient id="board-paper" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor="#FFFFFF" />
+          <stop offset="100%" stopColor="#FFF1F1" />
         </linearGradient>
-        <linearGradient id="mirror-glass" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%"   stopColor="#FFFFFF" stopOpacity="0.9" />
-          <stop offset="50%"  stopColor="#FFE6E6" />
-          <stop offset="100%" stopColor="#FFB3C7" />
+        {/* Dress (centre piece) — silky pink with depth */}
+        <linearGradient id="dress-silk" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%"   stopColor="#FFD4E0" />
+          <stop offset="55%"  stopColor="#FF7AA2" />
+          <stop offset="100%" stopColor="#B23A66" />
         </linearGradient>
-        <linearGradient id="dress-fold" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%"   stopColor="#FFCFE0" />
-          <stop offset="60%"  stopColor="#FF8FAB" />
-          <stop offset="100%" stopColor="#C45A82" />
+        {/* Pastel sneakers */}
+        <linearGradient id="sneaker-body" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor="#FFFFFF" />
+          <stop offset="100%" stopColor="#FFC7D4" />
         </linearGradient>
-        <radialGradient id="camera-lens" cx="50%" cy="50%" r="50%">
+        {/* Handbag — buttery tan with sheen */}
+        <linearGradient id="bag-tan" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor="#FFE0A8" />
+          <stop offset="60%"  stopColor="#D89757" />
+          <stop offset="100%" stopColor="#8B5A2B" />
+        </linearGradient>
+        {/* Gold for jewelry + bag hardware */}
+        <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%"   stopColor="#FFE585" />
+          <stop offset="50%"  stopColor="#E0B040" />
+          <stop offset="100%" stopColor="#9C7020" />
+        </linearGradient>
+        {/* Sunglass lenses */}
+        <linearGradient id="lens" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%"   stopColor="#3FB8FF" />
-          <stop offset="60%"  stopColor="#0E5F9E" />
-          <stop offset="100%" stopColor="#06283D" />
-        </radialGradient>
+          <stop offset="100%" stopColor="#142850" />
+        </linearGradient>
+        {/* Cake photo gradient */}
+        <linearGradient id="photo-cake" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor="#FFD2A6" />
+          <stop offset="100%" stopColor="#FF8FAB" />
+        </linearGradient>
+        {/* Café photo gradient */}
+        <linearGradient id="photo-cafe" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor="#FFE7B5" />
+          <stop offset="100%" stopColor="#D89757" />
+        </linearGradient>
+        {/* Friends photo gradient (group selfie) */}
+        <linearGradient id="photo-friends" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor="#FFB3C7" />
+          <stop offset="100%" stopColor="#A678F2" />
+        </linearGradient>
       </defs>
 
-      {/* Mirror — centre */}
-      <g transform="translate(130 32)" filter="url(#lh-hero)">
-        <rect width="60" height="148" rx="30" fill="url(#mirror-frame)" />
-        <rect x="6" y="6" width="48" height="136" rx="24" fill="url(#mirror-glass)" />
-        {/* Mirror shine */}
-        <path d="M10 16 L24 12 L24 60 L10 50 Z" fill="#FFFFFF" opacity="0.4" />
-        {/* Girl silhouette */}
-        <circle cx="30" cy="54" r="14" fill="#EDB98A" />
-        <path d="M14 60 Q14 42 30 42 Q46 42 46 60 L46 76 Q30 56 14 76 Z" fill="#2C1B18" />
-        {/* eyes + smile */}
-        <ellipse cx="25" cy="52" rx="1.5" ry="2" fill="#1A1426" />
-        <ellipse cx="35" cy="52" rx="1.5" ry="2" fill="#1A1426" />
-        <path d="M26 58 Q30 61 34 58" stroke="#7A2A1A" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-        {/* Body */}
-        <path d="M14 82 Q30 76 46 82 L48 128 L12 128 Z" fill="#FF5A4A" />
-        {/* Body highlight */}
-        <path d="M18 84 Q26 80 30 80 L30 124 L18 124 Z" fill="#FFFFFF" opacity="0.18" />
+      {/* ============ CENTER OUTFIT BOARD (look book) ============ */}
+      <g transform="translate(102 36)" filter="url(#lh-hero)">
+        {/* Board */}
+        <rect width="116" height="172" rx="10" fill="url(#board-paper)" />
+        <rect width="116" height="22" rx="10" fill="#FFB3C7" />
+        <rect y="14" width="116" height="8" fill="#FFB3C7" />
+        {/* Header text — "BIRTHDAY LOOK" */}
+        <text x="58" y="15" textAnchor="middle"
+          fontFamily="ui-sans-serif, system-ui" fontSize="8" fontWeight="800"
+          fill="#7A2A4A" letterSpacing="1.5">BIRTHDAY LOOK</text>
+
+        {/* DRESS — main piece */}
+        <g transform="translate(34 30)">
+          {/* hanger */}
+          <line x1="24" y1="0" x2="24" y2="6" stroke="#888" strokeWidth="1.2" />
+          <circle cx="24" cy="9" r="3" fill="none" stroke="#888" strokeWidth="1.2" />
+          {/* dress shape — flared hem with bow at waist */}
+          <path d="M8 14 Q24 6 40 14 L46 56 Q24 50 2 56 Z" fill="url(#dress-silk)" />
+          {/* waist ribbon */}
+          <rect x="6" y="30" width="36" height="3" fill="#B23A66" />
+          {/* bow */}
+          <path d="M22 31 Q20 28 22 33 Q24 28 26 31 Q24 34 22 31 Z" fill="#FFE066" />
+          <circle cx="24" cy="32" r="1.2" fill="#B23A66" />
+          {/* folds */}
+          <path d="M14 36 L18 54" stroke="#FFFFFF" strokeWidth="0.6" opacity="0.55" />
+          <path d="M24 36 L24 56" stroke="#FFFFFF" strokeWidth="0.6" opacity="0.65" />
+          <path d="M34 36 L30 54" stroke="#FFFFFF" strokeWidth="0.6" opacity="0.55" />
+          {/* shoulder straps */}
+          <path d="M14 16 Q24 8 34 16" stroke="#B23A66" strokeWidth="1.2" fill="none" />
+        </g>
+
+        {/* SNEAKERS — bottom left */}
+        <g transform="translate(10 110)" filter="url(#lh-soft)">
+          {/* shoe body */}
+          <path d="M0 18 Q0 8 8 8 L24 8 Q30 8 32 14 L34 18 Q34 24 28 24 L4 24 Q0 24 0 20 Z" fill="url(#sneaker-body)" />
+          {/* sole */}
+          <rect y="22" width="34" height="3" rx="1" fill="#FFFFFF" />
+          <rect y="24" width="34" height="2" rx="1" fill="#B23A66" />
+          {/* swoosh stripe */}
+          <path d="M6 18 Q14 10 28 16" stroke="#FF7AA2" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+          {/* laces */}
+          <line x1="14" y1="12" x2="22" y2="13" stroke="#FFFFFF" strokeWidth="0.6" />
+          <line x1="14" y1="14" x2="22" y2="15" stroke="#FFFFFF" strokeWidth="0.6" />
+          {/* eyelet */}
+          <circle cx="12" cy="13" r="0.8" fill="#B23A66" />
+        </g>
+
+        {/* HANDBAG — bottom right */}
+        <g transform="translate(70 108)" filter="url(#lh-soft)">
+          {/* handle */}
+          <path d="M6 6 Q18 -4 30 6" stroke="url(#gold)" strokeWidth="2" fill="none" />
+          {/* bag body */}
+          <rect x="2" y="6" width="32" height="22" rx="3" fill="url(#bag-tan)" />
+          {/* fold flap */}
+          <path d="M2 6 L18 18 L34 6 Z" fill="#FFFFFF" opacity="0.25" />
+          {/* clasp */}
+          <circle cx="18" cy="16" r="2.5" fill="url(#gold)" />
+          <circle cx="18" cy="16" r="1.2" fill="#7A4E1C" />
+          {/* stitch */}
+          <rect x="2" y="9" width="32" height="0.6" fill="#7A4E1C" opacity="0.4" />
+        </g>
+
+        {/* SUNGLASSES + NECKLACE — small accessories row */}
+        <g transform="translate(8 86)">
+          {/* sunglasses */}
+          <circle cx="6"  cy="6" r="5" fill="url(#lens)" stroke="#1A1426" strokeWidth="1" />
+          <circle cx="18" cy="6" r="5" fill="url(#lens)" stroke="#1A1426" strokeWidth="1" />
+          <path d="M11 6 L13 6" stroke="#1A1426" strokeWidth="1" />
+          {/* lens shine */}
+          <ellipse cx="4" cy="4" rx="1.2" ry="0.8" fill="#FFFFFF" opacity="0.8" />
+          <ellipse cx="16" cy="4" rx="1.2" ry="0.8" fill="#FFFFFF" opacity="0.8" />
+        </g>
+        <g transform="translate(60 84)">
+          {/* gold necklace */}
+          <path d="M0 0 Q14 14 28 0" stroke="url(#gold)" strokeWidth="1.4" fill="none" />
+          <circle cx="14" cy="10" r="2.4" fill="url(#gold)" />
+          <path d="M12.5 9 L14 12 L15.5 9 Z" fill="#FFFFFF" opacity="0.7" />
+        </g>
+
+        {/* tiny price-less tags */}
+        <text x="58" y="166" textAnchor="middle"
+          fontFamily="ui-sans-serif, system-ui" fontSize="6" fontWeight="700"
+          fill="#7A2A4A" opacity="0.7">CONFIDENT · CUTE · READY</text>
       </g>
 
-      {/* Dress on hanger, left — proper silk folds */}
-      <g transform="translate(34 58)" filter="url(#lh-soft)">
-        <line x1="22" y1="0" x2="22" y2="10" stroke="#666" strokeWidth="2" />
-        <circle cx="22" cy="14" r="5" fill="none" stroke="#888" strokeWidth="2" />
-        <path d="M5 18 Q22 8 39 18 L48 58 Q22 54 -4 58 Z" fill="url(#dress-fold)" />
-        {/* Folds */}
-        <path d="M12 24 L18 56" stroke="#FFFFFF" strokeWidth="0.6" opacity="0.4" />
-        <path d="M22 22 L22 58" stroke="#FFFFFF" strokeWidth="0.6" opacity="0.5" />
-        <path d="M32 24 L26 56" stroke="#FFFFFF" strokeWidth="0.6" opacity="0.4" />
-        {/* Shoulder strap */}
-        <path d="M16 20 Q22 16 28 20" stroke="#C45A82" strokeWidth="1" fill="none" />
-      </g>
+      {/* ============ POLAROID 1 — CAFÉ (top left) ============ */}
+      <motion.g
+        animate={{ y: [12, 6, 12] }}
+        transition={{ duration: 3.6, repeat: Infinity, ease: 'easeInOut' }}
+      >
+        <g transform="rotate(-10 30 28)" filter="url(#lh-hero)">
+          <rect x="10" y="14" width="46" height="48" fill="#FFFFFF" />
+          {/* café photo */}
+          <rect x="13" y="17" width="40" height="32" fill="url(#photo-cafe)" />
+          {/* awning stripes */}
+          <rect x="13" y="17" width="40" height="6" fill="#FF7AA2" />
+          <rect x="17" y="17" width="4" height="6" fill="#FFFFFF" opacity="0.5" />
+          <rect x="25" y="17" width="4" height="6" fill="#FFFFFF" opacity="0.5" />
+          <rect x="33" y="17" width="4" height="6" fill="#FFFFFF" opacity="0.5" />
+          <rect x="41" y="17" width="4" height="6" fill="#FFFFFF" opacity="0.5" />
+          {/* table + cup */}
+          <rect x="18" y="36" width="30" height="2" fill="#7A4E1C" />
+          <rect x="26" y="29" width="6" height="7" rx="1" fill="#FFFFFF" />
+          <rect x="26" y="29" width="6" height="2" fill="#D89757" />
+          {/* heart sticker */}
+          <path d="M44 22 Q42 19 40 22 Q40 25 44 28 Q48 25 48 22 Q46 19 44 22 Z" fill="#FF5A7A" />
+          {/* caption strip */}
+          <text x="33" y="58" textAnchor="middle"
+            fontFamily="ui-sans-serif, system-ui" fontSize="5" fontWeight="700"
+            fill="#7A2A4A">cute café ✨</text>
+        </g>
+      </motion.g>
 
-      {/* Camera + photo frames, right */}
-      <g transform="translate(226 60)" filter="url(#lh-hero)">
-        <rect width="58" height="42" rx="5" fill="#1A1426" />
-        <rect x="2" y="4" width="54" height="34" rx="3" fill="#2A1F3D" />
-        {/* Lens (3D-shaded) */}
-        <circle cx="29" cy="22" r="14" fill="url(#camera-lens)" />
-        <circle cx="29" cy="22" r="9"  fill="#06283D" />
-        <circle cx="29" cy="22" r="5"  fill="#3FB8FF" />
-        <circle cx="26" cy="18" r="2"  fill="#FFFFFF" opacity="0.7" />
-        {/* Flash bulb */}
-        <rect x="38" y="4" width="6" height="4" rx="1" fill="#FF6B6B" />
-        <motion.circle
-          cx="41" cy="2" r="3" fill="#FFFFFF"
-          animate={{ opacity: [0, 1, 0], scale: [1, 2.5, 1] }}
-          transition={{ duration: 1.6, repeat: Infinity, repeatDelay: 1.5 }}
-          filter="url(#lh-soft)"
-        />
-      </g>
+      {/* ============ POLAROID 2 — CAKE / BIRTHDAY (top right) ============ */}
+      <motion.g
+        animate={{ y: [6, 0, 6] }}
+        transition={{ duration: 4.2, repeat: Infinity, ease: 'easeInOut', delay: 0.8 }}
+      >
+        <g transform="rotate(8 280 28)" filter="url(#lh-hero)">
+          <rect x="240" y="8" width="46" height="48" fill="#FFFFFF" />
+          {/* cake photo */}
+          <rect x="243" y="11" width="40" height="32" fill="url(#photo-cake)" />
+          {/* cake */}
+          <rect x="252" y="28" width="22" height="10" rx="1" fill="#FFFFFF" />
+          <rect x="252" y="26" width="22" height="3" fill="#FF7AA2" />
+          {/* drips */}
+          <path d="M256 29 Q257 33 258 29" fill="#FF7AA2" />
+          <path d="M263 29 Q264 33 265 29" fill="#FF7AA2" />
+          <path d="M270 29 Q271 33 272 29" fill="#FF7AA2" />
+          {/* candle */}
+          <rect x="262" y="20" width="2" height="6" fill="#FFE066" />
+          <motion.path
+            d="M263 16 Q261 19 263 20 Q265 19 263 16 Z"
+            fill="#FF7A2E"
+            animate={{ scale: [1, 1.2, 1] }}
+            transition={{ duration: 0.8, repeat: Infinity }}
+            style={{ transformOrigin: '263px 18px' }}
+          />
+          {/* sprinkles */}
+          <circle cx="255" cy="32" r="0.8" fill="#A678F2" />
+          <circle cx="260" cy="34" r="0.8" fill="#3FB8FF" />
+          <circle cx="266" cy="32" r="0.8" fill="#FFE066" />
+          <circle cx="271" cy="34" r="0.8" fill="#FF5A7A" />
+          {/* caption */}
+          <text x="263" y="52" textAnchor="middle"
+            fontFamily="ui-sans-serif, system-ui" fontSize="5" fontWeight="700"
+            fill="#7A2A4A">birthday 🎂</text>
+        </g>
+      </motion.g>
 
-      {/* Photo frames hovering top — three small Polaroids */}
+      {/* ============ POLAROID 3 — GROUP SELFIE (bottom right) ============ */}
+      <motion.g
+        animate={{ y: [144, 138, 144] }}
+        transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut', delay: 1.6 }}
+      >
+        <g transform="rotate(-6 268 162)" filter="url(#lh-hero)">
+          <rect x="244" y="138" width="48" height="50" fill="#FFFFFF" />
+          {/* selfie photo */}
+          <rect x="247" y="141" width="42" height="34" fill="url(#photo-friends)" />
+          {/* three friend heads (peeking) */}
+          <circle cx="256" cy="160" r="6" fill="#EDB98A" />
+          <path d="M250 158 Q250 152 256 152 Q262 152 262 158 Q262 164 250 164 Z" fill="#2C1B18" />
+          <circle cx="268" cy="156" r="6" fill="#F2C49A" />
+          <path d="M262 154 Q262 148 268 148 Q274 148 274 154 Q274 160 262 160 Z" fill="#7A2A1A" />
+          <circle cx="280" cy="160" r="6" fill="#E8B080" />
+          <path d="M274 158 Q274 152 280 152 Q286 152 286 158 Q286 164 274 164 Z" fill="#1A0E0A" />
+          {/* smiles */}
+          <path d="M254 162 Q256 164 258 162" stroke="#7A2A1A" strokeWidth="0.8" fill="none" strokeLinecap="round" />
+          <path d="M266 158 Q268 160 270 158" stroke="#7A2A1A" strokeWidth="0.8" fill="none" strokeLinecap="round" />
+          <path d="M278 162 Q280 164 282 162" stroke="#7A2A1A" strokeWidth="0.8" fill="none" strokeLinecap="round" />
+          {/* peace fingers */}
+          <text x="268" y="174" textAnchor="middle" fontSize="6">✌️</text>
+          {/* caption */}
+          <text x="268" y="184" textAnchor="middle"
+            fontFamily="ui-sans-serif, system-ui" fontSize="5" fontWeight="700"
+            fill="#7A2A4A">squad goals 💖</text>
+        </g>
+      </motion.g>
+
+      {/* ============ POLAROID 4 — OUTFIT MIRROR (bottom left) ============ */}
+      <motion.g
+        animate={{ y: [144, 150, 144] }}
+        transition={{ duration: 4.4, repeat: Infinity, ease: 'easeInOut', delay: 0.4 }}
+      >
+        <g transform="rotate(7 46 168)" filter="url(#lh-hero)">
+          <rect x="22" y="144" width="46" height="50" fill="#FFFFFF" />
+          {/* mirror selfie photo */}
+          <rect x="25" y="147" width="40" height="34" fill="#FFE0E9" />
+          {/* phone in hand */}
+          <rect x="40" y="160" width="6" height="10" rx="1" fill="#1A1426" />
+          <rect x="41" y="161" width="4" height="6" fill="#3FB8FF" opacity="0.6" />
+          {/* girl in dress */}
+          <circle cx="33" cy="158" r="5" fill="#EDB98A" />
+          <path d="M28 156 Q28 151 33 151 Q38 151 38 156 Q38 161 28 161 Z" fill="#2C1B18" />
+          {/* dress silhouette */}
+          <path d="M27 163 Q33 161 39 163 L41 178 L25 178 Z" fill="url(#dress-silk)" />
+          {/* caption */}
+          <text x="45" y="190" textAnchor="middle"
+            fontFamily="ui-sans-serif, system-ui" fontSize="5" fontWeight="700"
+            fill="#7A2A4A">outfit ready 💄</text>
+        </g>
+      </motion.g>
+
+      {/* ============ FLOATING HEARTS + SPARKLES ============ */}
       {[
-        { x:  18, y: 12, r: -12, delay: 0.0 },
-        { x: 138, y:  6, r:   3, delay: 0.6 },
-        { x: 264, y: 18, r:  10, delay: 1.2 },
-      ].map((f, i) => (
-        <motion.g
-          key={i}
-          animate={{ y: [f.y, f.y - 5, f.y] }}
-          transition={{ duration: 3.4, repeat: Infinity, delay: f.delay, ease: 'easeInOut' }}
-          style={{ transformOrigin: `${f.x + 18}px ${f.y + 14}px` }}
-        >
-          <g transform={`rotate(${f.r} ${f.x + 18} ${f.y + 14})`} filter="url(#lh-soft)">
-            <rect x={f.x} y={f.y} width="36" height="30" fill="#FFFFFF" />
-            <rect x={f.x + 3} y={f.y + 3} width="30" height="20" fill={['#FFB3C7', '#A8D8E8', '#FFD23F'][i]} />
-            <circle cx={f.x + 18} cy={f.y + 13} r="3" fill="#FFFFFF" opacity="0.7" />
-          </g>
-        </motion.g>
+        { x: 86,  y: 30, delay: 0.2 },
+        { x: 232, y: 92, delay: 1.2 },
+        { x: 96,  y: 122, delay: 0.7 },
+      ].map((h, i) => (
+        <motion.path
+          key={`h-${i}`}
+          d={`M${h.x} ${h.y} q-3 -4 -6 0 q0 5 6 9 q6 -4 6 -9 q-3 -4 -6 0 Z`}
+          fill="#FF5A7A"
+          animate={{ y: [h.y, h.y - 8, h.y], opacity: [0.7, 1, 0.7] }}
+          transition={{ duration: 2.6, repeat: Infinity, delay: h.delay, ease: 'easeInOut' }}
+        />
       ))}
 
-      {/* Sparkles */}
       {[
-        { x: 60, y: 195 }, { x: 270, y: 200 },
-        { x: 165, y: 215 }, { x: 100, y: 130 }, { x: 222, y: 142 },
+        { x: 36, y: 70 }, { x: 240, y: 50 },
+        { x: 92, y: 200 }, { x: 230, y: 196 }, { x: 168, y: 88 },
       ].map((s, i) => (
         <Sparkle key={i} x={s.x} y={s.y} delay={i * 0.4} />
       ))}

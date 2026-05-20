@@ -167,10 +167,15 @@ function act1Scenes() {
         },
         {
           id: 's1-search',
-          duration: 5000,
-          status: 'Searching for shoes',
-          narration: 'She taps the search bar and types one word.',
-          phone: { search: 'shoes', view: 'feed' },
+          duration: 10500,
+          status: 'Opening Spree and searching',
+          // Combined narration covers the in-phone animation sequence: phone
+          // home screen → tap Spree → app opens → search bar focus + typing.
+          narration: 'Shanaya opens the shopping app and she taps the search bar and types one word.',
+          // view: 'phone-home' triggers the auto-sequenced startup animation
+          // inside MockShoppingApp — home grid → Spree tap → zoom into app →
+          // feed view with the search bar pre-filling "shoes".
+          phone: { view: 'phone-home', search: 'shoes' },
           cue: 'click',
         },
         {
@@ -207,8 +212,17 @@ function act1Scenes() {
           ],
         },
         {
+          /* Phone scrolls down to bring the Add to Cart button into view
+           * BEFORE the tap pulse appears, so the student sees the button
+           * being approached, not magically tapped. */
+          id: 's1-scroll-to-cta',
+          duration: 2200,
+          status: 'Scrolling to Add to Cart',
+          phone: { search: 'shoes', view: 'detail', showProduct: 'shoes', scrollHint: true },
+        },
+        {
           id: 's1-tap',
-          duration: 4000,
+          duration: 2400,
           status: 'Tapping Add to Cart',
           phone: { search: 'shoes', view: 'detail', showProduct: 'shoes', tapTarget: 'primary-cta' },
           cue: 'tap',
@@ -223,12 +237,11 @@ function act1Scenes() {
         },
         {
           id: 's1-validate',
-          duration: 7800,
+          duration: 6500,
           status: 'On plan: ₹1,499 of ₹1,500',
           phone: { search: 'shoes', view: 'detail', showProduct: 'shoes', cart: ['shoes'], badge: 'Smart budget pick ✓' },
           bubbles: [
-            { side: 'right', type: 'thought', text: 'These look perfect.' },
-            { side: 'right', type: 'thought', text: 'Good price, nice style… this is exactly what I needed. Okay, done. That was easy.' },
+            { side: 'right', type: 'thought', text: 'This is exactly what I needed. Okay, done. That was easy.' },
           ],
         },
 
@@ -267,34 +280,20 @@ function act1Scenes() {
       emotion: 'curious',
       phases: [
         {
-          /* The phone auto-scrolls through the Trending Fashion grid + the
-           * flash sale strip while narration plays — so when the next phase
-           * snaps the "Pair your shoes" banner in, the student has just
-           * seen a wall of fashion and the cross-sell feels organic. */
+          /* Combined scroll + pair-nudge beat. The phone auto-scrolls
+           * through the Trending Fashion grid while narration plays
+           * "she scrolls a little more …", and the "Pair your shoes"
+           * banner slides in at the top of the screen simultaneously.
+           * Replaces the older split (s2-intro + s2-w1-nudge). */
           id: 's2-intro',
-          duration: 5500,
-          status: 'Scrolling for more',
-          narration: 'But she does not log off. She scrolls a little more — and the app starts responding to her choices.',
-          phone: after(['shoes'], { scrollHint: true }),
-        },
-
-        /* --- Wave 1: Cross-sell — socks.
-         * Split into two beats so the student can register what the nudge
-         * is saying BEFORE the product card slides in:
-         *   1) Banner alone — "Pair your shoes with a beautiful pair of
-         *      matching socks" — pauses for ~4 s so the line lands.
-         *   2) App auto-scrolls and the "Complete the Look" recommendation
-         *      pops into view below the banner. */
-        {
-          id: 's2-w1-nudge',
-          duration: 5500,
-          status: 'Pairing nudge slides in',
+          duration: 8500,
+          status: 'Scrolling … pairing nudge appears',
+          narration: 'She does not log off. She scrolls a little more — and the app suggests pairing her shoes with a matching pair of socks.',
           phone: after(['shoes'], {
+            scrollHint: true,
             pairNudge: { title: 'Complete the Look', subtitle: 'Pair your shoes with a beautiful pair of matching socks' },
           }),
-          narration: 'Pair your shoes with a beautiful pair of matching socks.',
           cue: 'ding',
-          insight: { label: 'Cross-sell', detail: 'Pairing suggestions feel like completing one decision, not making a new one.' },
         },
         {
           id: 's2-w1-card',
@@ -367,7 +366,6 @@ function act1Scenes() {
             socialProof: 'smartwatch',
             scrollTo: 'recommendations',
           }),
-          insight: { label: 'Social proof', detail: '“12K bought this week” borrows other people’s decision so you skip making your own.' },
         },
         {
           id: 's2-w2-tap-rec',
@@ -438,7 +436,6 @@ function act1Scenes() {
             flashAlert: { label: 'Flash Deal — Ends Soon!', product: 'Trending Now → Birthday Hoodie · ₹1,999 ₹999', mins: 5 },
             scrollTo: 'recommendations',
           }),
-          insight: { label: 'Urgency design', detail: 'Countdown timers and "only X left" shrink decision time on purpose.' },
           cue: 'alert',
         },
         {
@@ -557,7 +554,6 @@ function act1Scenes() {
           },
           narration: 'A new banner slides in across the screen.',
           cue: 'ding',
-          insight: { label: 'Threshold trap', detail: 'Free-delivery thresholds make you add more to "save" — net result is you spend more.' },
         },
         {
           id: 's3-think-1',
@@ -599,7 +595,6 @@ function act1Scenes() {
             freqBought: 'cleaning-kit',
             timerMinutes: 5,
           },
-          insight: { label: 'Useful + nudged', detail: 'The most dangerous add-on is the one that is actually useful — that is what kills the doubt.' },
         },
         {
           id: 's3-fbt-bubble1',
@@ -700,32 +695,6 @@ function act1Scenes() {
             freeDeliveryBanner: true,
           },
           narration: 'Her cart updates again. The total is bigger than she expected.',
-        },
-        {
-          id: 's4-total-build',
-          duration: 7000,
-          status: 'Total counting up',
-          phone: {
-            cart: ['shoes', 'socks', 'smartwatch', 'hoodie', 'cleaning-kit'],
-            view: 'cart-focus',
-            freeDeliveryBanner: true,
-            revealTotal: true,
-          },
-          cue: 'reveal',
-        },
-        {
-          id: 's4-gap',
-          duration: 7600,
-          status: '₹1,500 plan → ₹3,995 actual',
-          phone: {
-            cart: ['shoes', 'socks', 'smartwatch', 'hoodie', 'cleaning-kit'],
-            view: 'cart-focus',
-            freeDeliveryBanner: true,
-            revealTotal: true,
-            showGap: true,
-          },
-          insight: { label: '₹1,500 → ₹3,995', detail: 'Almost 2.7× the original plan. None of it felt like a "big" decision.', type: 'fact' },
-          narration: 'What started as "just one thing" became almost three times her original budget.',
         },
         {
           id: 's4-realisation-1',
@@ -1149,7 +1118,7 @@ export const SHOE_GRID = [
   { key: 'shoe-studio',    image: UN('1560769629-975ec94e6a86'),    name: 'Studio Lite',        tagline: 'Limited drop', price: 1999, rating: 4.6 },
   { key: 'shoe-canvas',    image: UN('1689357642277-65228ee23680'), name: 'Canvas Classic',     tagline: 'Everyday',     price: 1099, rating: 4.2 },
   { key: 'shoe-pastel',    image: UN('1542291026-7eec264c27ff'),    name: 'Pastel Glide',       tagline: 'New colour',   price: 1399, rating: 4.4 },
-  { key: 'shoe-chunky',    image: UN('1600185365778-d2a4dc6bd1c5'), name: 'Chunky Walker',      tagline: 'Bold pick',    price: 2099, rating: 4.5 },
+  { key: 'shoe-chunky',    image: UN('1542291026-7eec264c27ff'), name: 'Chunky Walker',      tagline: 'Bold pick',    price: 2099, rating: 4.5 },
   { key: 'shoe-runner',    image: UN('1595950653106-6c9ebd614d3a'), name: 'Air Runner',         tagline: 'Cushioned',    price: 1899, rating: 4.6 },
   { key: 'shoe-school',    image: UN('1525966222134-fcfa99b8ae77'), name: 'Daily School',       tagline: 'Comfort',      price: 999,  rating: 4.1 },
   { key: 'shoe-festive',   image: UN('1543163521-1bf539c55dd2'),    name: 'Festive Slip-On',    tagline: 'Stylish',      price: 1599, rating: 4.3 },

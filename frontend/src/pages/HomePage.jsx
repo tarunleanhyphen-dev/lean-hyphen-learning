@@ -7,10 +7,10 @@ export default function HomePage() {
   return (
     <div className="relative min-h-screen overflow-hidden">
       <FloatingBubbles />
-      <div className="relative mx-auto flex min-h-screen w-full max-w-5xl flex-col px-6 py-10">
+      <div className="relative mx-auto flex min-h-screen w-full max-w-5xl flex-col px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
       <header className="flex items-center justify-between">
         <a href="/" aria-label="Lean Hyphen home" className="inline-flex shrink-0">
-          <img src="/lean-hyphen-logo.svg" alt="Lean Hyphen" className="h-12 w-auto sm:h-14" draggable={false} />
+          <img src="/lean-hyphen-logo.svg" alt="Lean Hyphen" className="h-10 w-auto sm:h-12 md:h-14" draggable={false} />
         </a>
         <a
           href="https://lean-hyphen-user-web-4zrf.vercel.app/#home"
@@ -26,10 +26,10 @@ export default function HomePage() {
         <span className="chip bg-saffron-500/15 text-saffron-400">
           <Sparkles className="h-3 w-3" /> Module · {lesson.module}
         </span>
-        <h1 className="text-4xl font-extrabold leading-tight text-white sm:text-5xl">
+        <h1 className="text-3xl font-extrabold leading-tight text-white sm:text-4xl md:text-5xl">
           {lesson.title}
         </h1>
-        <p className="max-w-2xl text-lg text-white/70">
+        <p className="max-w-2xl text-base text-white/70 sm:text-lg">
           {lesson.hero.tagline} Spend ~{lesson.totalMinutes} minutes walking through a
           short story, then test what you noticed.
         </p>

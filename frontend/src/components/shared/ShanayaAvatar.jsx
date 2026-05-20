@@ -107,8 +107,8 @@ export default function ShanayaAvatar({ emotion = 'neutral', speaking = false, w
       : { y: [0, -3, 0] };
 
   const sizeClass = size === 'xl'
-    ? 'h-56 w-56 sm:h-64 sm:w-64 lg:h-72 lg:w-72'
-    : 'h-44 w-44 sm:h-52 sm:w-52 lg:h-56 lg:w-56';
+    ? 'h-40 w-40 sm:h-56 sm:w-56 md:h-60 md:w-60 lg:h-72 lg:w-72'
+    : 'h-32 w-32 sm:h-44 sm:w-44 md:h-48 md:w-48 lg:h-56 lg:w-56';
 
   return (
     <div className="relative inline-flex flex-col items-center">

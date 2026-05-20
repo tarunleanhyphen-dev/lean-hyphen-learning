@@ -38,6 +38,9 @@ export default function MockShoppingApp({ state = {} }) {
   if (view === 'confirmation') return <ConfirmationScreen total={cartTotal} ids={cartIds} />;
   if (view === 'order-summary') return <OrderSummaryScreen total={cartTotal} ids={cartIds} />;
   if (view === 'cart-focus') return <CartFocusView total={cartTotal} ids={cartIds} reached={reached} highlightPrice={state.highlightPrice} timerMinutes={state.timerMinutes} freqBought={state.freqBought} freeDeliveryBanner={state.freeDeliveryBanner} cleaningKitTap={state.tapTarget === 'rec-cleaning-kit'} showPlaceOrder={state.showPlaceOrder} placeOrderTap={state.tapTarget === 'place-order'} revealTotal={state.revealTotal} showGap={state.showGap} />;
+  // Phone-startup sequence: iOS-style home grid → tap on Spree → zoom into
+  // the app → settle into the feed with the search bar pre-typing.
+  if (view === 'phone-home') return <PhoneStartupSequence search={state.search} />;
 
   /* Auto-scroll the phone container as the scene progresses.
    * The scroller is the parent `.phone-scroll` div from <PhoneFrame>; we
@@ -335,14 +338,28 @@ function ProductDetail({ id, badge, tapping, urgencyMinutes, onlyXLeft, socialPr
          product detail per script: "Only 7 minutes left!"). */}
       {urgencyMinutes && (
         <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0, scale: [1, 1.02, 1] }}
-          transition={{ duration: 0.5, scale: { duration: 1.4, repeat: Infinity, repeatType: 'mirror' } }}
-          className="mb-2 flex items-center gap-2 rounded-xl bg-coral-500/15 px-3 py-2 text-[11px] font-bold text-coral-500 ring-1 ring-coral-500/40"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0, scale: [1, 1.04, 1] }}
+          transition={{ duration: 0.5, scale: { duration: 1.2, repeat: Infinity, repeatType: 'mirror' } }}
+          className="relative mb-3 overflow-hidden rounded-2xl bg-gradient-to-r from-burgundy-500 via-coral-500 to-saffron-500 px-4 py-3 text-white shadow-lg ring-2 ring-coral-500"
         >
-          <Clock className="h-3.5 w-3.5" />
-          <CountdownText minutes={urgencyMinutes} />
-          <span className="ml-auto text-[10px] uppercase tracking-widest">flash deal</span>
+          {/* Glowing shimmer sweep */}
+          <motion.span
+            aria-hidden
+            initial={{ x: '-100%' }}
+            animate={{ x: '120%' }}
+            transition={{ duration: 2.2, repeat: Infinity, ease: 'linear' }}
+            className="pointer-events-none absolute inset-y-0 -inset-x-2 w-1/3 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+          />
+          <div className="flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-widest">
+            <span className="text-base leading-none">⚡</span> Flash Deal · ends soon
+          </div>
+          <div className="mt-0.5 flex items-baseline gap-2">
+            <Clock className="h-5 w-5" />
+            <span className="text-[22px] font-extrabold leading-none tabular-nums">
+              <CountdownText minutes={urgencyMinutes} />
+            </span>
+          </div>
         </motion.div>
       )}
       <div className="overflow-hidden rounded-2xl bg-white shadow ring-1 ring-ink-300/10">
@@ -1594,6 +1611,235 @@ function TrendingFashionStrip() {
           </motion.div>
         ))}
       </div>
+    </div>
+  );
+}
+
+/* =================== Phone startup sequence ===================
+ * Plays inside the PhoneFrame when phase phone.view === 'phone-home'.
+ *
+ * Timeline (~10s):
+ *   0.0–2.8 s  iOS-style home grid; Spree icon idle
+ *   2.8–3.6 s  finger taps Spree (pulse + press-in)
+ *   3.6–4.6 s  Spree icon zooms to fill the screen (app launch)
+ *   4.6–7.4 s  Spree feed visible, search bar gets focus + cursor blink
+ *   7.4–10.0s  "shoes" types out character-by-character into the search bar
+ *
+ * After 10 s the parent phase advances to s1-results and the normal feed/
+ * search view takes over — this component intentionally never unmounts
+ * early because we want the typing animation to read fully.
+ */
+function PhoneStartupSequence({ search = 'shoes' }) {
+  // Stage progression — incremented by timers so the animation reads as a
+  // sequence rather than 5 things happening at once.
+  const [stage, setStage] = useState(0);
+  // 0: home idle · 1: tap pulse · 2: zoom to app · 3: app open, search empty
+  // · 4: typing in progress · 5: typed full word
+
+  useEffect(() => {
+    const t1 = setTimeout(() => setStage(1), 2800);
+    const t2 = setTimeout(() => setStage(2), 3600);
+    const t3 = setTimeout(() => setStage(3), 4600);
+    const t4 = setTimeout(() => setStage(4), 7400);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
+  }, []);
+
+  // Typing animation — reveal one extra char every 220 ms once stage 4 starts.
+  const [typed, setTyped] = useState('');
+  useEffect(() => {
+    if (stage < 4) return;
+    let i = 0;
+    const tick = () => {
+      i += 1;
+      setTyped(search.slice(0, i));
+      if (i < search.length) timer = setTimeout(tick, 220);
+    };
+    let timer = setTimeout(tick, 0);
+    return () => clearTimeout(timer);
+  }, [stage, search]);
+
+  return (
+    <div className="relative min-h-full overflow-hidden bg-gradient-to-b from-[#9D8BC9] via-[#7464A8] to-[#3E3160]">
+      {/* iOS home screen — visible until zoom completes */}
+      <AnimatePresence>
+        {stage < 2 && (
+          <motion.div
+            key="home"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="absolute inset-0"
+          >
+            <HomeScreenGrid tapping={stage >= 1} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Spree icon zoom-into-app — a big rounded square that scales up from
+         the icon's position to fill the screen, mimicking iOS app launch. */}
+      <AnimatePresence>
+        {stage === 2 && (
+          <motion.div
+            key="zoom"
+            initial={{ scale: 0.12, x: -78, y: -50, borderRadius: 18, opacity: 1 }}
+            animate={{ scale: 4, x: 0, y: 0, borderRadius: 0, opacity: [1, 1, 1] }}
+            transition={{ duration: 1, ease: [0.4, 0, 0.2, 1] }}
+            className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-coral-500 to-burgundy-500"
+            style={{ transformOrigin: 'center' }}
+          >
+            <div className="flex flex-col items-center text-white">
+              <ShoppingBag className="h-10 w-10" strokeWidth={2.5} />
+              <span className="mt-1 text-[10px] font-extrabold uppercase tracking-widest">Spree</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* App open — header + search bar with typing animation */}
+      <AnimatePresence>
+        {stage >= 3 && (
+          <motion.div
+            key="app"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4 }}
+            className="absolute inset-0 bg-cream-50"
+          >
+            {/* App header */}
+            <div className="flex items-center justify-between border-b border-ink-300/10 bg-white px-4 py-3">
+              <div className="flex items-center gap-1.5">
+                <ShoppingBag className="h-4 w-4 text-coral-500" />
+                <span className="text-[13px] font-extrabold tracking-tight text-ink-900">Spree</span>
+              </div>
+              <Bell className="h-4 w-4 text-ink-500" />
+            </div>
+
+            {/* Search bar — focused with cursor + typing */}
+            <div className="px-4 pt-4">
+              <motion.div
+                initial={{ scale: 0.98 }}
+                animate={{ scale: 1, boxShadow: '0 0 0 3px rgba(255, 90, 100, 0.18)' }}
+                transition={{ duration: 0.35 }}
+                className="flex items-center gap-2 rounded-full border-2 border-coral-500 bg-white px-4 py-2.5"
+              >
+                <Search className="h-4 w-4 text-coral-500" />
+                <span className="text-[13px] text-ink-900">
+                  {typed}
+                  <motion.span
+                    animate={{ opacity: [1, 0, 1] }}
+                    transition={{ duration: 0.7, repeat: Infinity }}
+                    className="ml-0.5 inline-block h-3 w-[1.5px] -translate-y-0.5 bg-ink-700 align-middle"
+                  />
+                </span>
+              </motion.div>
+              <div className="mt-2 text-[10px] uppercase tracking-widest text-ink-500">
+                {stage < 4 ? 'Tap to search' : 'Searching…'}
+              </div>
+            </div>
+
+            {/* Soft hint of categories below — reads as "the app" */}
+            <div className="mt-5 grid grid-cols-4 gap-3 px-4">
+              {[
+                { e: '👟', l: 'Shoes' },
+                { e: '👕', l: 'Tops' },
+                { e: '💄', l: 'Beauty' },
+                { e: '🎒', l: 'Bags' },
+              ].map((c) => (
+                <div key={c.l} className="flex flex-col items-center gap-1">
+                  <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white text-lg shadow-sm ring-1 ring-ink-300/10">
+                    {c.e}
+                  </div>
+                  <span className="text-[10px] font-semibold text-ink-700">{c.l}</span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/* iOS-style 4×6 home grid. The Spree icon (top-left) is the target — it
+ * gets a tap pulse when `tapping` is true. */
+function HomeScreenGrid({ tapping }) {
+  const apps = [
+    { id: 'spree',    label: 'Spree',    bg: 'from-coral-500 to-burgundy-500', icon: <ShoppingBag className="h-6 w-6 text-white" strokeWidth={2.5} /> },
+    { id: 'messages', label: 'Messages', bg: 'from-green-400 to-green-600',    emoji: '💬' },
+    { id: 'camera',   label: 'Camera',   bg: 'from-slate-400 to-slate-700',    emoji: '📷' },
+    { id: 'photos',   label: 'Photos',   bg: 'from-pink-300 to-fuchsia-500',   emoji: '🖼️' },
+    { id: 'music',    label: 'Music',    bg: 'from-rose-400 to-rose-700',      emoji: '🎵' },
+    { id: 'maps',     label: 'Maps',     bg: 'from-emerald-300 to-teal-600',   emoji: '🗺️' },
+    { id: 'notes',    label: 'Notes',    bg: 'from-yellow-200 to-amber-500',   emoji: '📝' },
+    { id: 'clock',    label: 'Clock',    bg: 'from-slate-700 to-slate-900',    emoji: '⏰' },
+    { id: 'calendar', label: 'Calendar', bg: 'from-white to-slate-200',        emoji: '📅' },
+    { id: 'weather',  label: 'Weather',  bg: 'from-sky-300 to-sky-600',        emoji: '🌤️' },
+    { id: 'mail',     label: 'Mail',     bg: 'from-sky-400 to-blue-600',       emoji: '✉️' },
+    { id: 'settings', label: 'Settings', bg: 'from-slate-300 to-slate-500',    emoji: '⚙️' },
+    { id: 'games',    label: 'Games',    bg: 'from-purple-400 to-purple-700',  emoji: '🎮' },
+    { id: 'browser',  label: 'Safari',   bg: 'from-sky-200 to-blue-500',       emoji: '🧭' },
+    { id: 'wallet',   label: 'Wallet',   bg: 'from-slate-700 to-black',        emoji: '💳' },
+    { id: 'spotify',  label: 'Spotify',  bg: 'from-green-500 to-green-800',    emoji: '🎧' },
+  ];
+
+  return (
+    <div className="relative h-full w-full pt-4 pb-6">
+      {/* Status bar already comes from PhoneFrame; we just add a date label */}
+      <div className="px-5 text-center text-white">
+        <div className="text-[11px] font-medium tracking-wide opacity-80">Tuesday, 20 May</div>
+        <div className="text-[42px] font-extralight leading-none">3:24</div>
+      </div>
+
+      <div className="mt-5 grid grid-cols-4 gap-x-4 gap-y-5 px-5">
+        {apps.map((a, i) => {
+          const isSpree = a.id === 'spree';
+          return (
+            <div key={a.id} className="relative flex flex-col items-center">
+              {/* Tap pulse — only on Spree */}
+              {isSpree && tapping && (
+                <>
+                  <motion.span
+                    aria-hidden
+                    initial={{ scale: 1, opacity: 0.7 }}
+                    animate={{ scale: 1.8, opacity: 0 }}
+                    transition={{ duration: 0.9, repeat: Infinity }}
+                    className="absolute top-0 h-12 w-12 rounded-2xl bg-white"
+                  />
+                  <motion.span
+                    aria-hidden
+                    initial={{ x: 8, y: 6, opacity: 0, scale: 0.7 }}
+                    animate={{ x: 0, y: 0, opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.35 }}
+                    className="pointer-events-none absolute -right-3 -bottom-1 z-20 text-2xl"
+                  >
+                    👆
+                  </motion.span>
+                </>
+              )}
+              <motion.div
+                animate={isSpree && tapping ? { scale: [1, 0.88, 1] } : { scale: 1 }}
+                transition={isSpree && tapping ? { duration: 0.45, repeat: Infinity, repeatDelay: 0.4 } : {}}
+                className={`relative grid h-12 w-12 place-items-center rounded-[14px] bg-gradient-to-br ${a.bg} shadow-md ${isSpree ? 'ring-2 ring-white' : ''}`}
+              >
+                {a.icon || <span className="text-xl leading-none">{a.emoji}</span>}
+              </motion.div>
+              <span className="mt-1 text-[9px] font-medium text-white drop-shadow-sm">{a.label}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Dock at the bottom */}
+      <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-3 rounded-3xl bg-white/15 px-3 py-2 backdrop-blur-md">
+        {['📞', '🟢', '🎵', '🧭'].map((e, i) => (
+          <div key={i} className="grid h-10 w-10 place-items-center rounded-[12px] bg-gradient-to-br from-white/30 to-white/10 text-lg">
+            {e}
+          </div>
+        ))}
+      </div>
+
+      {/* Home indicator bar */}
+      <div className="absolute bottom-1 left-1/2 h-1 w-24 -translate-x-1/2 rounded-full bg-white/70" />
     </div>
   );
 }

@@ -19,13 +19,21 @@ const router = Router();
  * since the same phrase yields identical bytes.
  */
 
-// We use Hindi-speaker neural voices (hi-IN) reading English on purpose: the
-// en-IN voices Microsoft ships (Neerja, Prabhat) sound "neutral global" with
-// only a hint of Indian English. The Hindi-speaker voices produce the thicker,
-// typical Indian English accent the lesson is targeting.
+// Voices:
+//   shanaya  → hi-IN-SwaraNeural   — Hindi female reading English. Thick
+//                                    Indian English accent, youthful range.
+//                                    QA confirms this one sounds great.
+//   narrator → en-IN-PrabhatNeural — Indian English male. Replaced the
+//                                    previous hi-IN-MadhurNeural which QA
+//                                    flagged as "flaggy" — too news-anchor /
+//                                    formal. Prabhat is a cleaner Indian
+//                                    English baseline; the frontend plays
+//                                    it back at 1.0× (not 0.92× like before)
+//                                    so it reads as a peer voice, not an
+//                                    older narrator.
 const VOICES = {
   shanaya:  { neural: 'hi-IN-SwaraNeural',  googleTl: 'en-IN' },
-  narrator: { neural: 'hi-IN-MadhurNeural', googleTl: 'en-IN' },
+  narrator: { neural: 'en-IN-PrabhatNeural', googleTl: 'en-IN' },
 };
 
 router.get('/', async (req, res, next) => {

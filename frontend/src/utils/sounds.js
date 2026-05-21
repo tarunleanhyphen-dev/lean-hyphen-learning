@@ -14,7 +14,7 @@ let musicGain = null;
 let muted = true;
 
 const MASTER_VOLUME = 0.85;
-const MUSIC_VOLUME = 0.32; // more atmospheric, less foreground
+const MUSIC_VOLUME = 0.55; // louder + more emotionally present per user request
 
 function ensureCtx() {
   if (ctx) return ctx;
@@ -152,34 +152,37 @@ const CHORDS = {
 // a "song you've heard before" warmth instead of an abstract pad.
 const MOODS = {
   calm: {
-    // I–V–vi–IV (C major) — the modern pop / coming-of-age progression.
-    progression: ['C', 'G', 'Am', 'F'],
+    // vi–IV–I–V (Am major) — emotional coming-of-age progression with a
+    // melancholic lean (was I–V–vi–IV); makes the cosy opening scenes feel
+    // a touch more heartfelt rather than bright-and-flat.
+    progression: ['Am', 'F', 'C', 'G'],
     hasPad: true, hasBass: true, hasShaker: false, hasBell: true,
-    padGain: 0.05, bassGain: 0.13, bellGain: 0.07,
-    busGain: 0.34, lpfHz: 1100,
+    padGain: 0.075, bassGain: 0.16, bellGain: 0.11,
+    busGain: 0.44, lpfHz: 1200,
   },
   'app-tempo': {
-    // Browsing / scrolling — same warm C-major key, adds a steady shaker
-    // + eighth-note ticks for the "swiping" feel.
-    progression: ['C', 'G', 'Am', 'F'],
+    // Browsing / scrolling — warm key + steady shaker + eighth-note ticks
+    // for the "swiping" feel. Slightly brighter mix + fuller pad.
+    progression: ['Am', 'F', 'C', 'G'],
     hasPad: true, hasBass: true, hasShaker: true, hasBell: true,
     extraTick: true,
-    padGain: 0.055, bassGain: 0.18, bellGain: 0.06,
-    busGain: 0.42, lpfHz: 1500,
+    padGain: 0.08, bassGain: 0.22, bellGain: 0.09,
+    busGain: 0.5, lpfHz: 1600,
   },
   thinking: {
-    // Quiet, sparse, low — pad + slow bell only. Bus volume halved.
+    // Quiet, sparse, low — pad + slow bell only. Slightly louder than
+    // before so the contemplative mood actually carries.
     progression: ['Am', 'Fmaj7', 'C', 'G'],
     hasPad: true, hasBass: false, hasShaker: false, hasBell: true,
-    padGain: 0.04, bellGain: 0.075,
-    busGain: 0.18, lpfHz: 750,
+    padGain: 0.06, bellGain: 0.11,
+    busGain: 0.28, lpfHz: 850,
   },
   reflective: {
     // vi–IV–I–V — gentle major-leaning resolve, perfect for Act 2.
     progression: ['Am', 'F', 'C', 'G'],
     hasPad: true, hasBass: true, hasShaker: false, hasBell: true,
-    padGain: 0.055, bassGain: 0.10, bellGain: 0.075,
-    busGain: 0.32, lpfHz: 1000,
+    padGain: 0.08, bassGain: 0.13, bellGain: 0.11,
+    busGain: 0.42, lpfHz: 1100,
   },
   hit: {
     // Tense chord set + bright LPF + big bus bump. Impact swell fires
@@ -263,15 +266,27 @@ function scheduleBellNote(freq, start, dur, peak) {
 }
 
 function scheduleBellMelody(chord, startTime, barDur, peak) {
-  // Walk the chord as a 4-step arpeggio: root↑1oct → fifth↑1oct → octave →
-  // third↑1oct. This gives the soundtrack a song-like top-line that
-  // students will actually whistle along to — much more "modern poem" than
-  // the single sustained note we had before. Each step is a beat long.
-  const beat = barDur / 4;
-  const [root, third, fifth] = chord.notes; // [220, 261.63, 329.63] for Am
-  const arp = [root * 2, fifth * 2, root * 4, third * 2];
+  // Walk the chord as an 8-step (eighth-note) arpeggio — root → third →
+  // fifth → octave → fifth → octave+third → fifth → third (all one octave
+  // up). Twice as melodic as the previous 4-step quarter-note arpeggio,
+  // gives the soundtrack a real flowing top-line and a noticeably more
+  // emotional feel per the May 2026 user feedback.
+  const step = barDur / 8;
+  const [root, third, fifth] = chord.notes;
+  const arp = [
+    root * 2,    // beat 1
+    third * 2,   // & of 1
+    fifth * 2,   // beat 2
+    root * 4,    // & of 2 — high octave shimmer
+    fifth * 2,   // beat 3
+    third * 4,   // & of 3 — second shimmer
+    fifth * 2,   // beat 4
+    third * 2,   // & of 4 — gentle landing
+  ];
   arp.forEach((f, i) => {
-    scheduleBellNote(f, startTime + beat * i + 0.03, beat * 0.9, peak * (1 - i * 0.08));
+    // Slight velocity dip on the off-beats so the strong beats lead the line.
+    const v = peak * (1 - (i * 0.045)) * (i % 2 === 0 ? 1 : 0.78);
+    scheduleBellNote(f, startTime + step * i + 0.02, step * 1.4, v);
   });
 }
 
@@ -325,6 +340,10 @@ function scheduleBar(barIdx, startTime) {
 
   if (mood.hasPad) {
     chord.notes.forEach((freq) => schedulePad(freq, startTime, BAR, mood.padGain));
+    // Octave-up shimmer pad on the chord's root + fifth — adds a brighter,
+    // more emotional top layer without competing with the bell melody.
+    schedulePad(chord.notes[0] * 2, startTime, BAR, mood.padGain * 0.45);
+    schedulePad(chord.notes[2] * 2, startTime, BAR, mood.padGain * 0.35);
   }
   if (mood.hasBass) {
     scheduleBass(chord.bass, startTime, BAR / 2, mood.bassGain);

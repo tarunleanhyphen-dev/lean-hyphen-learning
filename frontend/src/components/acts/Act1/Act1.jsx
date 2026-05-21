@@ -15,6 +15,7 @@ import AudioConsentBanner from '../../shared/AudioConsentBanner.jsx';
 import InsightCallout from '../../shared/InsightCallout.jsx';
 import EndOfActCelebration from '../../shared/EndOfActCelebration.jsx';
 import DecisionTimeline from '../../shared/DecisionTimeline.jsx';
+import InteractivePrompt from '../../shared/InteractivePrompt.jsx';
 import MockShoppingApp from '../../phone/MockShoppingApp.jsx';
 import { lesson, intendedBudget, products } from '../../../data/lessons/thinkBeforeYouSpend.js';
 import { useSequencer } from '../../../hooks/useSequencer.js';
@@ -48,20 +49,23 @@ function emotionFor(phase, sceneEmotion) {
   if (!phase?.id) return sceneEmotion;
   if (phase.emotion) return phase.emotion;
   const id = phase.id;
+  // Scene 1 — shopping for shoes
   if (id === 's1-search' || id.includes('results')) return 'curious';
-  if (id === 's1-show-shoes') return 'excited';
-  if (id === 's1-add-shoes' || id === 's1-validate') return 'happy';
-  if (id.startsWith('s2-w1-bubble')) return 'tempted';
+  if (id === 's1-show-shoes' || id === 's1-show-shoes-2') return 'excited';
+  if (id === 's1-add-shoes' || id === 's1-add-prompt') return 'happy';
+  // Scene 2 — wave 1 (socks cross-sell)
+  if (id.startsWith('s2-w1-bubble') || id === 's2-w1-detail') return 'tempted';
   if (id === 's2-w1-add' || id === 's2-w2-add' || id === 's2-w3-add') return 'excited';
-  if (id.startsWith('s2-w2-bubble')) return 'tempted';
-  if (id === 's2-w3-card') return 'shocked';
-  if (id.startsWith('s2-w3-bubble')) return 'tempted';
-  if (id === 's3-banner-in') return 'shocked';
-  if (id.startsWith('s3-think') || id.startsWith('s3-fbt-bubble')) return 'tempted';
-  if (id === 's3-unlock') return 'excited';
-  if (id === 's4-freeze' || id === 's4-cart-open') return 'shocked';
-  if (id.startsWith('s4-realisation')) return 'guilty';
-  if (id === 's4-reflect' || id === 's4-mcq') return 'realised';
+  // Scene 2 — wave 2 (hoodie flash deal)
+  if (id === 's2-w2-flash') return 'shocked';
+  if (id.startsWith('s2-w2-bubble') || id === 's2-w2-detail') return 'tempted';
+  // Scene 2 — wave 3 (free phone case + selfie light)
+  if (id === 's2-w3-unlock') return 'shocked';
+  if (id.startsWith('s2-w3-bubble') || id === 's2-w3-detail' || id === 's2-w3-rec') return 'tempted';
+  // Scene 3 — final cart reveal + reflection
+  if (id === 's3-cart-reveal' || id === 's3-cart-total' || id === 's3-saved-banner') return 'shocked';
+  if (id === 's3-budget-flash' || id === 's3-zoom-shanaya') return 'unsettled';
+  if (id.startsWith('s3-final-thought') || id === 's3-reflect') return 'realised';
   return sceneEmotion;
 }
 
@@ -163,27 +167,80 @@ export default function Act1({ onComplete }) {
     }
   }, [phase, audioEnabled]);
 
-  // Speak new bubbles + narration, deduped by text.
-  // Quiz / reflection phases play with ONLY background music — when one
-  // opens we cancel any in-flight speech so the previous beat's narration
-  // doesn't bleed across into the silent quiz moment.
+  // Speak new bubbles + narration. Dedup is per-phase (not global) so when
+  // bubble lists cumulate across consecutive phases — e.g. Phase A has
+  // [X], Phase B has [X, Y] — Phase B still reads X *and* Y instead of
+  // silently skipping X because it was spoken in Phase A. User feedback
+  // ("why skipping first bubbles at many places??") traced back to this.
   const spokenTexts = useRef(new Set());
+  const lastSpokenPhaseIdRef = useRef(null);
+  // Track whether the current phase actually queued anything to be spoken.
+  // The auto-advance-on-speech-end logic below only fires when this is true,
+  // so silent visual phases (no narration, no new bubbles) still run their
+  // full `duration`.
+  const phaseSpokeRef = useRef(false);
   useEffect(() => {
     if (!audioEnabled || !phase) return;
     if (phase.mcq || phase.reflection) {
       cancelSpeech();
       return;
     }
+    // Reset the dedup set whenever the phase changes so every phase
+    // reads its full bubble list.
+    if (lastSpokenPhaseIdRef.current !== phase.id) {
+      spokenTexts.current.clear();
+      lastSpokenPhaseIdRef.current = phase.id;
+    }
+    let spokeNow = false;
     (phase.bubbles || []).forEach((b) => {
       if (!b?.text || spokenTexts.current.has(b.text)) return;
       spokenTexts.current.add(b.text);
       speak(b.text, { who: 'shanaya' });
+      spokeNow = true;
     });
     if (phase.narration && !spokenTexts.current.has(phase.narration)) {
       spokenTexts.current.add(phase.narration);
       speak(phase.narration, { who: 'narrator' });
+      spokeNow = true;
     }
+    phaseSpokeRef.current = spokeNow;
   }, [phase, audioEnabled]);
+
+  // Auto-advance on speech end — but honour `phase.duration` as a
+  // MINIMUM total time on screen. Earlier this used a flat 450 ms buffer
+  // after TTS ended, which made every per-phase duration increase
+  // invisible (the user reported "I can't see the +2 s on scene 3"). Now
+  // we wait until BOTH speech is done AND the phase has been on screen
+  // for at least `phase.duration` ms before advancing.
+  const prevSpeakingRef = useRef(false);
+  const phaseStartedAtRef = useRef(Date.now());
+  useEffect(() => {
+    phaseStartedAtRef.current = Date.now();
+  }, [phase?.id]);
+  useEffect(() => {
+    const wasSpeaking = prevSpeakingRef.current;
+    prevSpeakingRef.current = isSpeaking;
+    if (!audioEnabled || !phase) return;
+    if (phase.hold) return;
+    if (seq.paused) return;
+    if (!phaseSpokeRef.current) return;
+    if (wasSpeaking && !isSpeaking) {
+      const minBufferMs = 450;
+      const minDuration = Math.max(0, phase.duration || 0);
+      const elapsed = Date.now() - phaseStartedAtRef.current;
+      // Wait either: the speech-end breath buffer, OR however long is
+      // left until the phase has been on screen for `duration` ms —
+      // whichever is bigger. So a phase with duration 18000 stays on
+      // screen for at least 18 s even if TTS finishes after 8 s.
+      const remainingForDuration = Math.max(0, minDuration - elapsed);
+      const wait = Math.max(minBufferMs, remainingForDuration);
+      const t = setTimeout(() => {
+        phaseSpokeRef.current = false;
+        seq.advance();
+      }, wait);
+      return () => clearTimeout(t);
+    }
+  }, [isSpeaking, audioEnabled, phase, seq]);
 
   useEffect(() => {
     if (!audioEnabled) return;
@@ -294,6 +351,13 @@ export default function Act1({ onComplete }) {
     advanceOrFinish({ kind: 'mcq', phaseId: phase.id, selected, correct });
   }, [phase, sessionId, markHoldDone, advanceOrFinish]);
 
+  const handlePromptClick = useCallback(() => {
+    if (!phase?.prompt) return;
+    if (sounds.tap) sounds.tap();
+    markHoldDone(phase.id);
+    advanceOrFinish({ kind: 'prompt', phaseId: phase.id, productId: phase.prompt.productId });
+  }, [phase, markHoldDone, advanceOrFinish]);
+
   const replayScene = () => {
     let first = 0;
     for (let i = 0; i < phaseToScene.length; i += 1) {
@@ -307,13 +371,14 @@ export default function Act1({ onComplete }) {
   const cartIds = phoneState.cart || [];
   const cartTotal = cartIds.reduce((s, id) => s + (products[id]?.price || 0), 0);
 
-  // Phases 1–8 are pure storytelling (s0-intro / birthday / group-chat /
-  // vision / app-open + s1-open / s1-intent-1 / s1-intent-2). Shanaya isn't
-  // browsing the shopping app yet — she's narrating context — so we hide the
-  // phone column entirely and let the left card take full width. The phone
-  // appears from phase 9 (seq.index >= 8 → s1-search) when she actually
-  // opens the app and types her first search.
-  const showPhone = seq.index >= 8;
+  // Phases 1–7 are pure storytelling (s0-intro / birthday / group-chat /
+  // vision / app-open + s1-open / s1-intent). The phone column appears
+  // from phase 8 (seq.index >= 7 → s1-search) — that's where Shanaya
+  // opens the shopping app, the PhoneStartupSequence runs (iOS home →
+  // tap Spree → app launch → typed search), and the results / PDP /
+  // add-to-cart simulation takes over. Threshold updated after the
+  // earlier s1-intent-1 + s1-intent-2 combine shifted phases up.
+  const showPhone = seq.index >= 7;
 
   // Stats handed to the celebration modal. Computed lazily off cart, the
   // tricks-spotted count, and the wall-clock duration since mount. Lives
@@ -415,12 +480,16 @@ export default function Act1({ onComplete }) {
                   {phase?.vignette ? (
                     <div className="flex flex-col gap-3">
                       <SceneVignette kind={phase.vignette} />
-                      {activeBubbles.length > 0 && (
+                      {/* phase.hideBubbles silences the visual ThoughtBubble
+                         while keeping the bubbles array in play (TTS still
+                         speaks them). Used for scenes whose vignette already
+                         shows the dialogue on top of the avatars. */}
+                      {activeBubbles.length > 0 && !phase?.hideBubbles && (
                         <ThoughtBubble bubbles={activeBubbles} position="right" />
                       )}
                     </div>
                   ) : (
-                    <ThoughtBubble bubbles={activeBubbles} position="right" />
+                    !phase?.hideBubbles && <ThoughtBubble bubbles={activeBubbles} position="right" />
                   )}
                 </div>
               </div>
@@ -474,9 +543,28 @@ export default function Act1({ onComplete }) {
             <InsightCallout insight={phase?.insight} />
             <div className="flex justify-center">
               <PhoneFrame dim={phoneState.dim}>
-                <MockShoppingApp state={phoneState} />
+                <MockShoppingApp
+                  state={phoneState}
+                  onAddToCart={
+                    phase?.prompt?.kind === 'add-to-cart' && !completedHolds.has(phase.id)
+                      ? handlePromptClick
+                      : undefined
+                  }
+                />
               </PhoneFrame>
             </div>
+            {/* Interactive [Add to Cart] prompt — appears during hold phases
+               that have `prompt: { kind: 'add-to-cart', ... }`. Tapping the
+               button marks the hold done and advances the sequence. */}
+            <AnimatePresence>
+              {phase?.prompt && !completedHolds.has(phase.id) && (
+                <InteractivePrompt
+                  label={phase.prompt.label}
+                  cta={phase.prompt.cta}
+                  onClick={handlePromptClick}
+                />
+              )}
+            </AnimatePresence>
           </div>
         )}
       </div>

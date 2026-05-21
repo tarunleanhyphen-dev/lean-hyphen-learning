@@ -1,4 +1,8 @@
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { createAvatar } from '@dicebear/core';
+import * as avataaars from '@dicebear/avataaars';
+import { products as lessonProducts } from '../../data/lessons/thinkBeforeYouSpend.js';
 
 /**
  * Scene 0 vignettes — short "animation video" panels that play next to
@@ -155,88 +159,317 @@ function BokehLayer() {
 /* =========================================================================
  * 1. MEET SHANAYA — three friends with depth, hearts, selfie flash
  * ========================================================================= */
+/* Shanaya base avataaars config — kept in sync with ShanayaAvatar.jsx so
+ * the girl in the centre of the MeetShanaya vignette is the SAME character
+ * as the avatar rendered on the left side of the stage. */
+const SHANAYA_AVATAR_BASE = {
+  seed: 'Shanaya-LeanHyphen-v6',
+  size: 240,
+  style: ['default'],
+  backgroundColor: ['transparent'],
+  skinColor: ['edb98a'],
+  hairColor: ['2c1b18'],
+  top: ['straightAndStrand'],
+  topProbability: 100,
+  hatColor: ['ff5a4a'],
+  facialHair: ['blank'],
+  facialHairProbability: 0,
+  accessories: ['blank'],
+  accessoriesProbability: 0,
+  clothing: ['shirtCrewNeck'],
+  clothesColor: ['ff5a4a'],
+  clothingGraphic: ['skull'],
+  clothingGraphicProbability: 0,
+  nose: ['default'],
+  eyes: ['happy'],
+  eyebrows: ['raisedExcited'],
+  mouth: ['smile'],
+};
+
+/* Two friend avataaars — same long-hair top as Shanaya
+ * (`straightAndStrand`) so all three girls have visibly long flowing
+ * hair; only the colour, top and expression vary. */
+const FRIEND_LEFT_BASE = {
+  ...SHANAYA_AVATAR_BASE,
+  seed: 'Shanaya-friend-priya-v4',
+  skinColor: ['d08b5b'],
+  hairColor: ['a55728'],            // warm auburn
+  top: ['straightAndStrand'],       // long straight hair with side strand
+  clothesColor: ['ff5a7a'],         // pink top
+  eyes: ['hearts'],                 // heart eyes
+  eyebrows: ['defaultNatural'],
+  mouth: ['twinkle'],
+};
+const FRIEND_RIGHT_BASE = {
+  ...SHANAYA_AVATAR_BASE,
+  seed: 'Shanaya-friend-aanya-v5',
+  skinColor: ['ffdbb4'],            // fair / light skin
+  hairColor: ['4a312c'],            // deep chestnut
+  top: ['straightAndStrand'],       // long straight hair with side strand
+  clothesColor: ['8c52ff'],         // purple top
+  eyes: ['wink'],                   // playful wink
+  eyebrows: ['raisedExcitedNatural'],
+  mouth: ['smile'],
+};
+
 function MeetShanaya() {
+  /* Composition (rewritten May 2026 per direct user feedback):
+   *   – Middle girl is the SAME Shanaya avataaars character as the left
+   *     side of the page (same seed, same skin / hair / outfit config).
+   *   – Two friends flank her, each a different avataaars (different
+   *     hair, skin, top) so they read as a friend group.
+   *   – Background is the SAME bedroom (peach wall, brown floor, window
+   *     with curtains, heart frame, pinboard, plant, bed peek, sparkles)
+   *     as the RoomScene behind the left-side avatar.
+   *   – A small phone is held in a visible hand at the bottom centre,
+   *     back-out so we see the camera island + real Apple logo. */
+
+  /* Cache the three DiceBear data URIs so they're not regenerated on
+   * every render. */
+  const shanayaUri = useMemo(() => createAvatar(avataaars, SHANAYA_AVATAR_BASE).toDataUri(), []);
+  const friendLeftUri = useMemo(() => createAvatar(avataaars, FRIEND_LEFT_BASE).toDataUri(), []);
+  const friendRightUri = useMemo(() => createAvatar(avataaars, FRIEND_RIGHT_BASE).toDataUri(), []);
+
   return (
     <SceneShell from="#FFE0E9" to="#FFD0C0">
       <defs>
-        {/* Volumetric skin highlights (light hits the cheek, shadow on the
-           opposite side) — repeat per head with translate. */}
-        <radialGradient id="skin-light" cx="35%" cy="35%" r="65%">
-          <stop offset="0%"   stopColor="#FFE3C9" />
-          <stop offset="55%"  stopColor="#EDB98A" />
-          <stop offset="100%" stopColor="#C99270" />
+        {/* Same palette as the RoomScene behind the left-side avatar so the
+           vignette reads as the SAME bedroom. */}
+        <linearGradient id="ms-wall" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"  stopColor="#FFE0E9" />
+          <stop offset="100%" stopColor="#FFD0C0" />
+        </linearGradient>
+        <linearGradient id="ms-floor" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"  stopColor="#E8B98A" />
+          <stop offset="100%" stopColor="#C99B6D" />
+        </linearGradient>
+        <linearGradient id="ms-sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"  stopColor="#CDEEF9" />
+          <stop offset="100%" stopColor="#A8D8E8" />
+        </linearGradient>
+        {/* Phone back gradient */}
+        <linearGradient id="ms-phone-back" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%"   stopColor="#4A4A50" />
+          <stop offset="50%"  stopColor="#1F1F24" />
+          <stop offset="100%" stopColor="#0A0A0F" />
+        </linearGradient>
+        <radialGradient id="ms-cam-lens" cx="35%" cy="35%" r="70%">
+          <stop offset="0%"   stopColor="#A6B8D8" />
+          <stop offset="60%"  stopColor="#2C3E6A" />
+          <stop offset="100%" stopColor="#06091A" />
         </radialGradient>
-        {/* Top-side highlight for the coral / teal / saffron tops */}
-        <linearGradient id="top-coral" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"   stopColor="#FF7363" />
-          <stop offset="100%" stopColor="#D8392C" />
+        {/* Skin tone for the hand */}
+        <linearGradient id="ms-hand-skin" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor="#F2C49A" />
+          <stop offset="100%" stopColor="#D8A476" />
         </linearGradient>
-        <linearGradient id="top-teal" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"   stopColor="#1FCFB6" />
-          <stop offset="100%" stopColor="#0E8C7A" />
-        </linearGradient>
-        <linearGradient id="top-saff" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"   stopColor="#FFC56B" />
-          <stop offset="100%" stopColor="#D4863C" />
-        </linearGradient>
-        {/* Heart with highlight */}
-        <radialGradient id="heart-3d" cx="35%" cy="30%" r="70%">
-          <stop offset="0%"   stopColor="#FFB3B3" />
-          <stop offset="50%"  stopColor="#FF6B6B" />
-          <stop offset="100%" stopColor="#C13C3C" />
-        </radialGradient>
       </defs>
 
-      {/* Three friends with proper volumetric skin */}
-      <FriendHeadV x={92}  y={138} top="url(#top-coral)" hair="#2C1B18" />
-      <FriendHeadV x={170} y={130} top="url(#top-teal)"  hair="#4A2C24" />
-      <FriendHeadV x={248} y={138} top="url(#top-saff)"  hair="#1A1426" />
+      {/* ============ BEDROOM (same scene as the RoomScene behind the
+           left-side avatar — wall, floor, window, curtains, heart frame,
+           pinboard, plant, bed peek, sparkles). y-coordinates compressed
+           by 0.75 to fit the 320×240 viewBox. ============ */}
+      <g transform="scale(1 0.75)">
+        {/* Wall + floor */}
+        <rect width="320" height="240" fill="url(#ms-wall)" />
+        <rect y="240" width="320" height="80" fill="url(#ms-floor)" />
+        <rect y="237" width="320" height="6" fill="#B8855F" />
 
-      {/* Selfie phone — front-stage with strong shadow */}
-      <g transform="translate(140 175)" filter="url(#lh-hero)">
-        <rect width="40" height="58" rx="6" fill="#1A1426" />
-        <rect width="40" height="58" rx="6" fill="url(#phone-screen-glow)" opacity="0.18" />
-        <rect x="3" y="6" width="34" height="44" rx="2" fill="#B8E1F0" />
-        {/* Screen shine */}
-        <path d="M3 6 L37 6 L33 12 L7 12 Z" fill="#FFFFFF" opacity="0.35" />
-        {/* Flash */}
-        <motion.circle
-          cx="32" cy="3" r="3" fill="#FFF7C8"
-          animate={{ opacity: [0.4, 1, 0.4], scale: [1, 1.6, 1] }}
-          transition={{ duration: 1.6, repeat: Infinity }}
-          filter="url(#lh-soft)"
+        {/* Window — top-left */}
+        <rect x="20" y="22"  width="86" height="70" fill="#A07050" rx="4" />
+        <rect x="24" y="26"  width="78" height="62" fill="url(#ms-sky)" rx="2" />
+        <circle cx="86" cy="40" r="6" fill="#FFF7C8" />
+        <rect x="24" y="55"  width="78" height="3" fill="#A07050" />
+        <rect x="61" y="26"  width="3"  height="62" fill="#A07050" />
+        <path d="M10 22 Q14 80 8 96 Q18 90 24 96 L24 22 Z" fill="#FF8FAB" opacity="0.92" />
+        <path d="M116 22 Q112 80 118 96 Q108 90 102 96 L102 22 Z" fill="#FF8FAB" opacity="0.92" />
+
+        {/* Heart picture frame — top-right */}
+        <rect x="215" y="32" width="76" height="62" fill="#FFFFFF" stroke="#A07050" strokeWidth="3" rx="3" />
+        <path
+          d="M253 80
+             C246 73 233 63 233 51
+             C233 44 239 39 246 39
+             C250 39 253 41 253 41
+             C253 41 256 39 260 39
+             C267 39 273 44 273 51
+             C273 63 260 73 253 80 Z"
+          fill="#FF6B6B"
         />
+
+        {/* Pinboard / small sticky notes — center wall */}
+        <rect x="138" y="118" width="48" height="36" fill="#FFE9B0" stroke="#C99B6D" strokeWidth="1.5" transform="rotate(-3 162 136)" />
+        <rect x="180" y="128" width="32" height="28" fill="#C7E8B5" stroke="#7BC470" strokeWidth="1.5" transform="rotate(4 196 142)" />
+
+        {/* Decorative ceramic vase with a small floral bouquet on top —
+           replaces the previous leafy "tree" pot per user feedback. */}
+        <defs>
+          <linearGradient id="ms-vase" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stopColor="#FFFFFF" />
+            <stop offset="55%"  stopColor="#FFCED9" />
+            <stop offset="100%" stopColor="#C4738A" />
+          </linearGradient>
+        </defs>
+        {/* Vase body — curvy ceramic silhouette */}
+        <path
+          d="M256 296
+             Q244 286 252 268
+             Q260 262 260 252
+             Q260 244 268 244
+             L284 244
+             Q292 244 292 252
+             Q292 262 300 268
+             Q308 286 296 296 Z"
+          fill="url(#ms-vase)"
+        />
+        {/* Glossy highlight running down the left side */}
+        <path
+          d="M260 274 Q258 286 263 294"
+          stroke="#FFFFFF"
+          strokeWidth="2.4"
+          strokeLinecap="round"
+          fill="none"
+          opacity="0.7"
+        />
+        {/* Gold band around the neck */}
+        <rect x="260" y="248" width="32" height="3" rx="1.5" fill="#E0B040" />
+        <rect x="260" y="248" width="32" height="1" fill="#FFE066" opacity="0.85" />
+
+        {/* Floral bouquet — three blooms + a couple of leaves */}
+        {/* Stems */}
+        <path d="M270 244 Q269 234 268 226" stroke="#3B9D6B" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+        <path d="M276 244 Q277 232 278 224" stroke="#3B9D6B" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+        <path d="M282 244 Q283 234 284 228" stroke="#3B9D6B" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+        {/* Leaves */}
+        <ellipse cx="272" cy="236" rx="3" ry="1.4" fill="#5BB985" transform="rotate(-30 272 236)" />
+        <ellipse cx="280" cy="234" rx="3" ry="1.4" fill="#5BB985" transform="rotate(30 280 234)" />
+        {/* Pink rose */}
+        <circle cx="268" cy="222" r="4.5" fill="#FF7AA2" />
+        <circle cx="268" cy="222" r="2.4" fill="#FF5A7A" />
+        <circle cx="267" cy="221" r="1.1" fill="#FFFFFF" opacity="0.7" />
+        {/* White daisy */}
+        <g>
+          {[0, 1, 2, 3, 4, 5].map((p) => {
+            const a = p * 60 * Math.PI / 180;
+            return (
+              <ellipse
+                key={p}
+                cx={278 + Math.cos(a) * 3}
+                cy={220 + Math.sin(a) * 3}
+                rx="2.2" ry="1.3"
+                transform={`rotate(${p * 60} ${278 + Math.cos(a) * 3} ${220 + Math.sin(a) * 3})`}
+                fill="#FFFFFF"
+              />
+            );
+          })}
+          <circle cx="278" cy="220" r="1.6" fill="#FFE066" />
+        </g>
+        {/* Yellow bloom */}
+        <circle cx="284" cy="224" r="3.5" fill="#FFD27A" />
+        <circle cx="284" cy="224" r="1.8" fill="#FFB347" />
+        <circle cx="283.3" cy="223.3" r="0.8" fill="#FFFFFF" opacity="0.7" />
+
+        {/* Bed peek — bottom-left */}
+        <rect x="-10" y="260" width="120" height="60" fill="#F7C4D0" rx="6" />
+        <rect x="-10" y="260" width="120" height="14" fill="#E89AAE" rx="6" />
+        <circle cx="40" cy="282" r="8" fill="#FFFFFF" opacity="0.7" />
+
+        {/* Warm sparkles */}
+        <g fill="#FFD23F" opacity="0.85">
+          <circle cx="155" cy="38"  r="2.5" />
+          <circle cx="195" cy="68"  r="1.8" />
+          <circle cx="135" cy="78"  r="2"   />
+          <circle cx="195" cy="180" r="1.6" />
+        </g>
       </g>
 
-      {/* Floating volumetric hearts */}
-      {[0, 1, 2, 3, 4].map((i) => (
-        <motion.g
-          key={i}
-          animate={{
-            y: [220, 60 - i * 4, 30],
-            x: [0, (i - 2) * 6, (i - 2) * 10],
-            opacity: [0, 0.95, 0],
-            scale: [0.5, 1, 0.7],
-          }}
-          transition={{ duration: 5.5, repeat: Infinity, delay: i * 1.0, ease: 'easeOut' }}
-        >
-          <path
-            d={`M${55 + i * 50} 0 C${49 + i * 50} -5 ${39 + i * 50} -14 ${39 + i * 50} -23
-                 C${39 + i * 50} -29 ${44 + i * 50} -33 ${50 + i * 50} -33
-                 C${53 + i * 50} -33 ${55 + i * 50} -31 ${55 + i * 50} -31
-                 C${55 + i * 50} -31 ${57 + i * 50} -33 ${60 + i * 50} -33
-                 C${66 + i * 50} -33 ${71 + i * 50} -29 ${71 + i * 50} -23
-                 C${71 + i * 50} -14 ${61 + i * 50} -5 ${55 + i * 50} 0 Z`}
-            fill="url(#heart-3d)"
-            filter="url(#lh-soft)"
-          />
-        </motion.g>
-      ))}
+      {/* ============ THREE GIRLS — all rendered as DiceBear avataaars.
+           Middle one uses the EXACT same Shanaya config as the left-side
+           avatar on the page. Left + right are friend variants. ============ */}
 
-      <Sparkle x={45}  y={90}  delay={0} />
-      <Sparkle x={275} y={70}  delay={0.8} />
-      <Sparkle x={50}  y={180} delay={1.6} />
-      <Sparkle x={285} y={195} delay={0.4} />
+      {/* Friend (left) — leaning slightly toward Shanaya */}
+      <motion.g
+        animate={{ y: [0, -3, 0] }}
+        transition={{ duration: 3.6, repeat: Infinity, ease: 'easeInOut' }}
+      >
+        <image
+          href={friendLeftUri}
+          x="-8" y="56"
+          width="120" height="120"
+          preserveAspectRatio="xMidYMid slice"
+          style={{ transform: 'rotate(8deg)', transformOrigin: '52px 116px' }}
+        />
+      </motion.g>
+
+      {/* Shanaya (centre) — same avatar as the left-side stage. Slightly
+         larger so she reads as the protagonist. */}
+      <motion.g
+        animate={{ y: [0, -4, 0] }}
+        transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut', delay: 0.2 }}
+      >
+        <image
+          href={shanayaUri}
+          x="92" y="36"
+          width="140" height="140"
+          preserveAspectRatio="xMidYMid slice"
+        />
+      </motion.g>
+
+      {/* Friend (right) — mirrors the left girl */}
+      <motion.g
+        animate={{ y: [0, -3, 0] }}
+        transition={{ duration: 3.8, repeat: Infinity, ease: 'easeInOut', delay: 0.4 }}
+      >
+        <image
+          href={friendRightUri}
+          x="208" y="56"
+          width="120" height="120"
+          preserveAspectRatio="xMidYMid slice"
+          style={{ transform: 'rotate(-8deg)', transformOrigin: '268px 116px' }}
+        />
+      </motion.g>
+
+      {/* ============ TINY PHONE — back-out so we see the camera island
+           + Apple logo. Floats on its own (the hand was removed per user
+           feedback — it was reading more as clutter than as "holding"). */}
+      <motion.g
+        animate={{ y: [0, -2, 0] }}
+        transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+      >
+        {/* Phone body — tiny, back-out, slight tilt */}
+        <g transform="translate(155 168) rotate(-4 10 17)" filter="url(#lh-hero)">
+          <rect width="20" height="34" rx="5" fill="url(#ms-phone-back)" />
+          <rect x="0.4" y="0.4" width="19.2" height="33.2" rx="4.6" fill="none" stroke="#FFFFFF" strokeOpacity="0.08" strokeWidth="0.5" />
+          {/* Vertical sheen on the back */}
+          <rect x="1.8" y="2.4" width="0.8" height="29" rx="0.4" fill="#FFFFFF" opacity="0.08" />
+
+          {/* Camera island — small square top-left with two lenses */}
+          <g transform="translate(2 2)">
+            <rect width="7" height="7" rx="2" fill="#15151A" />
+            <circle cx="2.4" cy="2.4" r="1.3" fill="url(#ms-cam-lens)" />
+            <circle cx="2.1" cy="2.1" r="0.3" fill="#FFFFFF" opacity="0.85" />
+            <circle cx="5"   cy="5"   r="1.3" fill="url(#ms-cam-lens)" />
+            <circle cx="4.7" cy="4.7" r="0.3" fill="#FFFFFF" opacity="0.85" />
+            {/* LED flash */}
+            <circle cx="5"   cy="2.4" r="0.6" fill="#FFE066" />
+          </g>
+
+          {/* APPLE LOGO — proper bitten-apple silhouette (Bootstrap Icons
+             apple mark), scaled to fit the new tiny phone back. */}
+          <g transform="translate(7 14) scale(0.4)">
+            <path
+              d="M11.182.008C11.148-.03 9.923.023 8.857 1.18c-1.066 1.156-.902 2.482-.878 2.516.024.034 1.52.087 2.475-1.258.955-1.345.762-2.391.728-2.43Zm3.314 11.733c-.048-.096-2.325-1.234-2.113-3.422.212-2.189 1.675-2.789 1.698-2.854.023-.065-.597-.79-1.254-1.157a3.692 3.692 0 0 0-1.563-.434c-.108-.003-.483-.095-1.254.116-.508.139-1.653.589-1.968.607-.316.018-1.256-.522-2.267-.665-.647-.125-1.333.131-1.824.328-.49.196-1.422.754-2.074 2.237-.652 1.482-.311 3.83-.067 4.56.244.729.625 1.924 1.273 2.796.576.984 1.34 1.667 1.659 1.899.319.232 1.219.386 1.843.067.502-.308 1.408-.485 2.005-.484.595.005 1.301.183 1.81.483.391.234 1.187.413 1.741-.04.371-.286 1.453-1.703 2.085-3.146Z"
+              fill="#FFFFFF"
+            />
+          </g>
+        </g>
+      </motion.g>
+
+      {/* Corner sparkles for a bit of charm — kept light */}
+      <Sparkle x={36}  y={36}  delay={0} />
+      <Sparkle x={284} y={28}  delay={0.55} />
+      <Sparkle x={296} y={170} delay={1.1} />
+      <Sparkle x={28}  y={190} delay={0.35} />
     </SceneShell>
   );
 }
@@ -384,107 +617,218 @@ function Birthday() {
  * 3. GROUP CHAT — phone with depth, glow, popping chat bubbles
  * ========================================================================= */
 function GroupChat() {
-  const messages = [
-    { side: 'left',  text: 'Birthday fit checkkk 👀', color: '#F1F5F9', delay: 0.0 },
-    { side: 'right', text: 'cute photos!!! 💖',         color: '#FF6B6B', delay: 0.9 },
-    { side: 'left',  text: 'matching vibes 😍',         color: '#F1F5F9', delay: 1.8 },
-    { side: 'right', text: 'café 🥹',                   color: '#FF6B6B', delay: 2.7 },
-  ];
+  /* Composition (rewritten May 2026 — same girl avatars as Scene 1 /
+   * MeetShanaya, same RoomScene background, with chat bubbles cleanly
+   * placed so nothing overlaps the avatars):
+   *   – Three girls = the SAME three DiceBear avataaars used in Scene 1
+   *     (Shanaya in the middle + two friends).
+   *   – Background = the SAME bedroom (peach wall, brown floor, window,
+   *     heart frame, plant, bed peek) as the RoomScene behind the
+   *     left-side avatar.
+   *   – Chat bubbles are stacked in the upper free-space above the
+   *     avatars and never collide with them. */
+  const shanayaUri    = useMemo(() => createAvatar(avataaars, SHANAYA_AVATAR_BASE).toDataUri(), []);
+  const friendLeftUri = useMemo(() => createAvatar(avataaars, FRIEND_LEFT_BASE).toDataUri(),    []);
+  const friendRightUri= useMemo(() => createAvatar(avataaars, FRIEND_RIGHT_BASE).toDataUri(),   []);
+
   return (
-    <SceneShell from="#E8F1FF" to="#F0E6FF">
+    <SceneShell from="#FFE0E9" to="#FFD0C0">
       <defs>
-        <linearGradient id="phone-frame" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"  stopColor="#3A2E4D" />
-          <stop offset="100%" stopColor="#0F0820" />
+        {/* Same palette / IDs (gc- prefix) as the MeetShanaya RoomScene
+           so this scene reads as the SAME bedroom. */}
+        <linearGradient id="gc-wall" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"  stopColor="#FFE0E9" />
+          <stop offset="100%" stopColor="#FFD0C0" />
         </linearGradient>
-        <radialGradient id="phone-glow" cx="50%" cy="50%" r="50%">
-          <stop offset="0%"   stopColor="#FFFFFF" stopOpacity="0.4" />
-          <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
-        </radialGradient>
+        <linearGradient id="gc-floor" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"  stopColor="#E8B98A" />
+          <stop offset="100%" stopColor="#C99B6D" />
+        </linearGradient>
+        <linearGradient id="gc-sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"  stopColor="#CDEEF9" />
+          <stop offset="100%" stopColor="#A8D8E8" />
+        </linearGradient>
+        {/* Decorative vase gradient (same as MeetShanaya) */}
+        <linearGradient id="gc-vase" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor="#FFFFFF" />
+          <stop offset="55%"  stopColor="#FFCED9" />
+          <stop offset="100%" stopColor="#C4738A" />
+        </linearGradient>
       </defs>
 
-      {/* Soft halo behind the phone — it's emitting light */}
-      <circle cx="160" cy="120" r="100" fill="url(#phone-glow)" />
+      {/* ============ BEDROOM (same as the RoomScene behind the left-side
+           avatar — y-coords compressed by 0.75 to fit 320×240). ============ */}
+      <g transform="scale(1 0.75)">
+        <rect width="320" height="240" fill="url(#gc-wall)" />
+        <rect y="240" width="320" height="80" fill="url(#gc-floor)" />
+        <rect y="237" width="320" height="6" fill="#B8855F" />
 
-      <g transform="translate(80 18)" filter="url(#lh-hero)">
-        <rect width="160" height="220" rx="22" fill="url(#phone-frame)" />
-        {/* Inner frame highlight */}
-        <rect x="2" y="2" width="156" height="216" rx="20" fill="none" stroke="#FFFFFF" strokeOpacity="0.06" strokeWidth="1" />
-        <rect x="6" y="14" width="148" height="192" rx="12" fill="#FFFFFF" />
-        {/* Subtle screen shine */}
-        <path d="M6 14 L154 14 L140 28 L20 28 Z" fill="#F8FAFC" />
-        {/* Notch */}
-        <rect x="65" y="4" width="30" height="6" rx="3" fill="#000000" />
+        {/* Window — top-left */}
+        <rect x="20" y="22"  width="86" height="70" fill="#A07050" rx="4" />
+        <rect x="24" y="26"  width="78" height="62" fill="url(#gc-sky)" rx="2" />
+        <circle cx="86" cy="40" r="6" fill="#FFF7C8" />
+        <rect x="24" y="55"  width="78" height="3" fill="#A07050" />
+        <rect x="61" y="26"  width="3"  height="62" fill="#A07050" />
+        <path d="M10 22 Q14 80 8 96 Q18 90 24 96 L24 22 Z" fill="#FF8FAB" opacity="0.92" />
+        <path d="M116 22 Q112 80 118 96 Q108 90 102 96 L102 22 Z" fill="#FF8FAB" opacity="0.92" />
 
-        {/* Chat header */}
-        <rect x="6" y="14" width="148" height="22" fill="#F1F5F9" />
-        <circle cx="20" cy="25" r="6" fill="#FF6B6B" />
-        <text x="32" y="29" fontSize="9" fontWeight="700" fill="#1A1426">Birthday Squad</text>
-        <text x="142" y="29" fontSize="8" fill="#9CA3AF" textAnchor="end">now</text>
+        {/* Heart picture frame — top-right */}
+        <rect x="215" y="32" width="76" height="62" fill="#FFFFFF" stroke="#A07050" strokeWidth="3" rx="3" />
+        <path
+          d="M253 80
+             C246 73 233 63 233 51
+             C233 44 239 39 246 39
+             C250 39 253 41 253 41
+             C253 41 256 39 260 39
+             C267 39 273 44 273 51
+             C273 63 260 73 253 80 Z"
+          fill="#FF6B6B"
+        />
 
-        {/* Messages */}
-        {messages.map((m, i) => (
-          <motion.g
-            key={i}
-            initial={{ opacity: 0, y: 12, scale: 0.7 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ delay: m.delay, duration: 0.45, ease: 'easeOut' }}
-            filter="url(#lh-soft)"
-          >
-            <rect
-              x={m.side === 'right' ? 60 : 14}
-              y={48 + i * 32}
-              width="86"
-              height="24"
-              rx="12"
-              fill={m.color}
-            />
-            <text
-              x={m.side === 'right' ? 70 : 22}
-              y={64 + i * 32}
-              fontSize="9"
-              fontWeight="700"
-              fill={m.side === 'right' ? '#FFFFFF' : '#1A1426'}
-            >
-              {m.text}
-            </text>
-          </motion.g>
-        ))}
+        {/* Pinboard / sticky notes — center wall */}
+        <rect x="138" y="118" width="48" height="36" fill="#FFE9B0" stroke="#C99B6D" strokeWidth="1.5" transform="rotate(-3 162 136)" />
+        <rect x="180" y="128" width="32" height="28" fill="#C7E8B5" stroke="#7BC470" strokeWidth="1.5" transform="rotate(4 196 142)" />
 
-        {/* Typing dots inside an empty bubble at the bottom */}
-        <motion.g
-          initial={{ opacity: 0 }}
-          animate={{ opacity: [0, 1, 1, 0] }}
-          transition={{ duration: 3, repeat: Infinity, delay: 3.4, repeatDelay: 0.5 }}
-        >
-          <rect x="14" y="176" width="34" height="20" rx="10" fill="#F1F5F9" />
-          {[0, 1, 2].map((i) => (
-            <motion.circle
-              key={i}
-              cx={22 + i * 6}
-              cy={186}
-              r="1.8"
-              fill="#9CA3AF"
-              animate={{ opacity: [0.4, 1, 0.4], y: [0, -2, 0] }}
-              transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.15 }}
-            />
-          ))}
-        </motion.g>
+        {/* Decorative ceramic vase + bouquet — bottom-right corner */}
+        <path
+          d="M256 296
+             Q244 286 252 268
+             Q260 262 260 252
+             Q260 244 268 244
+             L284 244
+             Q292 244 292 252
+             Q292 262 300 268
+             Q308 286 296 296 Z"
+          fill="url(#gc-vase)"
+        />
+        <path
+          d="M260 274 Q258 286 263 294"
+          stroke="#FFFFFF" strokeWidth="2.4" strokeLinecap="round" fill="none" opacity="0.7"
+        />
+        <rect x="260" y="248" width="32" height="3" rx="1.5" fill="#E0B040" />
+        <rect x="260" y="248" width="32" height="1" fill="#FFE066" opacity="0.85" />
+        <path d="M270 244 Q269 234 268 226" stroke="#3B9D6B" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+        <path d="M276 244 Q277 232 278 224" stroke="#3B9D6B" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+        <path d="M282 244 Q283 234 284 228" stroke="#3B9D6B" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+        <circle cx="268" cy="222" r="4.5" fill="#FF7AA2" />
+        <circle cx="268" cy="222" r="2.4" fill="#FF5A7A" />
+        <circle cx="278" cy="220" r="3.2" fill="#FFFFFF" />
+        <circle cx="278" cy="220" r="1.6" fill="#FFE066" />
+        <circle cx="284" cy="224" r="3.5" fill="#FFD27A" />
+        <circle cx="284" cy="224" r="1.8" fill="#FFB347" />
+
+        {/* Bed peek — bottom-left */}
+        <rect x="-10" y="260" width="120" height="60" fill="#F7C4D0" rx="6" />
+        <rect x="-10" y="260" width="120" height="14" fill="#E89AAE" rx="6" />
+        <circle cx="40" cy="282" r="8" fill="#FFFFFF" opacity="0.7" />
+
+        {/* Warm sparkles */}
+        <g fill="#FFD23F" opacity="0.85">
+          <circle cx="155" cy="38"  r="2.5" />
+          <circle cx="195" cy="68"  r="1.8" />
+          <circle cx="135" cy="78"  r="2"   />
+          <circle cx="195" cy="180" r="1.6" />
+        </g>
       </g>
 
-      {/* Floating notifications — bouncing */}
-      {[0, 1, 2].map((i) => (
+      {/* ============ THREE GIRLS — exact same DiceBear avatars as the
+           MeetShanaya scene. Positioned identically to Scene 1. ============ */}
+      <motion.g
+        animate={{ y: [0, -3, 0] }}
+        transition={{ duration: 3.6, repeat: Infinity, ease: 'easeInOut' }}
+      >
+        <image
+          href={friendLeftUri}
+          x="-8" y="100"
+          width="120" height="120"
+          preserveAspectRatio="xMidYMid slice"
+          style={{ transform: 'rotate(8deg)', transformOrigin: '52px 160px' }}
+        />
+      </motion.g>
+      <motion.g
+        animate={{ y: [0, -4, 0] }}
+        transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut', delay: 0.2 }}
+      >
+        <image
+          href={shanayaUri}
+          x="92" y="86"
+          width="140" height="140"
+          preserveAspectRatio="xMidYMid slice"
+        />
+      </motion.g>
+      <motion.g
+        animate={{ y: [0, -3, 0] }}
+        transition={{ duration: 3.8, repeat: Infinity, ease: 'easeInOut', delay: 0.4 }}
+      >
+        <image
+          href={friendRightUri}
+          x="208" y="100"
+          width="120" height="120"
+          preserveAspectRatio="xMidYMid slice"
+          style={{ transform: 'rotate(-8deg)', transformOrigin: '268px 160px' }}
+        />
+      </motion.g>
+
+      {/* ============ SPEECH LABELS — placed ON TOP of each avatar's head
+           so each chat line reads as if it's coming from one of the girls.
+           4 labels, staggered to pop in matching the TTS read order so the
+           on-screen text + voiceover land together. ============ */}
+      <SpeechLabel x={56}  y={66}  text="Birthday fit check!" delay={0.15} accent="#FFB3C7" />
+      <SpeechLabel x={162} y={32}  text="We need pics!"        delay={1.10} accent="#FF6B6B" />
+      <SpeechLabel x={264} y={66}  text="Dress extra cool!"    delay={2.05} accent="#A678F2" />
+
+      {/* ============ FLOATING REACTIONS — light touches in the corners ============ */}
+      {[
+        { x: 304, y: 36,  emoji: '💖', delay: 0.2 },
+        { x: 20,  y: 200, emoji: '✨', delay: 0.8 },
+        { x: 296, y: 200, emoji: '😍', delay: 1.4 },
+      ].map((r, i) => (
         <motion.text
           key={i}
-          x={28 + i * 8}
-          y={70 + i * 20}
-          fontSize="20"
-          animate={{ y: [70 + i * 20, 35 + i * 20], opacity: [0, 1, 0], scale: [0.6, 1.2, 0.8] }}
-          transition={{ duration: 2.6, repeat: Infinity, delay: i * 0.7, ease: 'easeOut' }}
+          x={r.x}
+          y={r.y}
+          fontSize="14"
+          textAnchor="middle"
+          animate={{ y: [r.y, r.y - 6, r.y], opacity: [0.8, 1, 0.8], scale: [0.9, 1.05, 0.9] }}
+          transition={{ duration: 2.8, repeat: Infinity, delay: r.delay, ease: 'easeInOut' }}
           filter="url(#lh-soft)"
-        >🔔</motion.text>
+        >{r.emoji}</motion.text>
       ))}
     </SceneShell>
+  );
+}
+
+/* Small floating speech label that overlays each girl's head in the
+ * GroupChat vignette. Auto-sizes the white pill to the text length, with
+ * a coloured accent stripe on the left to match the speaker's identity.
+ * Pops in with a stagger so the visual matches the TTS read order. */
+function SpeechLabel({ x, y, text, delay = 0, accent = '#FF6B6B' }) {
+  // Rough character-width estimate so the pill width tracks the text length.
+  const width = Math.max(72, Math.min(150, text.length * 5.4 + 14));
+  const height = 18;
+  return (
+    <motion.g
+      initial={{ opacity: 0, y: y + 6, scale: 0.85 }}
+      animate={{ opacity: 1, y, scale: 1 }}
+      transition={{ delay, duration: 0.45, ease: 'easeOut' }}
+      filter="url(#lh-soft)"
+    >
+      {/* White pill background */}
+      <rect x={x - width / 2} y={y - height / 2} width={width} height={height} rx={height / 2} fill="#FFFFFF" />
+      {/* Coloured accent stripe on the left edge */}
+      <rect x={x - width / 2} y={y - height / 2} width="4" height={height} rx={2} fill={accent} />
+      {/* Text */}
+      <text
+        x={x + 2}
+        y={y + 3.2}
+        fontSize="8.5"
+        fontWeight="700"
+        fill="#1A1426"
+        textAnchor="middle"
+      >
+        {text}
+      </text>
+    </motion.g>
   );
 }
 
@@ -777,6 +1121,18 @@ function Vision() {
  * 5. APP OPEN — phone with glowing screen, typing search, product grid
  * ========================================================================= */
 function AppOpen() {
+  /* Generic shopping-feed products that are intentionally DIFFERENT from
+   * the items Shanaya is about to purchase (sneakers / socks / hoodie /
+   * selfie light). The home feed should feel like a regular browsing
+   * session, not a preview of her cart. */
+  const UN = (id) => `https://images.unsplash.com/photo-${id}?w=160&h=160&fit=crop&auto=format&q=70`;
+  const products = [
+    { image: UN('1546868871-7041f2a55e12'), tile: '#E0EAFF', tint: '#7CA4F4', name: 'Smartwatch', price: '₹2,499' },
+    { image: UN('1553062407-98eeb64c6a62'), tile: '#FFEFC7', tint: '#FFD27A', name: 'Backpack',   price: '₹999'   },
+    { image: UN('1572635196237-14b3f281503f'), tile: '#E0F8F1', tint: '#7CD9C2', name: 'Sunglasses', price: '₹899' },
+    { image: UN('1586495777744-4413f21062fa'), tile: '#FFE0E9', tint: '#FF7AA2', name: 'Lipstick',   price: '₹399' },
+  ];
+
   return (
     <SceneShell from="#E0E5FF" to="#FFE0E9">
       <defs>
@@ -788,6 +1144,12 @@ function AppOpen() {
           <stop offset="0%"   stopColor="#FFFFFF" stopOpacity="1" />
           <stop offset="100%" stopColor="#F8FAFC" stopOpacity="1" />
         </radialGradient>
+        {/* Spree brand-mark gradient (same coral → burgundy as the in-app
+           SpreeLogo in MockShoppingApp). */}
+        <linearGradient id="spree-mark" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%"   stopColor="#FF5A4A" />
+          <stop offset="100%" stopColor="#8B1E3F" />
+        </linearGradient>
       </defs>
 
       {/* Phone — slight downward float */}
@@ -802,16 +1164,40 @@ function AppOpen() {
           <rect x="6" y="14" width="148" height="192" rx="12" fill="url(#phone-screen-glow)" />
           <rect x="65" y="4" width="30" height="6" rx="3" fill="#000000" />
 
-          {/* App header — spree. logo with subtle shadow */}
-          <g filter="url(#lh-soft)">
-            <text x="80" y="34" textAnchor="middle" fontSize="16" fontWeight="800" fill="#FF6B6B">
-              spree<tspan fill="#1A1426">.</tspan>
+          {/* App header — proper Spree logo (gradient bag tile + wordmark)
+             matching the SpreeLogo used in the main app. Aligned to the
+             left edge of the screen with the cart on the right. */}
+          <g transform="translate(14 22)">
+            {/* Logo tile */}
+            <rect width="18" height="18" rx="5" fill="url(#spree-mark)" />
+            {/* Stylised shopping-bag icon inside the tile */}
+            <g transform="translate(4 4)" stroke="#FFFFFF" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" fill="none">
+              <path d="M1 3 H9 V10 H1 Z" />
+              <path d="M3 3 V2 Q5 0.5 7 2 V3" />
+            </g>
+            {/* Spree wordmark */}
+            <text x="24" y="13" fontSize="11.5" fontWeight="800" fill="#1A1426" letterSpacing="-0.2">
+              Spree<tspan fill="#FF5A4A">.</tspan>
             </text>
           </g>
 
+          {/* Cart icon on the right of the header */}
+          <g transform="translate(132 24)">
+            <g stroke="#1A1426" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M2 4 H14 L12.5 12 H3.5 Z" />
+              <path d="M5 4 Q5 1 8 1 Q11 1 11 4" />
+            </g>
+            <motion.circle
+              cx="13" cy="2" r="3.2" fill="#FF6B6B"
+              animate={{ scale: [1, 1.25, 1] }}
+              transition={{ duration: 1.4, repeat: Infinity }}
+            />
+            <text x="13" y="4.4" textAnchor="middle" fontSize="6" fontWeight="800" fill="#FFFFFF">0</text>
+          </g>
+
           {/* Search bar with typing text */}
-          <rect x="14" y="46" width="132" height="22" rx="11" fill="#F1F5F9" />
-          <text x="22" y="61" fontSize="10" fill="#1A1426" fontWeight="700">
+          <rect x="14" y="48" width="132" height="22" rx="11" fill="#F1F5F9" />
+          <text x="22" y="63" fontSize="10" fill="#1A1426" fontWeight="700">
             🔍
             <motion.tspan
               initial={{ opacity: 0 }}
@@ -828,41 +1214,54 @@ function AppOpen() {
             >|</motion.tspan>
           </text>
 
-          {/* Product grid */}
-          {[0, 1, 2, 3].map((i) => (
-            <motion.g
-              key={i}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.2 + i * 0.15, duration: 0.4 }}
-              filter="url(#lh-soft)"
-            >
-              <rect
-                x={14 + (i % 2) * 70}
-                y={76 + Math.floor(i / 2) * 64}
-                width="60" height="56" rx="6"
-                fill="#FFE0E9"
-              />
-              <text
-                x={44 + (i % 2) * 70}
-                y={112 + Math.floor(i / 2) * 64}
-                textAnchor="middle"
-                fontSize="28"
-              >👟</text>
-            </motion.g>
-          ))}
-
-          {/* Cart icon with pulse */}
-          <g transform="translate(132 22)">
-            <text fontSize="14">🛍</text>
-            <motion.circle
-              cx="11" cy="-3" r="5" fill="#FF6B6B"
-              animate={{ scale: [1, 1.3, 1] }}
-              transition={{ duration: 1.4, repeat: Infinity }}
-              filter="url(#lh-soft)"
-            />
-            <text x="11" y="0.5" textAnchor="middle" fontSize="8" fontWeight="800" fill="#FFFFFF">0</text>
-          </g>
+          {/* Product grid — four real product photos from the lesson
+             catalog so each card looks distinct (was four identical 👟). */}
+          {products.map((p, i) => {
+            const x = 14 + (i % 2) * 70;
+            const y = 78 + Math.floor(i / 2) * 64;
+            const clipId = `app-open-img-clip-${i}`;
+            return (
+              <motion.g
+                key={i}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.2 + i * 0.15, duration: 0.4 }}
+                filter="url(#lh-soft)"
+              >
+                {/* Per-card clip so the photo stays inside the rounded
+                   image area instead of overflowing the card. */}
+                <defs>
+                  <clipPath id={clipId}>
+                    <rect x={x + 4} y={y + 4} width="52" height="32" rx="4" />
+                  </clipPath>
+                </defs>
+                {/* Card background */}
+                <rect x={x} y={y} width="60" height="56" rx="6" fill="#FFFFFF" />
+                {/* Tinted fallback under the image (in case it fails) */}
+                <rect x={x + 4} y={y + 4} width="52" height="32" rx="4" fill={p.tile} />
+                {/* Actual product image — Unsplash photo from the lesson
+                   catalog, cropped to fill the 52×32 image area. */}
+                {p.image && (
+                  <image
+                    href={p.image}
+                    x={x + 4} y={y + 4}
+                    width="52" height="32"
+                    preserveAspectRatio="xMidYMid slice"
+                    clipPath={`url(#${clipId})`}
+                  />
+                )}
+                {/* Subtle tint dot accent in the top-right of the image */}
+                <circle cx={x + 50} cy={y + 10} r="3.2" fill={p.tint} opacity="0.85" />
+                {/* Wishlist heart in the top-left */}
+                <circle cx={x + 10} cy={y + 10} r="3.2" fill="#FFFFFF" opacity="0.85" />
+                <text x={x + 10} y={y + 12} textAnchor="middle" fontSize="4.5">❤</text>
+                {/* Product name */}
+                <text x={x + 6} y={y + 46} fontSize="6.5" fontWeight="700" fill="#1A1426">{p.name}</text>
+                {/* Price */}
+                <text x={x + 6} y={y + 53} fontSize="6.5" fontWeight="800" fill="#FF5A4A">{p.price}</text>
+              </motion.g>
+            );
+          })}
         </g>
       </motion.g>
 

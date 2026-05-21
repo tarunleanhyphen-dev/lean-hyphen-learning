@@ -26,7 +26,7 @@ const HERO_SLIDES = [
   { id: 'free',     title: 'Free Delivery',  sub: `On orders above ₹${freeDeliveryThreshold.toLocaleString('en-IN')}`, tone: 'from-teal-500 to-saffron-500', emoji: '🚚' },
 ];
 
-export default function MockShoppingApp({ state = {} }) {
+export default function MockShoppingApp({ state = {}, onAddToCart }) {
   const cartIds = state.cart || [];
   const cartTotal = cartIds.reduce((sum, id) => sum + (products[id]?.price || 0), 0);
   const reached = state.deliveryUnlocked || cartTotal >= freeDeliveryThreshold;
@@ -41,6 +41,19 @@ export default function MockShoppingApp({ state = {} }) {
   // Phone-startup sequence: iOS-style home grid → tap on Spree → zoom into
   // the app → settle into the feed with the search bar pre-typing.
   if (view === 'phone-home') return <PhoneStartupSequence search={state.search} />;
+  // Final cart reveal — full breakdown with savings banner + budget callout.
+  // Used in the closing beat of Act 1 (Scene 3).
+  if (view === 'cart-reveal') return (
+    <CartRevealView
+      ids={cartIds}
+      total={cartTotal}
+      revealItems={state.revealItems}
+      revealTotal={state.revealTotal}
+      revealSavings={state.revealSavings}
+      revealBudget={state.revealBudget}
+      showGap={state.showGap}
+    />
+  );
 
   /* Auto-scroll the phone container as the scene progresses.
    * The scroller is the parent `.phone-scroll` div from <PhoneFrame>; we
@@ -151,6 +164,7 @@ export default function MockShoppingApp({ state = {} }) {
           urgencyMinutes={state.urgencyMinutes}
           onlyXLeft={state.onlyXLeft}
           socialProofBadge={state.socialProofBadge}
+          onAddToCart={onAddToCart}
         />
       )}
 
@@ -172,6 +186,17 @@ export default function MockShoppingApp({ state = {} }) {
         <PairNudgeBanner title={state.pairNudge.title} subtitle={state.pairNudge.subtitle} />
       )}
 
+      {/* NEW OFFER UNLOCKED banner — "Add 1 more item & get Phone Case FREE".
+         Pulses + glows like the flash-deal alert but with a gift/celebratory
+         palette. Appears in Scene 2 Wave 3 of the new Act 1. */}
+      {state.unlockOffer && (
+        <UnlockOfferBanner
+          headline={state.unlockOffer.headline}
+          message={state.unlockOffer.message}
+          emoji={state.unlockOffer.emoji}
+        />
+      )}
+
       {view === 'feed' && state.showProduct && (
         <FeaturedProduct id={state.showProduct} badge={state.badge} tapping={state.tapTarget === 'primary-cta'} />
       )}
@@ -187,6 +212,7 @@ export default function MockShoppingApp({ state = {} }) {
           label={state.rowLabel}
           ids={state.recommendations}
           socialProofId={state.socialProof}
+          viralId={state.viralBadge}
           flashId={state.flashDeal}
           highlightId={state.highlight}
           tapTarget={state.tapTarget}
@@ -322,7 +348,7 @@ function SearchResultsGrid({ query, hoverId }) {
 
 /* =================== Product detail view =================== */
 
-function ProductDetail({ id, badge, tapping, urgencyMinutes, onlyXLeft, socialProofBadge }) {
+function ProductDetail({ id, badge, tapping, urgencyMinutes, onlyXLeft, socialProofBadge, onAddToCart }) {
   const p = products[id];
   if (!p) return null;
   return (
@@ -450,9 +476,44 @@ function ProductDetail({ id, badge, tapping, urgencyMinutes, onlyXLeft, socialPr
           </div>
 
           <div className="relative">
-            <button className="mt-3 w-full rounded-xl bg-coral-500 py-3 text-sm font-bold text-white shadow-sm">
+            {/* Floating "Tap here" callout — sits flush above the Add-to-
+               Cart button with a small downward caret pointing to it, so
+               it reads as a callout anchored to that exact button instead
+               of floating in the middle of the FREE-delivery info. */}
+            {tapping && (
+              <motion.div
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: [0, -4, 0] }}
+                transition={{ opacity: { duration: 0.3 }, y: { duration: 1.1, repeat: Infinity, ease: 'easeInOut' } }}
+                className="pointer-events-none absolute -top-9 left-1/2 z-30 -translate-x-1/2 whitespace-nowrap"
+              >
+                <span className="relative inline-flex items-center gap-1 rounded-full bg-saffron-500 px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest text-ink-900 shadow-lg">
+                  👉 Tap here
+                  {/* Down-pointing triangle anchoring the chip to the button */}
+                  <span
+                    aria-hidden
+                    className="absolute left-1/2 top-full h-2 w-2 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-saffron-500"
+                  />
+                </span>
+              </motion.div>
+            )}
+            <motion.button
+              type="button"
+              onClick={onAddToCart}
+              disabled={!onAddToCart}
+              animate={tapping ? {
+                scale: [1, 1.04, 1],
+                boxShadow: [
+                  '0 0 0 0 rgba(255, 90, 74, 0.55)',
+                  '0 0 0 14px rgba(255, 90, 74, 0)',
+                  '0 0 0 0 rgba(255, 90, 74, 0)',
+                ],
+              } : { scale: 1 }}
+              transition={tapping ? { duration: 1.3, repeat: Infinity, ease: 'easeOut' } : {}}
+              className={`mt-3 w-full rounded-xl bg-coral-500 py-3 text-sm font-bold text-white shadow-md transition active:scale-[0.98] disabled:cursor-default disabled:opacity-95 ${tapping ? 'ring-2 ring-saffron-500 ring-offset-2 ring-offset-white' : ''}`}
+            >
               Add to Cart · ₹{p.price.toLocaleString('en-IN')}
-            </button>
+            </motion.button>
             {tapping && <TapPulse />}
           </div>
 
@@ -508,10 +569,7 @@ function AppHeader({ cartCount, backable = false }) {
             <ChevronRight className="h-4 w-4 rotate-180" />
           </span>
         )}
-        <span className="grid h-6 w-6 place-items-center rounded-md bg-coral-500 text-[10px] font-extrabold text-white">S</span>
-        <span className="text-[15px] font-extrabold tracking-tight text-coral-500">
-          spree<span className="text-ink-900">.</span>
-        </span>
+        <SpreeLogo size="sm" />
       </div>
       <div className="flex items-center gap-3 text-ink-700">
         <span className="relative">
@@ -522,6 +580,30 @@ function AppHeader({ cartCount, backable = false }) {
         <CartBadge count={cartCount} />
       </div>
     </header>
+  );
+}
+
+/* Reusable Spree brand mark — gradient ShoppingBag in a rounded square +
+ * "Spree" wordmark. Used across the AppHeader, the home-screen icon, the
+ * app-launch zoom and the in-app header during the startup sequence so
+ * the brand reads identically everywhere it appears. */
+function SpreeLogo({ size = 'sm' }) {
+  const SIZES = {
+    xs: { box: 'h-5 w-5 rounded-[6px]', icon: 'h-3 w-3',   text: 'text-[12px]', stroke: 2.6 },
+    sm: { box: 'h-7 w-7 rounded-[8px]', icon: 'h-4 w-4',   text: 'text-[15px]', stroke: 2.5 },
+    md: { box: 'h-10 w-10 rounded-[12px]', icon: 'h-6 w-6', text: 'text-[18px]', stroke: 2.5 },
+    lg: { box: 'h-14 w-14 rounded-[16px]', icon: 'h-8 w-8', text: 'text-[22px]', stroke: 2.5 },
+  };
+  const cfg = SIZES[size] || SIZES.sm;
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className={`grid place-items-center bg-gradient-to-br from-coral-500 to-burgundy-500 text-white shadow-sm ${cfg.box}`}>
+        <ShoppingBag className={cfg.icon} strokeWidth={cfg.stroke} />
+      </span>
+      <span className={`font-extrabold tracking-tight text-ink-900 ${cfg.text}`}>
+        Spree<span className="text-coral-500">.</span>
+      </span>
+    </span>
   );
 }
 
@@ -758,7 +840,7 @@ function CouponStrip() {
   );
 }
 
-function RecommendationRow({ label, ids, socialProofId, flashId, highlightId, tapTarget }) {
+function RecommendationRow({ label, ids, socialProofId, viralId, flashId, highlightId, tapTarget }) {
   return (
     <div id="mock-recommendations" className="mt-4 px-4">
       <div className="mb-2 flex items-center justify-between">
@@ -773,6 +855,7 @@ function RecommendationRow({ label, ids, socialProofId, flashId, highlightId, ta
           if (!p) return null;
           const isFlash = flashId === id;
           const isSocial = socialProofId === id;
+          const isViral = viralId === id;
           const isHighlighted = highlightId === id;
           const isTapped = tapTarget === `rec-${id}`;
           return (
@@ -805,6 +888,26 @@ function RecommendationRow({ label, ids, socialProofId, flashId, highlightId, ta
                   >
                     🔥 12K bought this week
                   </motion.div>
+                )}
+                {isViral && (
+                  <>
+                    <motion.div
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.15 }}
+                      className="absolute left-1.5 top-1.5 z-10 chip bg-burgundy-500/95 text-white shadow"
+                    >
+                      🔥 Viral on reels
+                    </motion.div>
+                    <motion.div
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="absolute bottom-1.5 left-1.5 z-10 chip bg-black/70 text-white"
+                    >
+                      📸 9K bought this week
+                    </motion.div>
+                  </>
                 )}
               </div>
               <div className="mt-1.5 line-clamp-1 text-[12px] font-semibold text-ink-900">{p.name}</div>
@@ -1360,6 +1463,171 @@ function CartFocusView({ total, ids, reached, highlightPrice, timerMinutes, freq
   );
 }
 
+/* =================== Final cart reveal view ===================
+ * Used in Scene 3 of the rewritten Act 1. Lists every item Shanaya
+ * added (incl. the FREE phone case), reveals the total, animates in
+ * a "You Saved ₹X" banner, then surfaces the original budget gap.
+ *
+ * Each phase ramps a different flag: revealItems → revealTotal →
+ * revealSavings → revealBudget. The component reads those flags and
+ * uses AnimatePresence to slide each section in dramatically — no
+ * full re-render, no view swap.  */
+function CartRevealView({
+  ids,
+  total,
+  revealItems,
+  revealTotal,
+  revealSavings,
+  revealBudget,
+  showGap,
+}) {
+  return (
+    <div className="relative min-h-full bg-cream-50 pb-24">
+      <AppHeader cartCount={ids.length} backable />
+      <div className="bg-white px-4 py-3 ring-1 ring-ink-300/10">
+        <div className="text-[15px] font-extrabold text-ink-900">🛒 Cart Updated</div>
+        <div className="text-[11px] text-ink-500">{ids.length} item{ids.length === 1 ? '' : 's'}</div>
+      </div>
+
+      {/* Items list */}
+      <AnimatePresence>
+        {revealItems && (
+          <motion.ul
+            key="items"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="space-y-2 px-4 pt-3"
+          >
+            {ids.map((id, i) => {
+              const p = products[id];
+              if (!p) return null;
+              const isFree = p.free || p.price === 0;
+              return (
+                <motion.li
+                  key={id}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.05 + i * 0.12 }}
+                  className="flex items-center gap-3 rounded-xl bg-white p-2 ring-1 ring-ink-300/10"
+                >
+                  <div className="h-12 w-12 overflow-hidden rounded-lg ring-1 ring-ink-300/10">
+                    <ProductImage id={id} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="line-clamp-1 text-[13px] font-bold text-ink-900">
+                      <span className="mr-1">{p.emoji}</span>{p.name}
+                    </div>
+                    <div className="text-[10px] text-ink-500">Qty 1{isFree ? ' · gifted offer' : ''}</div>
+                  </div>
+                  {isFree ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-teal-500/15 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-widest text-teal-600 ring-1 ring-teal-500/30">
+                      🎀 FREE
+                    </span>
+                  ) : (
+                    <div className="text-[13px] font-extrabold text-ink-900">
+                      ₹{p.price.toLocaleString('en-IN')}
+                    </div>
+                  )}
+                </motion.li>
+              );
+            })}
+          </motion.ul>
+        )}
+      </AnimatePresence>
+
+      {/* Total block */}
+      <AnimatePresence>
+        {revealTotal && (
+          <motion.div
+            key="total"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.45 }}
+            className="mx-4 mt-4 rounded-2xl bg-gradient-to-br from-ink-900 to-burgundy-500 p-4 text-white shadow-xl"
+          >
+            <div className="text-[10px] font-extrabold uppercase tracking-widest text-white/70">Total</div>
+            <motion.div
+              initial={{ scale: 0.85, opacity: 0.6 }}
+              animate={{ scale: [0.85, 1.12, 1], opacity: 1 }}
+              transition={{ duration: 1, ease: 'easeOut' }}
+              className="text-[34px] font-extrabold leading-none tracking-tight"
+            >
+              ₹{total.toLocaleString('en-IN')}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* "You Saved ₹X" sparkle banner */}
+      <AnimatePresence>
+        {revealSavings && (
+          <motion.div
+            key="savings"
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: [0.85, 1.06, 1] }}
+            transition={{ duration: 0.8 }}
+            className="relative mx-4 mt-3 overflow-hidden rounded-2xl bg-gradient-to-r from-saffron-400 via-coral-400 to-coral-500 px-4 py-3 text-white shadow-lg ring-1 ring-white/30"
+          >
+            <motion.span
+              aria-hidden
+              initial={{ x: '-120%' }}
+              animate={{ x: '120%' }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+              className="pointer-events-none absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+            />
+            <div className="relative flex items-center justify-between">
+              <div>
+                <div className="text-[10px] font-extrabold uppercase tracking-widest opacity-90">✨ Smart Saver ✨</div>
+                <div className="mt-0.5 text-[18px] font-extrabold leading-tight">
+                  You Saved ₹{revealSavings.toLocaleString('en-IN')}!
+                </div>
+              </div>
+              <div className="text-2xl">🎉</div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Original budget callout */}
+      <AnimatePresence>
+        {revealBudget && (
+          <motion.div
+            key="budget"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="mx-4 mt-3 rounded-2xl bg-white p-3 ring-1 ring-burgundy-500/30"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-ink-500">
+                💰 Original Budget
+              </span>
+              <span className="text-[14px] font-extrabold text-ink-700">₹1,500</span>
+            </div>
+            {showGap && (
+              <motion.div
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="mt-2 rounded-xl bg-burgundy-500/10 px-3 py-2 text-[11px] font-bold ring-1 ring-burgundy-500/30"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-ink-500">Spent</span>
+                  <span className="text-burgundy-500">
+                    ₹{total.toLocaleString('en-IN')} · +{Math.round((total / 1500 - 1) * 100)}% over plan
+                  </span>
+                </div>
+              </motion.div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 function FreqBoughtCard({ id, tapping }) {
   const p = products[id];
   if (!p) return null;
@@ -1432,6 +1700,38 @@ function FlashDealAlert({ label, product, mins = 5 }) {
       </div>
       <div className="mt-0.5 inline-flex items-center gap-1 text-[12px] font-bold">
         <span>⚡</span> Only {mins} minutes left!
+      </div>
+    </motion.div>
+  );
+}
+
+/* =================== NEW OFFER UNLOCKED banner =================== */
+/* Wave 3 bundling nudge: "⚡ Add 1 more item & get Phone Case FREE 🎀".
+ * Lives near the top of the phone, pulses + shimmers to grab attention
+ * the same way the FlashDealAlert does — but with a celebratory gift
+ * palette (teal → saffron) so it reads as "reward" not "scarcity".  */
+function UnlockOfferBanner({ headline = 'NEW OFFER UNLOCKED', message = '', emoji = '🎁' }) {
+  return (
+    <motion.div
+      key={headline + message}
+      initial={{ y: -40, opacity: 0, scale: 0.96 }}
+      animate={{ y: 0, opacity: 1, scale: [1, 1.025, 1] }}
+      transition={{ duration: 0.55, scale: { duration: 1.6, repeat: Infinity, repeatType: 'mirror' } }}
+      className="relative mx-4 mt-3 overflow-hidden rounded-2xl bg-gradient-to-r from-teal-500 via-saffron-500 to-coral-500 p-3 text-white shadow-lg ring-1 ring-white/25"
+    >
+      {/* Shimmer sweep across the banner */}
+      <motion.span
+        aria-hidden
+        initial={{ x: '-120%' }}
+        animate={{ x: '120%' }}
+        transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+        className="pointer-events-none absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/35 to-transparent"
+      />
+      <div className="relative flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-widest">
+        <span className="text-base leading-none">⚡</span> {headline}
+      </div>
+      <div className="relative mt-1 flex items-center gap-2 text-[14px] font-extrabold leading-tight">
+        <span className="text-xl leading-none">{emoji}</span> {message}
       </div>
     </motion.div>
   );
@@ -1618,16 +1918,15 @@ function TrendingFashionStrip() {
 /* =================== Phone startup sequence ===================
  * Plays inside the PhoneFrame when phase phone.view === 'phone-home'.
  *
- * Timeline (~10s):
- *   0.0–2.8 s  iOS-style home grid; Spree icon idle
- *   2.8–3.6 s  finger taps Spree (pulse + press-in)
- *   3.6–4.6 s  Spree icon zooms to fill the screen (app launch)
- *   4.6–7.4 s  Spree feed visible, search bar gets focus + cursor blink
- *   7.4–10.0s  "shoes" types out character-by-character into the search bar
+ * Timeline (~5.5s — compressed in May 2026 to keep Scenes 0+1 snappy):
+ *   0.0–1.2 s  iOS-style home grid; Spree icon idle
+ *   1.2–1.8 s  finger taps Spree (pulse + press-in)
+ *   1.8–2.6 s  Spree icon zooms to fill the screen (app launch)
+ *   2.6–3.8 s  Spree feed visible, search bar gets focus + cursor blink
+ *   3.8–5.5 s  "shoes" types out character-by-character into the search bar
  *
- * After 10 s the parent phase advances to s1-results and the normal feed/
- * search view takes over — this component intentionally never unmounts
- * early because we want the typing animation to read fully.
+ * The parent phase (s1-search) is set to ~5500 ms so it advances right
+ * after the typing finishes.
  */
 function PhoneStartupSequence({ search = 'shoes' }) {
   // Stage progression — incremented by timers so the animation reads as a
@@ -1637,14 +1936,15 @@ function PhoneStartupSequence({ search = 'shoes' }) {
   // · 4: typing in progress · 5: typed full word
 
   useEffect(() => {
-    const t1 = setTimeout(() => setStage(1), 2800);
-    const t2 = setTimeout(() => setStage(2), 3600);
-    const t3 = setTimeout(() => setStage(3), 4600);
-    const t4 = setTimeout(() => setStage(4), 7400);
+    const t1 = setTimeout(() => setStage(1), 1200);
+    const t2 = setTimeout(() => setStage(2), 1800);
+    const t3 = setTimeout(() => setStage(3), 2600);
+    const t4 = setTimeout(() => setStage(4), 3800);
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
   }, []);
 
-  // Typing animation — reveal one extra char every 220 ms once stage 4 starts.
+  // Typing animation — reveal one extra char every 160 ms once stage 4 starts
+  // (was 220 ms; tightened with the rest of the sequence).
   const [typed, setTyped] = useState('');
   useEffect(() => {
     if (stage < 4) return;
@@ -1652,7 +1952,7 @@ function PhoneStartupSequence({ search = 'shoes' }) {
     const tick = () => {
       i += 1;
       setTyped(search.slice(0, i));
-      if (i < search.length) timer = setTimeout(tick, 220);
+      if (i < search.length) timer = setTimeout(tick, 160);
     };
     let timer = setTimeout(tick, 0);
     return () => clearTimeout(timer);
@@ -1689,13 +1989,18 @@ function PhoneStartupSequence({ search = 'shoes' }) {
           >
             <div className="flex flex-col items-center text-white">
               <ShoppingBag className="h-10 w-10" strokeWidth={2.5} />
-              <span className="mt-1 text-[10px] font-extrabold uppercase tracking-widest">Spree</span>
+              <span className="mt-1 text-[11px] font-extrabold tracking-tight">
+                Spree<span className="opacity-80">.</span>
+              </span>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* App open — header + search bar with typing animation */}
+      {/* App open — full shopping-app home page so the right column reads
+         like a real store, not an empty shell. Header, search bar with
+         typing animation, hero banner, category strip, and a Trending
+         Now product grid. */}
       <AnimatePresence>
         {stage >= 3 && (
           <motion.div
@@ -1703,19 +2008,20 @@ function PhoneStartupSequence({ search = 'shoes' }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.4 }}
-            className="absolute inset-0 bg-cream-50"
+            className="absolute inset-0 overflow-y-auto bg-cream-50 pb-6"
           >
-            {/* App header */}
-            <div className="flex items-center justify-between border-b border-ink-300/10 bg-white px-4 py-3">
-              <div className="flex items-center gap-1.5">
-                <ShoppingBag className="h-4 w-4 text-coral-500" />
-                <span className="text-[13px] font-extrabold tracking-tight text-ink-900">Spree</span>
+            {/* App header — same SpreeLogo used in the main app */}
+            <div className="sticky top-0 z-20 flex items-center justify-between border-b border-ink-300/10 bg-white/95 px-4 py-3 backdrop-blur">
+              <SpreeLogo size="sm" />
+              <div className="flex items-center gap-3 text-ink-700">
+                <Bell className="h-4 w-4" />
+                <Heart className="h-4 w-4" />
+                <ShoppingBag className="h-4 w-4" />
               </div>
-              <Bell className="h-4 w-4 text-ink-500" />
             </div>
 
             {/* Search bar — focused with cursor + typing */}
-            <div className="px-4 pt-4">
+            <div className="px-4 pt-3">
               <motion.div
                 initial={{ scale: 0.98 }}
                 animate={{ scale: 1, boxShadow: '0 0 0 3px rgba(255, 90, 100, 0.18)' }}
@@ -1732,26 +2038,88 @@ function PhoneStartupSequence({ search = 'shoes' }) {
                   />
                 </span>
               </motion.div>
-              <div className="mt-2 text-[10px] uppercase tracking-widest text-ink-500">
-                {stage < 4 ? 'Tap to search' : 'Searching…'}
-              </div>
             </div>
 
-            {/* Soft hint of categories below — reads as "the app" */}
-            <div className="mt-5 grid grid-cols-4 gap-3 px-4">
+            {/* Hero banner — Birthday Sale */}
+            <div className="px-4 pt-3">
+              <motion.div
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15, duration: 0.35 }}
+                className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-coral-500 to-saffron-500 px-4 py-3 text-white shadow-md"
+              >
+                <div className="text-[10px] font-extrabold uppercase tracking-widest opacity-90">🎂 Birthday Sale</div>
+                <div className="mt-0.5 text-[15px] font-extrabold leading-tight">30% OFF · ends tonight</div>
+                <div className="mt-0.5 text-[10px] opacity-90">Tap to explore deals</div>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-2xl">🎁</span>
+              </motion.div>
+            </div>
+
+            {/* Category strip */}
+            <div className="mt-3 grid grid-cols-4 gap-2 px-4">
               {[
-                { e: '👟', l: 'Shoes' },
-                { e: '👕', l: 'Tops' },
-                { e: '💄', l: 'Beauty' },
-                { e: '🎒', l: 'Bags' },
-              ].map((c) => (
-                <div key={c.l} className="flex flex-col items-center gap-1">
-                  <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white text-lg shadow-sm ring-1 ring-ink-300/10">
+                { e: '👟', l: 'Shoes',  bg: 'from-coral-400 to-coral-500' },
+                { e: '👕', l: 'Tops',   bg: 'from-teal-400 to-teal-500' },
+                { e: '💄', l: 'Beauty', bg: 'from-pink-300 to-fuchsia-500' },
+                { e: '🎒', l: 'Bags',   bg: 'from-saffron-400 to-saffron-500' },
+              ].map((c, i) => (
+                <motion.div
+                  key={c.l}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.25 + i * 0.05, duration: 0.3 }}
+                  className="flex flex-col items-center gap-1"
+                >
+                  <div className={`grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br ${c.bg} text-lg shadow-sm`}>
                     {c.e}
                   </div>
                   <span className="text-[10px] font-semibold text-ink-700">{c.l}</span>
-                </div>
+                </motion.div>
               ))}
+            </div>
+
+            {/* Trending Now — 2×2 product grid with real Unsplash photos.
+               Intentionally different products from what Shanaya is about
+               to add to her cart, so the home feed feels like a real
+               store and not a preview of her purchases. */}
+            <div className="px-4 pt-4">
+              <div className="mb-2 flex items-center justify-between">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-ink-700">🔥 Trending Now</div>
+                <span className="text-[10px] font-semibold text-coral-500">See all</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { img: 'https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=240&h=240&fit=crop&auto=format&q=70',  name: 'Smartwatch',  price: '₹2,499', tag: 'Bestseller' },
+                  { img: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=240&h=240&fit=crop&auto=format&q=70', name: 'Backpack',    price: '₹999',   tag: 'Limited' },
+                  { img: 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=240&h=240&fit=crop&auto=format&q=70', name: 'Sunglasses', price: '₹899',   tag: 'Trending' },
+                  { img: 'https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=240&h=240&fit=crop&auto=format&q=70', name: 'Lipstick',  price: '₹399',   tag: 'New' },
+                ].map((p, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 + i * 0.08, duration: 0.35 }}
+                    className="overflow-hidden rounded-xl bg-white ring-1 ring-ink-300/10"
+                  >
+                    <div className="relative aspect-square">
+                      <img src={p.img} alt={p.name} className="absolute inset-0 h-full w-full object-cover" />
+                      <span className="absolute left-1.5 top-1.5 rounded-full bg-black/70 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-white">
+                        {p.tag}
+                      </span>
+                      <span className="absolute right-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full bg-white/90 text-ink-700">
+                        <Heart className="h-2.5 w-2.5" />
+                      </span>
+                    </div>
+                    <div className="p-2">
+                      <div className="line-clamp-1 text-[11px] font-bold text-ink-900">{p.name}</div>
+                      <div className="mt-0.5 flex items-center justify-between">
+                        <span className="text-[12px] font-extrabold text-ink-900">{p.price}</span>
+                        <button className="rounded-md bg-cream-100 px-2 py-0.5 text-[9px] font-bold text-coral-600">Add</button>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
             </div>
           </motion.div>
         )}

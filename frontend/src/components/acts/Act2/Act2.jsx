@@ -395,7 +395,7 @@ export default function Act2({ onComplete }) {
             title="Understanding Impulse Buying"
             stats={celebrationStats}
             takeaway="The trap has a name — IMPULSE BUYING. FOMO, suggestions, emotion, and 'saving' tricks slowly change what we buy. Now that you can name them, you can pause before you tap 'Buy'."
-            continueLabel="Back to home →"
+            continueLabel="Move to Act 3 →"
             onContinue={finishAct}
           />
         )}

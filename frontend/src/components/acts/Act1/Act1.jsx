@@ -399,7 +399,7 @@ export default function Act1({ onComplete }) {
   }, [cartIds.length, cartTotal, tricksCount, showCelebration]);
 
   return (
-    <div className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-4 px-3 py-5 sm:px-6 sm:py-6 lg:px-8">
+    <div className="relative mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-3 px-3 py-4 sm:gap-4 sm:px-5 sm:py-5 md:px-6 md:py-6 lg:px-8 xl:px-10">
       {/* Top bar */}
       <header className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
         <div className="flex items-center gap-3 sm:gap-4">
@@ -445,12 +445,12 @@ export default function Act1({ onComplete }) {
       <SceneProgress current={seq.index} total={phases.length} label={scene.title} />
 
       {/* Stage */}
-      <div className={`grid grid-cols-1 items-stretch gap-4 sm:gap-5 ${showPhone ? 'md:grid-cols-[1.05fr_0.95fr] md:gap-5 lg:gap-6' : 'mx-auto w-full max-w-3xl'}`}>
+      <div className={`grid grid-cols-1 items-stretch gap-4 ${showPhone ? 'md:grid-cols-[1.05fr_0.95fr] md:gap-5 lg:gap-6' : 'mx-auto w-full max-w-3xl'}`}>
         {/* LEFT */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#F8EFE0] via-[#FBF4E6] to-[#FFE9D9] p-3 ring-1 ring-ink-300/15 sm:p-5 md:p-6 lg:p-7">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#F8EFE0] via-[#FBF4E6] to-[#FFE9D9] p-3 ring-1 ring-ink-300/15 sm:p-4 md:p-5 lg:p-6">
           <RoomBackdrop ambience={scene.ambience} />
 
-          <div className="relative flex h-full min-h-[520px] flex-col sm:min-h-[580px] md:min-h-[600px] lg:min-h-[640px]">
+          <div className="relative flex h-full min-h-[440px] flex-col sm:min-h-[520px] md:min-h-[580px] lg:min-h-[640px]">
             {/* Scene tag */}
             <div className="flex items-center justify-between">
               <div className="text-[11px] font-bold uppercase tracking-widest text-ink-500">
@@ -625,7 +625,7 @@ export default function Act1({ onComplete }) {
         <div className="text-center text-xs text-white/50">Paused — press Resume to continue</div>
       )}
 
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-2 sm:gap-3">
         <button
           onClick={() => {
             const target = Math.max(0, seq.index - 1);
@@ -642,15 +642,15 @@ export default function Act1({ onComplete }) {
             seq.resume();
           }}
           disabled={seq.index === 0}
-          className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2.5 text-xs font-semibold text-white/80 transition hover:bg-white/10 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-30"
+          className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-2 text-[11px] font-semibold text-white/80 transition hover:bg-white/10 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-30 sm:gap-2 sm:px-4 sm:py-2.5 sm:text-xs"
         >
-          <ChevronLeft className="h-4 w-4" /> Back
+          <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Back
         </button>
         <button
           onClick={seq.advance}
-          className="inline-flex items-center gap-2 rounded-full bg-saffron-500 px-5 py-2.5 text-xs font-bold text-ink-900 shadow-lg shadow-saffron-500/30 transition hover:bg-saffron-400 active:scale-[0.98]"
+          className="inline-flex items-center gap-1.5 rounded-full bg-saffron-500 px-4 py-2 text-[11px] font-bold text-ink-900 shadow-lg shadow-saffron-500/30 transition hover:bg-saffron-400 active:scale-[0.98] sm:gap-2 sm:px-5 sm:py-2.5 sm:text-xs"
         >
-          Next <ChevronRight className="h-4 w-4" />
+          Next <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
         </button>
       </div>
 

@@ -10,7 +10,7 @@ Every push to `main` auto-deploys both projects on Vercel.
 
 This repo holds the interactive lesson app (React + Tailwind) and the API (Node.js/Express + PostgreSQL). It is designed to be embedded inside the third-party LMS that the [Lean Hyphen landing page](https://lean-hyphen-user-web-4zrf.vercel.app/#home) sends users to.
 
-The current build ships **Act 1 — Story Hook & Setup**. Acts 2/3/4 are scaffolded as placeholders so they can be implemented later without touching Act 1.
+The current build ships **Act 1 — Story Hook & Setup** and **Act 2 — Understanding Impulse Buying**. Acts 3/4 are scaffolded as placeholders so they can be implemented later without touching the live acts.
 
 ---
 
@@ -28,6 +28,19 @@ Act 1 is a full cinematic + interactive simulation, ~50 phases long. Highlights:
 - **Final cart reveal + checkout flow:** items list with FREE pill on the phone case → total ₹2,796 → "Wait… I only came here to buy shoes" thought → Place Order → Payment screen → Pay ₹2,796 · UPI → processing → Order Placed confirmation → free-text reflection prompt.
 - **Voice:** every spoken line goes through MS Edge Neural TTS via the backend (`hi-IN-SwaraNeural` for Shanaya, `en-IN-PrabhatNeural` at 1.3× playback for the narrator). Real-time amplitude lip-sync on the avatar's mouth. Pause/Resume preserves the exact word position.
 - **Background music:** Web Audio synth (pad + sub-bass + bell arpeggio + shaker + synth pluck + 808-style sub-kick). 5 moods (calm, app-tempo, reflective, thinking, silent) auto-mapped from the current emotion. vi-IV-I-V chord progression for an emotional coming-of-age feel; the shopping mood gets a GenZ "TikTok shopping reel" energy.
+
+---
+
+## What's in Act 2 today
+
+Act 2 takes the cart Shanaya built in Act 1 and explains *why* her brain agreed to every step. Three scenes, ~8 phases:
+
+- **Scene 1 — Mind Trap (drag game):** 12 of Shanaya's thoughts float across the panel as glossy 3D bubbles in a hand-scattered "flying-across-the-sky" layout. The learner drags each thought into one of **4 mind-trap zones**: *FOMO*, *Suggestion-driven*, *Emotional justification*, *Spending more to "save"*. Native HTML-5 drag-and-drop on desktop, tap-to-select on mobile. Progress bar fills 0/12 → 12/12. Subtle pastel **3D-marble bubble backdrop** drifts behind the chips on the right; the same effect lives behind Shanaya on the left for visual continuity. A discreet `skip` link tucks into the bottom-right for learners who want to bypass the game.
+- **Scene 2 — Definition:** narrator names the pattern — *"Buying something you didn't plan to buy — because it feels right in the moment. This is called IMPULSE BUYING."* Shanaya reacts with *"Oh… so that's what it's called."*
+- **Scene 3 — Flash cards:** 3 click-through flip cards explain *FOMO*, *Shopping triggers*, and *Small spends add up*. Each card has a glossy front (emoji + title + subtitle + "Tap card to reveal") and a back (live countdown / labelled trigger tiles / receipt-style ₹ stacking). Clicking Next/Back cancels the in-flight TTS, auto-flips the next card, and starts its narration — no chunk bleed, no double-voice.
+- **Lo-fi soundtrack:** Act 2 swaps to a dedicated `lofi` mood — Cmaj9 → Am9 → Fmaj9 → G13 jazz progression, Rhodes-style detuned pad, half-time brushed hat, syncopated plucks, sub-octave bass, and a continuous vinyl-crackle layer for the bedroom-pop texture.
+- **Robust Back navigation:** stepping back across phases cancels speech, clears dedup state, and *re-arms the activity* (the drag game or flash cards) so re-entering a hold phase plays it again instead of getting stuck on a "complete" placeholder.
+- **40/60 responsive grid:** avatar + narration on the left, activity panel on the right; stacks on phones, side-by-side from `md:` upward, with typography and min-heights scaling at every breakpoint.
 
 ---
 
@@ -191,7 +204,6 @@ After deploying, update the frontend's `VITE_API_BASE_URL` and redeploy.
 
 ## What's next
 
-- **Act 2:** interactive cards revealing why each item entered the cart → introduces the **Pause & Think** framework.
 - **Act 3:** four scenario simulations + a final micro-challenge.
 - **Act 4:** Impulse Meter + identity-closing statement.
 - **Gamification engine:** XP, streaks, badges, daily goals.

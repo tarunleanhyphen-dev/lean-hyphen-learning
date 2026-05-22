@@ -792,185 +792,168 @@ function act1Scenes() {
  * ========================================================================== */
 
 export const act2Activities = {
-  match: {
-    title: 'Match each cart trigger to the right reason',
-    instruction: 'Tap a trigger, then tap the reason that explains it. Correct matches glow green.',
-    pairs: [
-      {
-        id: 'urgency',
-        trigger: '"Only a few minutes left!"',
-        category: 'FOMO',
-        insight: {
-          label: 'Fear of Missing Out',
-          detail: 'Time pressure replaces thinking. You act fast so you don\'t "lose" the deal — even when you never planned to buy it.',
-        },
-      },
-      {
-        id: 'social',
-        trigger: '"People also bought this…"',
-        category: 'Suggestions & Recommendations',
-        insight: {
-          label: 'Suggestion bias',
-          detail: 'The app makes the choice for you. Borrowing the crowd\'s decision feels easier than making your own.',
-        },
-      },
-      {
-        id: 'pairing',
-        trigger: '"This would go perfectly with my shoes."',
-        category: 'Emotional Justification',
-        insight: {
-          label: 'Emotional logic',
-          detail: 'Feelings dressed up as reasons. "It just goes with…" lets you spend without admitting it was unplanned.',
-        },
-      },
-      {
-        id: 'free-delivery',
-        trigger: '"You\'re close to free delivery!"',
-        category: 'Spending More to "Save"',
-        insight: {
-          label: 'The save-by-spending trap',
-          detail: 'You spend ₹400 extra to "save" ₹40 of delivery. The cost of saving was more than the saving itself.',
-        },
-      },
+  /* GAME: Rebuild Shanaya's Thought Spiral. The learner drags 12
+   * floating thought bubbles into 4 colour-coded Mind Trap Zones.
+   * Each zone takes exactly 3 thoughts. */
+  mindTrap: {
+    title: "Rebuild Shanaya's Thought Spiral",
+    instruction: 'Drag each thought into the zone you think influenced Shanaya the most.',
+    hint: '⚠️ Some thoughts feel tricky — choose the strongest match.',
+    zones: [
+      { id: 'fomo',        emoji: '⚡', label: 'Fear of Missing Out',           shortLabel: 'FOMO',           accent: 'from-coral-500 to-burgundy-500', ring: 'ring-coral-500',   tone: 'text-coral-600',   bg: 'bg-coral-500/10'  },
+      { id: 'suggestions', emoji: '✨', label: 'Suggestions & Recommendations', shortLabel: 'Suggestions',    accent: 'from-saffron-500 to-coral-400',  ring: 'ring-saffron-500', tone: 'text-saffron-600', bg: 'bg-saffron-500/10'},
+      { id: 'emotional',   emoji: '💖', label: 'Emotional Justification',       shortLabel: 'Emotional',      accent: 'from-pink-400 to-fuchsia-500',   ring: 'ring-pink-500',    tone: 'text-pink-600',    bg: 'bg-pink-500/10'   },
+      { id: 'save',        emoji: '💸', label: 'Spending More to "Save"',       shortLabel: 'Save-spend',     accent: 'from-teal-500 to-emerald-600',   ring: 'ring-teal-500',    tone: 'text-teal-600',    bg: 'bg-teal-500/10'   },
+    ],
+    thoughts: [
+      { id: 'fomo-1', text: 'What if the sale disappears later?',                     zone: 'fomo' },
+      { id: 'fomo-2', text: "I should grab this before it's gone.",                    zone: 'fomo' },
+      { id: 'fomo-3', text: "Everyone's buying this right now.",                       zone: 'fomo' },
+      { id: 'sug-1',  text: 'This popped up right after I bought the shoes.',         zone: 'suggestions' },
+      { id: 'sug-2',  text: 'The app says it matches my birthday vibe.',              zone: 'suggestions' },
+      { id: 'sug-3',  text: 'People who bought sneakers also bought this.',           zone: 'suggestions' },
+      { id: 'emo-1',  text: 'This would make my birthday pictures look so much better.', zone: 'emotional' },
+      { id: 'emo-2',  text: "It'll make the day feel more special.",                   zone: 'emotional' },
+      { id: 'emo-3',  text: 'I deserve something fun for my birthday.',               zone: 'emotional' },
+      { id: 'sav-1',  text: 'If I buy this, I get the phone case free.',              zone: 'save' },
+      { id: 'sav-2',  text: "I'm basically saving money.",                             zone: 'save' },
+      { id: 'sav-3',  text: 'The discount is too good to miss.',                      zone: 'save' },
     ],
   },
-  puzzle: {
-    title: 'Build the definition',
-    instruction: 'Tap tiles to fill the sentence in order. Two tiles are decoys — leave them out.',
-    leadIn: 'Impulse buying is',
-    slots: 4,
-    tiles: [
-      { id: 't1', label: 'buying something',         correctIndex: 0 },
-      { id: 't2', label: 'carefully planned',         correctIndex: null },
-      { id: 't3', label: 'you didn\'t plan to buy',   correctIndex: 1 },
-      { id: 't4', label: 'after comparing everything', correctIndex: null },
-      { id: 't5', label: 'because it feels right',    correctIndex: 2 },
-      { id: 't6', label: 'in the moment',             correctIndex: 3 },
+
+  /* 3 click-through flash cards that explain how impulse buying works. */
+  flashCards: {
+    title: 'How impulse buying works',
+    intro: 'Click through the cards to learn the patterns.',
+    cards: [
+      {
+        id: 'fomo',
+        emoji: '⚡',
+        title: 'FOMO',
+        subtitle: 'Fear of Missing Out',
+        visual: 'countdown',
+        body: 'FOMO means Fear of Missing Out. People may rush to buy something because they are worried the deal or opportunity will disappear later.',
+      },
+      {
+        id: 'triggers',
+        emoji: '✨',
+        title: 'Shopping triggers',
+        subtitle: 'Designed to keep you spending',
+        visual: 'triggers',
+        body: 'Shopping apps use recommendations, flash sales, and rewards to keep people interested and encourage more spending. These triggers can slowly influence what people notice, want, and buy.',
+      },
+      {
+        id: 'small-spends',
+        emoji: '💸',
+        title: 'Small spends add up',
+        subtitle: 'Little buys, big total',
+        visual: 'addition',
+        body: 'Impulse buying is often made up of many small purchases that seem harmless in the moment. Even small amounts can quickly add up when people keep spending without noticing.',
+      },
     ],
-    finalLine: 'Impulse buying is buying something you didn\'t plan to buy because it feels right in the moment.',
-  },
-  framework: {
-    title: 'The Pause & Think framework',
-    intro: 'Five quick questions to ask before you tap "Buy".',
-    bullets: [
-      { id: 'plan',     emoji: '📋', label: 'Plan',      question: 'Did I plan to buy this?',                  detail: 'If it wasn\'t on your list five minutes ago, that\'s a sign.' },
-      { id: 'need',     emoji: '🎯', label: 'Need',      question: 'Do I need it — or just want it right now?', detail: 'Wants fade in 24 hours. Needs don\'t.' },
-      { id: 'budget',   emoji: '₹',  label: 'Budget',    question: 'Is this within the money I set aside?',    detail: 'Numbers don\'t care about feelings.' },
-      { id: 'wait',     emoji: '⏳', label: 'Wait',      question: 'Can it wait until tomorrow?',              detail: 'Most "limited" offers come back. Most cravings don\'t.' },
-      { id: 'tradeoff', emoji: '⚖️', label: 'Trade-off', question: 'What else could I do with this money?',    detail: 'Every ₹ spent here is a ₹ not spent on something else.' },
-    ],
-    closer: 'Next, you\'ll face four real-life money choices. Use the framework — see how it feels.',
+    closer: 'You now know the tricks. Knowing them is the first step to pausing before you tap "Buy".',
   },
 };
 
 function act2Scenes() {
   return [
     /* ============================================================
-     * SCENE 6 — WHAT JUST HAPPENED?
+     * SCENE 6 — INSIDE SHANAYA'S MIND  (Drag thought-spiral game)
+     * 12 thought bubbles → 4 mind-trap zones.
      * ============================================================ */
     {
       id: 'scene-6',
-      title: 'What Just Happened?',
+      title: "Inside Shanaya's Mind",
       ambience: 'reflective',
       emotion: 'curious',
       phases: [
         {
           id: 's6-open',
-          duration: 11500,
-          status: 'Looking back at the cart',
+          duration: 2000,
+          status: 'Mission briefing',
           emotion: 'realised',
-          narration: 'Five items. ₹3,795. None of it was on the plan. So what actually made each one slip in?',
+          narration: "Shanaya didn't suddenly decide to overspend. Small thoughts slowly changed her decisions while shopping.",
         },
         {
-          id: 's6-setup',
-          duration: 10000,
-          status: 'Four triggers from the cart',
+          id: 's6-mission',
+          duration: 5500,
+          status: 'Your mission',
           emotion: 'curious',
-          bubbles: [
-            { side: 'right', type: 'thought', text: 'Each item came with a different reason. Let\'s name them.' },
-          ],
+          narration: "Your mission: enter Shanaya's mind and trace what influenced her choices.",
         },
         {
           id: 's6-activity',
           hold: true,
-          status: 'Matching triggers to reasons',
+          status: 'Rebuild the thought spiral',
           emotion: 'curious',
-          activity: { kind: 'match', id: 'match-triggers' },
+          activity: { kind: 'mind-trap', id: 'thought-spiral' },
         },
         {
           id: 's6-close',
-          duration: 10000,
-          status: 'All four named',
+          duration: 7500,
+          status: 'All twelve sorted',
           emotion: 'realised',
           bubbles: [
-            { side: 'right', type: 'thought', text: 'Same brain, four different tricks. No wonder it felt normal.' },
+            { side: 'right', type: 'thought', text: 'Same brain, four different tricks. No wonder each step felt normal.' },
           ],
         },
       ],
     },
 
     /* ============================================================
-     * SCENE 7 — CONNECTING THE DOTS
+     * SCENE 7 — DEFINITION  (no game, just narration)
      * ============================================================ */
     {
       id: 'scene-7',
-      title: 'Connecting the Dots',
+      title: 'What is Impulse Buying',
       ambience: 'reflective',
       emotion: 'curious',
       phases: [
         {
           id: 's7-open',
-          duration: 10000,
-          status: 'Naming what just happened',
-          emotion: 'curious',
-          narration: 'These tricks have a name. Build the definition — two tiles are decoys, leave them out.',
-        },
-        {
-          id: 's7-activity',
-          hold: true,
-          status: 'Building the definition',
-          emotion: 'curious',
-          activity: { kind: 'puzzle', id: 'definition-puzzle' },
-        },
-        {
-          id: 's7-close',
-          duration: 10500,
-          status: 'Definition unlocked',
+          duration: 8500,
+          status: 'Connecting the dots',
           emotion: 'realised',
+          narration: 'Shanaya only planned to buy shoes. But discounts, excitement, "FREE" offers, and emotional decisions slowly changed her choices.',
+        },
+        {
+          id: 's7-name',
+          duration: 9500,
+          status: 'It has a name',
+          emotion: 'realised',
+          narration: "Buying something you didn't plan to buy — because it feels right in the moment. This is called IMPULSE BUYING.",
           bubbles: [
-            { side: 'right', type: 'thought', text: 'So that\'s what I did. Five times in one afternoon.' },
+            { side: 'right', type: 'thought', text: 'Oh… so that’s what it’s called.' },
           ],
         },
       ],
     },
 
     /* ============================================================
-     * SCENE 8 — PAUSE & THINK FRAMEWORK
+     * SCENE 8 — FLASH CARDS  (3 click-through cards)
      * ============================================================ */
     {
       id: 'scene-8',
-      title: 'Pause & Think',
+      title: 'How impulse buying works',
       ambience: 'reflective',
       emotion: 'happy',
       phases: [
         {
           id: 's8-open',
-          duration: 10000,
-          status: 'Learning the framework',
+          duration: 2500,
+          status: 'Three flash cards',
           emotion: 'curious',
-          narration: 'Knowing the trick is half the answer. Here is a five-question pause that beats it.',
+          narration: 'Click through the flash cards one by one to learn the patterns.',
         },
         {
-          /* This is the LAST phase of Act 2. Clicking "Finish Act 2" on
-           * the FrameworkCard completes the activity, the sequencer sees
-           * it as the last phase, and onComplete navigates straight back
-           * to the home page (Act 3 is still coming-soon). No bridge beat
-           * after — the user closes the act on their own click. */
-          id: 's8-framework',
+          /* LAST phase of Act 2. Clicking "Finish Act 2" on the
+           * FlashCardDeck completes the activity, the sequencer sees
+           * it as the last phase, and onComplete navigates home. */
+          id: 's8-cards',
           hold: true,
-          status: 'Five questions to pause',
+          status: 'Flash cards',
           emotion: 'happy',
-          activity: { kind: 'framework', id: 'pause-and-think' },
+          activity: { kind: 'flash-cards', id: 'impulse-cards' },
         },
       ],
     },

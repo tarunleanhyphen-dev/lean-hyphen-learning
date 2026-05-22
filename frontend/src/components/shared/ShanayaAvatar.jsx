@@ -55,7 +55,7 @@ function dataUriFor(emotion) {
   }).toDataUri();
 }
 
-export default function ShanayaAvatar({ emotion = 'neutral', speaking = false, wordTick = 0, amplitudeRef, size = 'xl' }) {
+export default function ShanayaAvatar({ emotion = 'neutral', speaking = false, wordTick = 0, amplitudeRef, size = 'xl', showPhone = true }) {
   const face = EMOTIONS[emotion] || EMOTIONS.neutral;
   const uri = useMemo(() => dataUriFor(emotion), [emotion]);
 
@@ -147,8 +147,10 @@ export default function ShanayaAvatar({ emotion = 'neutral', speaking = false, w
         </AnimatePresence>
 
         {/* iPhone overlay — held in Shanaya's hand against the centre of
-           her coral t-shirt. Back-facing so the Apple logo + camera island
-           are what the viewer sees (consistent with the rest of the lesson). */}
+           her coral t-shirt. Act 1 keeps it visible; Act 2 hides it
+           (showPhone={false}) because the lesson has moved past the
+           shopping app into reflection. */}
+        {showPhone && (
         <motion.div
           aria-hidden
           animate={{ y: [0, -1.5, 0] }}
@@ -195,6 +197,7 @@ export default function ShanayaAvatar({ emotion = 'neutral', speaking = false, w
             <rect x="28" y="13" width="0.7" height="7" rx="0.35" fill="#0A0A0F" />
           </svg>
         </motion.div>
+        )}
 
         {speaking && (
           <motion.div

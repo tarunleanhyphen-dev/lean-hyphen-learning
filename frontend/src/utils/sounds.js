@@ -140,6 +140,16 @@ const CHORDS = {
   Bb:  { notes: [233.08, 293.66, 349.23], bass: 116.54 },
   A:   { notes: [220.00, 277.18, 329.63], bass: 110.00 },
   Fmaj7:{notes: [174.61, 261.63, 329.63], bass:  87.31 },
+  /* Jazz 7th / 9th extensions — lush voicings for the lo-fi mood.
+   * Each chord stacks the 7th (and sometimes 9th) on top of the
+   * triad so the pad sounds like a Rhodes/Wurli rather than a flat
+   * organ. Bass roots stay in the same octave as the other moods. */
+  Cmaj9:  { notes: [261.63, 329.63, 392.00, 493.88, 587.33], bass: 130.81 }, // C E G B D
+  Am9:    { notes: [220.00, 261.63, 329.63, 392.00, 493.88], bass: 110.00 }, // A C E G B
+  Dm9:    { notes: [293.66, 349.23, 440.00, 523.25, 659.26], bass: 146.83 }, // D F A C E
+  G13:    { notes: [196.00, 246.94, 293.66, 349.23, 493.88], bass:  98.00 }, // G B D F B
+  Fmaj9:  { notes: [174.61, 220.00, 261.63, 329.63, 392.00], bass:  87.31 }, // F A C E G
+  Em9:    { notes: [164.81, 196.00, 246.94, 293.66, 369.99], bass:  82.41 }, // E G B D F#
 };
 
 // Mood definitions tuned so transitions are *audible*, not subtle. The big
@@ -203,6 +213,29 @@ const MOODS = {
     padGain: 0, bassGain: 0,
     busGain: 0, lpfHz: 500,
   },
+  /* Lo-fi / chill-pop bedroom mood — used for Act 2's reflective
+   * "understanding impulse buying" scenes. Hallmarks:
+   *   – Jazz 9th chords (Cmaj9 → Am9 → Fmaj9 → G13) so the pad reads
+   *     as a Rhodes/electric-piano instead of an organ.
+   *   – Warm Rhodes-style pad with a slight tremolo (via slight
+   *     detune across three oscillator voices).
+   *   – Soft brushed half-time hat — ticks on beat 3 + the "& of 4"
+   *     for that lazy lo-fi swing.
+   *   – Continuous vinyl crackle through a low-pass — sells the
+   *     tape-cassette texture.
+   *   – Sparse bell arpeggio (every other bar) so the soundtrack
+   *     breathes between phrases.
+   *   – Low-passed bus + a touch of sub kick on bar 1, none on bar 3
+   *     so the half-time feel reads. */
+  lofi: {
+    progression: ['Cmaj9', 'Am9', 'Fmaj9', 'G13'],
+    hasPad: true, hasBass: true, hasShaker: true, hasBell: true,
+    hasPluck: true, hasKick: true, hasCrackle: true, isLofi: true,
+    halfTimeHat: true, sparseBell: true,
+    padGain: 0.07, bassGain: 0.18, bellGain: 0.07,
+    pluckGain: 0.045, kickGain: 0.14,
+    busGain: 0.52, lpfHz: 1500,
+  },
 };
 
 function schedulePad(freq, start, dur, peak) {
@@ -235,7 +268,7 @@ function scheduleBass(freq, start, dur, peak) {
   o.stop(start + dur + 0.1);
 }
 
-function scheduleShaker(start) {
+function scheduleShaker(start, peak = 0.06) {
   // Subtle hi-hat tick — short white noise burst through high-pass.
   const dur = 0.06;
   const buffer = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
@@ -247,11 +280,72 @@ function scheduleShaker(start) {
   hp.type = 'highpass';
   hp.frequency.value = 6000;
   const g = ctx.createGain();
-  g.gain.setValueAtTime(0.06, start);
+  g.gain.setValueAtTime(peak, start);
   g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
   src.connect(hp).connect(g).connect(musicGain);
   src.start(start);
   src.stop(start + dur + 0.02);
+}
+
+/* Rhodes-style pad voice — three slightly-detuned triangle/sine
+ * oscillators with a slow attack and a long release. The combined
+ * detune produces the gentle chorus shimmer that defines an electric
+ * piano / Wurli sound; the low-pass at the bus then takes the edge
+ * off so it sits behind the speech without competing. */
+function scheduleRhodesPad(freq, start, dur, peak) {
+  const ATTACK = 0.6;
+  const RELEASE = 0.9;
+  const detunes = [-7, 0, 6];           // cents
+  const types = ['triangle', 'sine', 'triangle'];
+  const sub = ctx.createGain();
+  sub.gain.setValueAtTime(0, start);
+  sub.gain.linearRampToValueAtTime(peak, start + ATTACK);
+  sub.gain.setValueAtTime(peak, start + dur - RELEASE);
+  sub.gain.linearRampToValueAtTime(0, start + dur);
+  detunes.forEach((cents, i) => {
+    const o = ctx.createOscillator();
+    o.type = types[i];
+    o.frequency.value = freq;
+    o.detune.value = cents;
+    const voiceGain = ctx.createGain();
+    voiceGain.gain.value = i === 1 ? 1 : 0.65;
+    o.connect(voiceGain).connect(sub);
+    o.start(start);
+    o.stop(start + dur + 0.3);
+  });
+  sub.connect(lowPassFilter);
+}
+
+/* Vinyl-crackle layer — bar-length filtered pink-ish noise at very
+ * low level. Adds the "tape cassette / lofi" texture without ever
+ * masking speech (HPF removes rumble, LPF removes hiss, and the
+ * peak gain is in the 0.012–0.018 range). */
+function scheduleVinylCrackle(start, dur) {
+  const len = Math.floor(ctx.sampleRate * dur);
+  const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  // Random pops (~12/sec at peak amplitude) layered over a low hiss bed.
+  for (let i = 0; i < len; i += 1) {
+    const hiss = (Math.random() * 2 - 1) * 0.15;
+    const pop = Math.random() < 0.0012 ? (Math.random() * 2 - 1) * 0.9 : 0;
+    data[i] = hiss + pop;
+  }
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  const hp = ctx.createBiquadFilter();
+  hp.type = 'highpass';
+  hp.frequency.value = 800;
+  const lp = ctx.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.value = 4500;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0, start);
+  g.gain.linearRampToValueAtTime(0.018, start + 0.12);
+  g.gain.setValueAtTime(0.018, start + dur - 0.2);
+  g.gain.linearRampToValueAtTime(0, start + dur);
+  src.connect(hp).connect(lp).connect(g).connect(musicGain);
+  src.start(start);
+  src.stop(start + dur + 0.05);
 }
 
 function schedulePluck(freq, start, peak) {
@@ -382,44 +476,92 @@ function scheduleBar(barIdx, startTime) {
   const chord = CHORDS[chordName];
 
   if (mood.hasPad) {
-    chord.notes.forEach((freq) => schedulePad(freq, startTime, BAR, mood.padGain));
-    // Octave-up shimmer pad on the chord's root + fifth — adds a brighter,
-    // more emotional top layer without competing with the bell melody.
-    schedulePad(chord.notes[0] * 2, startTime, BAR, mood.padGain * 0.45);
-    schedulePad(chord.notes[2] * 2, startTime, BAR, mood.padGain * 0.35);
+    if (mood.isLofi) {
+      // Rhodes-style stacked voicing — top 4 notes of the 9th chord
+      // played softly, slightly detuned, with a small octave-down sub
+      // root for warmth. Drops the brittle high shimmer the other
+      // moods use so the pad sits soft like a Wurli.
+      const voicing = chord.notes.slice(0, 4);
+      voicing.forEach((freq, i) => {
+        const v = mood.padGain * (i === 0 ? 1 : 0.78 - i * 0.04);
+        scheduleRhodesPad(freq, startTime, BAR, v);
+      });
+      // Sub-octave root underneath — fattens the chord without adding
+      // mud (it's heavily low-passed by the mood's lpfHz).
+      scheduleRhodesPad(chord.notes[0] / 2, startTime, BAR, mood.padGain * 0.55);
+    } else {
+      chord.notes.forEach((freq) => schedulePad(freq, startTime, BAR, mood.padGain));
+      // Octave-up shimmer pad on the chord's root + fifth — adds a brighter,
+      // more emotional top layer without competing with the bell melody.
+      schedulePad(chord.notes[0] * 2, startTime, BAR, mood.padGain * 0.45);
+      schedulePad(chord.notes[2] * 2, startTime, BAR, mood.padGain * 0.35);
+    }
   }
   // Soft synth pluck on beats 1 + 3 — a hooky top-line note that gives
   // the shopping moods a GenZ "modern pop" feel without overshadowing
   // the bell melody.
   if (mood.hasPluck) {
-    schedulePluck(chord.notes[2] * 2, startTime + BEAT * 0,    mood.pluckGain || 0.06);
-    schedulePluck(chord.notes[1] * 2, startTime + BEAT * 2,    mood.pluckGain || 0.06);
+    if (mood.isLofi) {
+      // Lo-fi plucks land on the "&" of 2 and the "&" of 4 — that
+      // syncopated half-time placement reads as a chill beatmaker
+      // sketch instead of straight pop.
+      schedulePluck(chord.notes[2] * 2, startTime + BEAT * 1.5, mood.pluckGain || 0.045);
+      schedulePluck(chord.notes[1] * 2, startTime + BEAT * 3.5, mood.pluckGain || 0.045);
+    } else {
+      schedulePluck(chord.notes[2] * 2, startTime + BEAT * 0,    mood.pluckGain || 0.06);
+      schedulePluck(chord.notes[1] * 2, startTime + BEAT * 2,    mood.pluckGain || 0.06);
+    }
   }
   // Sub-kick on beat 1 of every bar — anchors the chord like an 808 in
   // a TikTok track. Only the shopping-tempo mood gets it so calmer moods
   // stay airy.
   if (mood.hasKick) {
-    scheduleSubKick(startTime, mood.kickGain || 0.18);
+    // Lo-fi: half-time kick (every other bar) so the groove breathes.
+    if (!mood.isLofi || barIdx % 2 === 0) {
+      scheduleSubKick(startTime, mood.kickGain || 0.18);
+    }
   }
   if (mood.hasBass) {
-    scheduleBass(chord.bass, startTime, BAR / 2, mood.bassGain);
-    scheduleBass(chord.bass, startTime + BAR / 2, BAR / 2, mood.bassGain * 0.7);
+    if (mood.isLofi) {
+      // Half-note bass — root on 1, root on 3 — that's the classic
+      // lazy lo-fi walk under jazz chords.
+      scheduleBass(chord.bass, startTime, BAR / 2, mood.bassGain);
+      scheduleBass(chord.bass / 2 * 1.5, startTime + BAR / 2, BAR / 2, mood.bassGain * 0.6); // fifth up an octave down
+    } else {
+      scheduleBass(chord.bass, startTime, BAR / 2, mood.bassGain);
+      scheduleBass(chord.bass, startTime + BAR / 2, BAR / 2, mood.bassGain * 0.7);
+    }
   }
   if (mood.hasShaker) {
-    scheduleShaker(startTime + BEAT * 1);
-    scheduleShaker(startTime + BEAT * 3);
-    // Active / hit moods get extra eighth-note ticks for a more driven feel.
-    if (mood.extraTick) {
-      scheduleShaker(startTime + BEAT * 0.5);
-      scheduleShaker(startTime + BEAT * 1.5);
-      scheduleShaker(startTime + BEAT * 2.5);
-      scheduleShaker(startTime + BEAT * 3.5);
+    if (mood.halfTimeHat) {
+      // Half-time brushed hat — tick on beat 3 only + a soft "&" of 4
+      // shadow. Gives the bedroom-pop / Rhodes vibe instead of a busy
+      // pop pattern. Plus a softer in-between tick on beat 1 for pulse.
+      scheduleShaker(startTime + BEAT * 0, 0.025);
+      scheduleShaker(startTime + BEAT * 2, 0.055);
+      scheduleShaker(startTime + BEAT * 3.5, 0.04);
+    } else {
+      scheduleShaker(startTime + BEAT * 1);
+      scheduleShaker(startTime + BEAT * 3);
+      if (mood.extraTick) {
+        scheduleShaker(startTime + BEAT * 0.5);
+        scheduleShaker(startTime + BEAT * 1.5);
+        scheduleShaker(startTime + BEAT * 2.5);
+        scheduleShaker(startTime + BEAT * 3.5);
+      }
     }
   }
   if (mood.hasBell) {
-    // Per-bar bell arpeggio — root → fifth → octave → third (all up one
-    // octave) gives the soundtrack a real melodic top-line.
-    scheduleBellMelody(chord, startTime, BAR, mood.bellGain || 0.05);
+    // Sparse bell — only on even bars for the lo-fi mood, so the
+    // chord can breathe between phrases.
+    if (!mood.sparseBell || barIdx % 2 === 0) {
+      scheduleBellMelody(chord, startTime, BAR, mood.bellGain || 0.05);
+    }
+  }
+  // Vinyl-crackle texture for the lo-fi mood — a continuous low-level
+  // filtered noise layer. Re-scheduled per bar so it never gaps.
+  if (mood.hasCrackle) {
+    scheduleVinylCrackle(startTime, BAR);
   }
 }
 
@@ -747,12 +889,22 @@ function chunkForTTS(text, max = 180) {
 
 export function cancelCloudSpeech() {
   if (currentCloudAudio) {
-    try {
-      currentCloudAudio.pause();
-      currentCloudAudio.src = '';
-      currentCloudAudio.load();
-    } catch {}
+    const audio = currentCloudAudio;
+    // Null out the global FIRST so any in-flight chunk handler that
+    // fires below sees `audio !== currentCloudAudio` and bails. Without
+    // this, setting src='' + load() triggers audio.onerror, which in
+    // turn called playChunkSequence(i+1) and played the NEXT chunk of
+    // the cancelled utterance — i.e. card 2's voice bleeding into
+    // card 3 even after cancelSpeech.
     currentCloudAudio = null;
+    try {
+      audio.onended = null;
+      audio.onerror = null;
+      audio.ontimeupdate = null;
+      audio.pause();
+      audio.src = '';
+      audio.load();
+    } catch {}
   }
 }
 
@@ -842,22 +994,31 @@ function playChunkSequence(chunks, i, who, volume, onFinished) {
     }
   };
   audio.onended = () => {
-    // Stop the amplitude loop between chunks if there are no more chunks
-    // queued for this utterance — the next chunk (if any) will start it
-    // back up via its own play() promise.
+    // If this audio has been superseded by cancelCloudSpeech (or by a
+    // newer utterance), don't advance — that'd play the cancelled
+    // utterance's next chunk on top of the new one.
+    if (audio !== currentCloudAudio) return;
     if (i + 1 >= chunks.length) stopAmplitudeLoop();
     playChunkSequence(chunks, i + 1, who, volume, onFinished);
   };
   audio.onerror = () => {
+    if (audio !== currentCloudAudio) return; // superseded
     // eslint-disable-next-line no-console
     console.warn('[cloudSpeak] audio error on chunk', i, '— skipping');
     if (i + 1 >= chunks.length) stopAmplitudeLoop();
     playChunkSequence(chunks, i + 1, who, volume, onFinished);
   };
   audio.play().then(() => {
+    if (audio !== currentCloudAudio) {
+      // Cancelled mid-load. Pause this orphan so its decoded buffer
+      // doesn't leak audio.
+      try { audio.pause(); } catch {}
+      return;
+    }
     // play() resolved → audio is actually flowing → start sampling.
     startAmplitudeLoop();
   }).catch((err) => {
+    if (audio !== currentCloudAudio) return; // superseded
     // eslint-disable-next-line no-console
     console.warn('[cloudSpeak] play() rejected', err.message);
     playChunkSequence(chunks, i + 1, who, volume, onFinished);

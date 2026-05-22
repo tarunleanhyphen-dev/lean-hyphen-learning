@@ -450,22 +450,6 @@ function act1Scenes() {
           cue: 'alert',
         },
         {
-          /* Suddenly — a NEW OFFER UNLOCKED banner slides in over the
-           * feed. Pulses to grab attention, no narration. */
-          id: 's2-w3-unlock',
-          duration: 4800,
-          status: 'NEW OFFER UNLOCKED',
-          phone: after(['shoes', 'socks', 'hoodie'], {
-            unlockOffer: {
-              headline: 'NEW OFFER UNLOCKED',
-              message: 'Add 1 more item and get a Phone Case FREE',
-              gift: 'phone-case',
-              emoji: '🎀',
-            },
-          }),
-          cue: 'alert',
-        },
-        {
           id: 's2-w3-bubble1',
           duration: 7500,
           status: 'Curious about the free gift',

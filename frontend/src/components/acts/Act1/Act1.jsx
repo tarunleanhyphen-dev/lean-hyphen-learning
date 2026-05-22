@@ -359,12 +359,13 @@ export default function Act1({ onComplete }) {
   }, [phase, markHoldDone, advanceOrFinish]);
 
   const replayScene = () => {
-    let first = 0;
-    for (let i = 0; i < phaseToScene.length; i += 1) {
-      if (phaseToScene[i] === sceneIdx) { first = i; break; }
-    }
+    // "Replay" restarts the whole act from phase 0 (scene 1) — used to
+    // be "first phase of current scene only" but the user expects
+    // Replay to mean a full restart.
     spokenTexts.current.clear();
-    seq.goTo(first);
+    setCompletedHolds(new Set());
+    cancelSpeech();
+    seq.goTo(0);
     seq.resume();
   };
 
@@ -522,13 +523,18 @@ export default function Act1({ onComplete }) {
               )}
             </AnimatePresence>
 
-            {/* Spend tracker — below the avatar block */}
-            <SpendTracker total={cartTotal} showGap={phoneState.showGap} />
-
-            {/* Decision trail */}
-            <div className="mt-4">
-              <DecisionTimeline entries={timeline} />
-            </div>
+            {/* Spend tracker + Decision trail — only visible once the
+               phone column appears (scene 8 onward = seq.index >= 7).
+               Scenes 1–7 are pure storytelling so the empty "₹0 / ₹1,500
+               plan" and "0 items" blocks were just visual clutter. */}
+            {showPhone && (
+              <>
+                <SpendTracker total={cartTotal} showGap={phoneState.showGap} />
+                <div className="mt-4">
+                  <DecisionTimeline entries={timeline} />
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -622,8 +628,17 @@ export default function Act1({ onComplete }) {
       <div className="flex items-center justify-between gap-3">
         <button
           onClick={() => {
+            const target = Math.max(0, seq.index - 1);
             spokenTexts.current.clear();
-            seq.goTo(Math.max(0, seq.index - 1));
+            // Clear completed-hold flags from the target phase onward so
+            // any interactive add-to-cart prompt re-arms when stepping
+            // back through the scene.
+            setCompletedHolds((prev) => {
+              const next = new Set(prev);
+              for (let i = target; i < phases.length; i += 1) next.delete(phases[i]?.id);
+              return next;
+            });
+            seq.goTo(target);
             seq.resume();
           }}
           disabled={seq.index === 0}

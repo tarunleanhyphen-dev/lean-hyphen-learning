@@ -146,6 +146,56 @@ export default function ShanayaAvatar({ emotion = 'neutral', speaking = false, w
           />
         </AnimatePresence>
 
+        {/* iPhone overlay — held in Shanaya's hand against the centre of
+           her coral t-shirt. Back-facing so the Apple logo + camera island
+           are what the viewer sees (consistent with the rest of the lesson). */}
+        <motion.div
+          aria-hidden
+          animate={{ y: [0, -1.5, 0] }}
+          transition={{ duration: 3.6, repeat: Infinity, ease: 'easeInOut' }}
+          className="pointer-events-none absolute left-1/2 z-10"
+          style={{ bottom: '6%', transform: 'translateX(-50%) rotate(-6deg)' }}
+        >
+          <svg width="38" height="64" viewBox="0 0 28 48" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-lg">
+            {/* Phone body — dark titanium back */}
+            <defs>
+              <linearGradient id="ihp-back" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%"   stopColor="#4A4A50" />
+                <stop offset="50%"  stopColor="#1F1F24" />
+                <stop offset="100%" stopColor="#0A0A0F" />
+              </linearGradient>
+              <radialGradient id="ihp-lens" cx="35%" cy="35%" r="70%">
+                <stop offset="0%"   stopColor="#A6B8D8" />
+                <stop offset="60%"  stopColor="#2C3E6A" />
+                <stop offset="100%" stopColor="#06091A" />
+              </radialGradient>
+            </defs>
+            <rect width="28" height="48" rx="6" fill="url(#ihp-back)" />
+            <rect x="0.6" y="0.6" width="26.8" height="46.8" rx="5.4" fill="none" stroke="#FFFFFF" strokeOpacity="0.12" strokeWidth="0.6" />
+            {/* Vertical sheen on the back */}
+            <rect x="2.4" y="3" width="0.9" height="42" rx="0.4" fill="#FFFFFF" opacity="0.08" />
+            {/* Camera island — top-left with two lenses + LED flash */}
+            <g transform="translate(3 3)">
+              <rect width="9" height="9" rx="2.4" fill="#15151A" />
+              <circle cx="3" cy="3" r="1.7" fill="url(#ihp-lens)" />
+              <circle cx="2.7" cy="2.7" r="0.4" fill="#FFFFFF" opacity="0.85" />
+              <circle cx="6" cy="6" r="1.7" fill="url(#ihp-lens)" />
+              <circle cx="5.7" cy="5.7" r="0.4" fill="#FFFFFF" opacity="0.85" />
+              <circle cx="6" cy="3" r="0.8" fill="#FFE066" />
+            </g>
+            {/* Apple logo — proper bitten apple silhouette (Bootstrap Icons),
+               centred low on the phone back. */}
+            <g transform="translate(9.5 19) scale(0.55)">
+              <path
+                d="M11.182.008C11.148-.03 9.923.023 8.857 1.18c-1.066 1.156-.902 2.482-.878 2.516.024.034 1.52.087 2.475-1.258.955-1.345.762-2.391.728-2.43Zm3.314 11.733c-.048-.096-2.325-1.234-2.113-3.422.212-2.189 1.675-2.789 1.698-2.854.023-.065-.597-.79-1.254-1.157a3.692 3.692 0 0 0-1.563-.434c-.108-.003-.483-.095-1.254.116-.508.139-1.653.589-1.968.607-.316.018-1.256-.522-2.267-.665-.647-.125-1.333.131-1.824.328-.49.196-1.422.754-2.074 2.237-.652 1.482-.311 3.83-.067 4.56.244.729.625 1.924 1.273 2.796.576.984 1.34 1.667 1.659 1.899.319.232 1.219.386 1.843.067.502-.308 1.408-.485 2.005-.484.595.005 1.301.183 1.81.483.391.234 1.187.413 1.741-.04.371-.286 1.453-1.703 2.085-3.146Z"
+                fill="#FFFFFF"
+              />
+            </g>
+            {/* Side button */}
+            <rect x="28" y="13" width="0.7" height="7" rx="0.35" fill="#0A0A0F" />
+          </svg>
+        </motion.div>
+
         {speaking && (
           <motion.div
             aria-hidden

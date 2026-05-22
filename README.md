@@ -14,6 +14,23 @@ The current build ships **Act 1 — Story Hook & Setup**. Acts 2/3/4 are scaffol
 
 ---
 
+## What's in Act 1 today
+
+Act 1 is a full cinematic + interactive simulation, ~50 phases long. Highlights:
+
+- **Cinematic opening (Scenes 1–7):** DiceBear avataaars character (Shanaya) in a flat-illustrated bedroom, narrating context. Bedroom SVG vignettes (Meet Shanaya, Birthday, Group Chat, Vision, App Open) with depth, shimmer, fairy lights, and a small iPhone overlaid on the avatar with a real Apple logo.
+- **Mock Spree shopping app (Scene 8+):** iOS-style home grid → tap the Spree icon → app-launch zoom → typed search → results grid → PDP. Trending category strip (with a 🔥 Trending tile), hero banner, product cards with real Unsplash imagery (sneakers, hoodie, selfie light, smartwatch, iPhone 17 orange, etc.) + inline SVG socks. Wishlist hearts + free-delivery banner that auto-computes **tomorrow's date**.
+- **Three nudge waves with interactive Add-to-Cart:**
+  - *Complete the Look* — Branded Socks suggestion (Pair your shoes with these matching socks)
+  - *Trending → Flash Deal* — Birthday Hoodie with a live 5-minute countdown + ₹999→₹799 strikethrough
+  - *NEW OFFER UNLOCKED · Add 1 more & get Phone Case FREE 🎀* — Selfie Glow Clip Light bundle from the Electronics shelf
+- **Two ways to tap Add-to-Cart:** the actual coral button inside the phone PDP **and** a yellow "👉 Tap here" pill below the phone — both fire the same handler. Saffron ring + pulsing glow direct the eye. Replay + Back re-arm interactive prompts so the learner can walk through again.
+- **Final cart reveal + checkout flow:** items list with FREE pill on the phone case → total ₹2,796 → "Wait… I only came here to buy shoes" thought → Place Order → Payment screen → Pay ₹2,796 · UPI → processing → Order Placed confirmation → free-text reflection prompt.
+- **Voice:** every spoken line goes through MS Edge Neural TTS via the backend (`hi-IN-SwaraNeural` for Shanaya, `en-IN-PrabhatNeural` at 1.3× playback for the narrator). Real-time amplitude lip-sync on the avatar's mouth. Pause/Resume preserves the exact word position.
+- **Background music:** Web Audio synth (pad + sub-bass + bell arpeggio + shaker + synth pluck + 808-style sub-kick). 5 moods (calm, app-tempo, reflective, thinking, silent) auto-mapped from the current emotion. vi-IV-I-V chord progression for an emotional coming-of-age feel; the shopping mood gets a GenZ "TikTok shopping reel" energy.
+
+---
+
 ## Stack
 
 | Layer    | Tech                                          |

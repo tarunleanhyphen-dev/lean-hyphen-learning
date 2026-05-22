@@ -5,13 +5,25 @@ import {
   ChevronRight, BadgePercent, Flame, Check,
 } from 'lucide-react';
 import { products, freeDeliveryThreshold, SHOE_GRID } from '../../data/lessons/thinkBeforeYouSpend.js';
+
+/* Tomorrow's date, formatted "Sat, 23 May" — used everywhere the mock
+ * shopping app shows a delivery ETA so the date always reads as
+ * "delivery by tomorrow" relative to the day the learner opens the app
+ * (instead of a stale hardcoded "Sat, 17 May"). */
+function nextDayLabel() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+const DELIVERY_BY = nextDayLabel();
 import MicroConfetti from '../shared/MicroConfetti.jsx';
 
 const CATEGORIES = [
+  { id: 'trending', label: 'Trending', emoji: '🔥', hot: true },
   { id: 'footwear', label: 'Footwear', emoji: '👟' },
   { id: 'clothing', label: 'Clothing', emoji: '👕' },
   { id: 'beauty',   label: 'Beauty',   emoji: '💄' },
-  { id: 'tech',     label: 'Tech',     emoji: '⌚' },
+  { id: 'electronics', label: 'Electronics', emoji: '📱' },
   { id: 'bags',     label: 'Bags',     emoji: '🎒' },
   { id: 'jewelry',  label: 'Jewelry',  emoji: '💍' },
 ];
@@ -144,7 +156,7 @@ export default function MockShoppingApp({ state = {}, onAddToCart }) {
       <SearchBar value={state.search || ''} scrollHint={state.scrollHint} />
 
       {view === 'feed' && <>
-        <CategoryStrip />
+        <CategoryStrip tapTarget={state.tapTarget} />
         <HeroCarousel />
         {/* Big "Trending Fashion" grid lives in the feed so when narration
            says "she scrolls a little more", the auto-scroll has a real
@@ -468,7 +480,7 @@ function ProductDetail({ id, badge, tapping, urgencyMinutes, onlyXLeft, socialPr
           <div className="mt-3 rounded-xl bg-cream-50 px-3 py-2 text-[11px] text-ink-700 ring-1 ring-ink-300/15">
             <div className="flex items-center gap-1.5">
               <Truck className="h-3.5 w-3.5 text-teal-500" />
-              FREE delivery by <strong>Sat, 17 May</strong>
+              FREE delivery by <strong>{DELIVERY_BY}</strong>
             </div>
             <div className="mt-0.5 inline-flex items-center gap-1 text-[10px] text-ink-500">
               <MapPin className="h-3 w-3" /> Deliver to 110001 · Delhi
@@ -679,22 +691,36 @@ function ScrollHint() {
 
 /* =================== Categories + Hero =================== */
 
-function CategoryStrip() {
+function CategoryStrip({ tapTarget }) {
   return (
     <div className="bg-white px-4 pb-3">
       <div className="flex gap-3 overflow-x-auto pb-1">
-        {CATEGORIES.map((c) => (
-          <motion.button
-            key={c.id}
-            whileTap={{ scale: 0.95 }}
-            className="flex shrink-0 flex-col items-center gap-1"
-          >
-            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-cream-100 text-xl shadow-inner ring-1 ring-ink-300/10">
-              {c.emoji}
-            </span>
-            <span className="text-[10px] font-semibold text-ink-700">{c.label}</span>
-          </motion.button>
-        ))}
+        {CATEGORIES.map((c) => {
+          const isTapped = tapTarget === `cat-${c.id}`;
+          return (
+            <motion.button
+              key={c.id}
+              whileTap={{ scale: 0.95 }}
+              animate={isTapped ? { scale: [1, 1.06, 1] } : { scale: 1 }}
+              transition={isTapped ? { duration: 0.6, repeat: Infinity } : {}}
+              className="relative flex shrink-0 flex-col items-center gap-1"
+            >
+              <span
+                className={`grid h-12 w-12 place-items-center rounded-2xl text-xl shadow-inner ring-1 ${
+                  c.hot
+                    ? 'bg-gradient-to-br from-coral-500 to-saffron-500 text-white ring-saffron-500/40'
+                    : 'bg-cream-100 ring-ink-300/10'
+                } ${isTapped ? '!ring-2 !ring-saffron-500' : ''}`}
+              >
+                {c.emoji}
+              </span>
+              <span className={`text-[10px] font-semibold ${c.hot ? 'text-coral-600' : 'text-ink-700'}`}>
+                {c.label}
+              </span>
+              {isTapped && <TapPulse small />}
+            </motion.button>
+          );
+        })}
       </div>
     </div>
   );
@@ -793,7 +819,7 @@ function FeaturedProduct({ id, badge, tapping }) {
         {/* Delivery row */}
         <div className="mt-2 flex items-center gap-1.5 text-[11px] text-ink-700">
           <Truck className="h-3.5 w-3.5 text-teal-500" />
-          FREE delivery by <strong>Sat, 17 May</strong>
+          FREE delivery by <strong>{DELIVERY_BY}</strong>
           <span className="ml-auto inline-flex items-center gap-1 text-[10px] text-ink-500">
             <MapPin className="h-3 w-3" /> 110001
           </span>
@@ -831,11 +857,10 @@ function CouponStrip() {
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.2 }}
-      className="mx-4 mt-3 flex items-center gap-2 rounded-2xl border border-dashed border-saffron-500/50 bg-saffron-500/10 px-3 py-2 text-[12px] font-semibold text-saffron-600"
+      className="mx-4 mt-3 flex items-center gap-2 rounded-2xl border border-dashed border-teal-500/50 bg-teal-500/10 px-3 py-2 text-[12px] font-semibold text-teal-600"
     >
-      <BadgePercent className="h-4 w-4" />
-      <span>Apply <strong className="font-extrabold">LH200</strong> at checkout · ₹200 off</span>
-      <span className="ml-auto text-[10px] font-bold uppercase tracking-wider text-saffron-600/80">Tap to copy</span>
+      <Truck className="h-4 w-4" />
+      <span>FREE delivery on this order · arrives by <strong className="font-extrabold">{DELIVERY_BY}</strong></span>
     </motion.div>
   );
 }
@@ -1200,10 +1225,9 @@ function PaymentScreen({ total, ids, tapping, processing }) {
         <div className="space-y-1 text-[11px] text-ink-700">
           <div className="flex justify-between"><span>Items ({ids.length})</span><span>₹{total.toLocaleString('en-IN')}</span></div>
           <div className="flex justify-between"><span>Delivery</span><span className="font-bold text-teal-500">FREE</span></div>
-          <div className="flex justify-between"><span>Coupon LH200</span><span>− ₹200</span></div>
           <div className="my-1 h-px bg-ink-300/20" />
           <div className="flex justify-between text-[14px] font-extrabold text-ink-900">
-            <span>Pay now</span><span>₹{(total - 200).toLocaleString('en-IN')}</span>
+            <span>Pay now</span><span>₹{total.toLocaleString('en-IN')}</span>
           </div>
         </div>
       </div>
@@ -1223,7 +1247,7 @@ function PaymentScreen({ total, ids, tapping, processing }) {
                 Processing payment…
               </span>
             ) : (
-              <>Pay ₹{(total - 200).toLocaleString('en-IN')} · UPI</>
+              <>Pay ₹{total.toLocaleString('en-IN')} · UPI</>
             )}
           </button>
           {tapping && !processing && <TapPulse />}
@@ -1295,7 +1319,7 @@ function ConfirmationScreen({ total, ids }) {
         transition={{ delay: 0.55 }}
         className="mt-1 text-[13px] text-ink-700"
       >
-        ₹{(total - 200).toLocaleString('en-IN')} paid via UPI · Order #LH{Math.floor(100000 + (total % 899999))}
+        ₹{total.toLocaleString('en-IN')} paid via UPI · Order #LH{Math.floor(100000 + (total % 899999))}
       </motion.p>
 
       <motion.div
@@ -1306,7 +1330,7 @@ function ConfirmationScreen({ total, ids }) {
       >
         <div className="text-[11px] font-bold uppercase tracking-wider text-ink-500">Arriving</div>
         <div className="mt-0.5 inline-flex items-center gap-1.5 text-[14px] font-bold text-ink-900">
-          <Truck className="h-4 w-4 text-teal-500" /> By Sat, 17 May
+          <Truck className="h-4 w-4 text-teal-500" /> By {DELIVERY_BY}
         </div>
         <div className="mt-3 flex gap-1.5 overflow-x-auto">
           {ids.map((id) => (
@@ -1738,20 +1762,30 @@ function UnlockOfferBanner({ headline = 'NEW OFFER UNLOCKED', message = '', emoj
 }
 
 /* =================== Pair-your-shoes / Complete the Look nudge =================== */
-function PairNudgeBanner({ title = 'Complete the Look', subtitle = 'Pair your shoes with a beautiful pair of matching socks' }) {
+function PairNudgeBanner({ title = 'Complete the Look', subtitle = 'Pair your shoes with these matching socks' }) {
   return (
     <motion.div
-      initial={{ opacity: 0, x: -16 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.45 }}
-      className="mx-4 mt-3 flex items-center gap-3 rounded-2xl bg-gradient-to-r from-saffron-500/15 to-coral-500/15 p-3 ring-1 ring-saffron-500/30"
+      initial={{ opacity: 0, y: -10, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: [1, 1.02, 1] }}
+      transition={{ duration: 0.55, scale: { duration: 1.6, repeat: Infinity, repeatType: 'mirror' } }}
+      className="relative mx-4 mt-3 overflow-hidden rounded-2xl bg-gradient-to-r from-coral-500 via-saffron-500 to-coral-400 p-3 text-white shadow-lg ring-2 ring-saffron-500"
     >
-      <span className="grid h-8 w-8 place-items-center rounded-full bg-saffron-500 text-white">
-        <Sparkle />
-      </span>
-      <div className="min-w-0">
-        <div className="text-[12px] font-extrabold uppercase tracking-widest text-saffron-600">{title}</div>
-        <div className="text-[12.5px] font-semibold leading-snug text-ink-900">{subtitle}</div>
+      {/* Shimmer sweep across the banner */}
+      <motion.span
+        aria-hidden
+        initial={{ x: '-120%' }}
+        animate={{ x: '120%' }}
+        transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+        className="pointer-events-none absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/35 to-transparent"
+      />
+      <div className="relative flex items-center gap-3">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/25 text-white ring-1 ring-white/40 backdrop-blur-sm">
+          <Sparkle />
+        </span>
+        <div className="min-w-0">
+          <div className="text-[11px] font-extrabold uppercase tracking-widest opacity-90">✨ {title}</div>
+          <div className="mt-0.5 text-[13px] font-extrabold leading-snug">{subtitle}</div>
+        </div>
       </div>
     </motion.div>
   );
@@ -1770,7 +1804,7 @@ function Sparkle() {
  * items, line totals, delivery, coupon, the amount paid — so the student
  * physically sees the receipt before Act 1 closes. */
 function OrderSummaryScreen({ total, ids }) {
-  const paid = Math.max(0, total - 200);
+  const paid = total;
   return (
     <div className="relative min-h-full bg-cream-50 pb-12">
       <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-ink-300/10 bg-white px-4 py-3">
@@ -1809,7 +1843,6 @@ function OrderSummaryScreen({ total, ids }) {
           <div className="mt-2 space-y-1 text-[12px]">
             <Row label="Items subtotal" value={`₹${total.toLocaleString('en-IN')}`} />
             <Row label="Delivery" value="FREE" valueClass="text-teal-500 font-bold" />
-            <Row label="Coupon (LH200)" value="− ₹200" valueClass="text-teal-500" />
             <div className="my-1 h-px bg-ink-300/15" />
             <div className="flex items-center justify-between text-[14px] font-extrabold text-ink-900">
               <span>Total paid</span>

@@ -238,14 +238,6 @@ function act1Scenes() {
             productId: 'shoes',
           },
         },
-        {
-          id: 's1-add-shoes',
-          duration: 2000,
-          status: 'Sneakers added',
-          phone: { search: 'shoes', view: 'detail', showProduct: 'shoes', cart: ['shoes'], floatAdd: 'shoes', toast: 'Sneakers added · ₹1,499' },
-          cue: 'add',
-          addedItem: { id: 'shoes', trigger: 'plan' },
-        },
       ],
     },
 
@@ -263,20 +255,26 @@ function act1Scenes() {
       ambience: 'app-tempo',
       emotion: 'curious',
       phases: [
-        /* Combined "scroll → Complete-the-Look banner → tap socks" beat —
-         * scrolls smoothly to the recommendations row, slides the banner
-         * in, highlights the socks card and plays a tap pulse on it
-         * before auto-advancing to the socks PDP. Banner copy and socks
-         * tagline now lean more emotional / aspirational. */
+        /* Scene 13 split into two beats so the suggestion feels earned:
+         *   13a — Shanaya scrolls the home feed (no banner / socks yet).
+         *   13b — Complete-the-Look banner + socks rec card slide in,
+         *         tap pulse on the socks card, auto-advance to PDP. */
+        {
+          id: 's2-scroll',
+          duration: 4000,
+          status: 'Scrolling more on the home page',
+          narration: 'After adding the sneakers, Shanaya keeps scrolling.',
+          phone: after(['shoes'], { scrollHint: true }),
+        },
         {
           id: 's2-intro',
-          duration: 9500,
+          duration: 8500,
           status: '"Complete the Look" → tap the socks',
-          narration: 'After adding the sneakers, Shanaya keeps scrolling. The app suggests pairing them with matching socks.',
+          narration: 'These socks perfectly match with the shoes — and she proceeds to buy.',
           phone: after(['shoes'], {
             recommendations: ['socks'],
             rowLabel: 'Complete the Look',
-            pairNudge: { title: 'Complete the Look', subtitle: 'These socks will look amazing with your new sneakers ✨' },
+            pairNudge: { title: 'Complete the Look', subtitle: 'Pair your shoes with these matching socks' },
             highlight: 'socks',
             scrollTo: 'recommendations',
             tapTarget: 'rec-socks',
@@ -331,18 +329,34 @@ function act1Scenes() {
         },
 
         /* --- WAVE 2 — Urgency Flash Deal: Birthday Hoodie 20% OFF --- */
+        /* Brief "she scrolls a little more" beat before the flash deal
+         * lands, so the urgency banner feels like it surfaces organically
+         * during browsing instead of as a hard cut. Matches the same
+         * scroll-then-suggestion rhythm used after the hoodie. */
         {
-          /* 2-second "freeze frame" as the Flash Deal alert pulses/glows
-           * at the top of the phone. No voiceover during the freeze — the
-           * script is explicit that the screen does the talking here. */
+          id: 's2-post-socks-browse',
+          duration: 4500,
+          status: 'Tapping Trending',
+          narration: 'Shanaya taps on Trending up top.',
+          phone: after(['shoes', 'socks'], {
+            scrollToTop: true,
+            tapTarget: 'cat-trending',
+          }),
+          cue: 'tap',
+        },
+        {
+          /* Trending page opens — a varied mix of products on the feed
+           * (hoodie with flash-deal timer, smartwatch, hoodie variants,
+           * cleaning kit), not just three hoodies. The flash deal alert
+           * pulses at the top of the screen. */
           id: 's2-w2-flash',
           duration: 4500,
-          status: 'Flash Deal flashes in',
+          status: 'Trending page · Flash Deal alert',
           phone: after(['shoes', 'socks'], {
-            recommendations: ['hoodie', 'hoodie-2', 'hoodie-3'],
+            recommendations: ['hoodie', 'iphone-17', 'smartwatch', 'hoodie-2', 'hoodie-3'],
             rowLabel: 'Trending Now',
             flashDeal: 'hoodie',
-            flashAlert: { label: 'Flash Deal — Ends Soon!', product: 'Birthday Hoodie · ₹999 → ₹799', mins: 7 },
+            flashAlert: { label: 'Flash Deal — Ends Soon!', product: 'Birthday Hoodie · ₹999 → ₹799', mins: 5},
             scrollTo: 'recommendations',
           }),
           cue: 'alert',
@@ -352,41 +366,30 @@ function act1Scenes() {
           duration: 2200,
           status: 'Tapping the hoodie',
           phone: after(['shoes', 'socks'], {
-            recommendations: ['hoodie', 'hoodie-2', 'hoodie-3'],
+            recommendations: ['hoodie', 'iphone-17', 'smartwatch', 'hoodie-2', 'hoodie-3'],
             rowLabel: 'Trending Now',
             flashDeal: 'hoodie',
-            flashAlert: { label: 'Flash Deal — Ends Soon!', product: 'Birthday Hoodie · ₹999 → ₹799', mins: 7 },
+            flashAlert: { label: 'Flash Deal — Ends Soon!', product: 'Birthday Hoodie · ₹999 → ₹799', mins: 5},
             tapTarget: 'rec-hoodie',
           }),
           cue: 'tap',
         },
         {
-          id: 's2-w2-detail',
-          duration: 6000,
-          status: 'Reading hoodie details',
-          phone: { cart: ['shoes', 'socks'], view: 'detail', showProduct: 'hoodie', urgencyMinutes: 7 },
-          bubbles: [
-            { side: 'right', type: 'thought', text: 'This hoodie is so trendy and that’s a great discount.' },
-          ],
-        },
-        {
           id: 's2-w2-bubble2',
           duration: 6500,
           status: 'Reading hoodie details',
-          phone: { cart: ['shoes', 'socks'], view: 'detail', showProduct: 'hoodie', urgencyMinutes: 7 },
+          phone: { cart: ['shoes', 'socks'], view: 'detail', showProduct: 'hoodie', urgencyMinutes: 5 },
           bubbles: [
             { side: 'right', type: 'thought', text: 'This hoodie is so trendy and that’s a great discount.' },
-            { side: 'right', type: 'thought', text: 'It would actually look great for my birthday photos.' },
           ],
         },
         {
           id: 's2-w2-bubble3',
           duration: 7000,
           status: 'Justifying the add-on',
-          phone: { cart: ['shoes', 'socks'], view: 'detail', showProduct: 'hoodie', urgencyMinutes: 7 },
+          phone: { cart: ['shoes', 'socks'], view: 'detail', showProduct: 'hoodie', urgencyMinutes: 5 },
           bubbles: [
             { side: 'right', type: 'thought', text: 'This hoodie is so trendy and that’s a great discount.' },
-            { side: 'right', type: 'thought', text: 'It would actually look great for my birthday photos.' },
             { side: 'right', type: 'thought', text: 'I didn’t plan this… but it kind of fits the whole vibe.' },
           ],
         },
@@ -394,14 +397,14 @@ function act1Scenes() {
           id: 's2-w2-scroll',
           duration: 2000,
           status: 'Scrolling to Add to Cart',
-          phone: { cart: ['shoes', 'socks'], view: 'detail', showProduct: 'hoodie', urgencyMinutes: 7, scrollHint: true },
+          phone: { cart: ['shoes', 'socks'], view: 'detail', showProduct: 'hoodie', urgencyMinutes: 5, scrollHint: true },
         },
         /* ---- INTERACTIVE: learner taps Add to Cart for the hoodie ---- */
         {
           id: 's2-w2-add-prompt',
           hold: true,
           status: 'Your turn',
-          phone: { cart: ['shoes', 'socks'], view: 'detail', showProduct: 'hoodie', urgencyMinutes: 7, tapTarget: 'primary-cta', scrollHint: true },
+          phone: { cart: ['shoes', 'socks'], view: 'detail', showProduct: 'hoodie', urgencyMinutes: 5, tapTarget: 'primary-cta', scrollHint: true },
           prompt: {
             kind: 'add-to-cart',
             label: 'Help Shanaya shop',
@@ -426,15 +429,25 @@ function act1Scenes() {
 
         /* --- WAVE 3 — Bundling unlock: Add 1 more → Free Phone Case
          *     Recommended add-on: Selfie Glow Clip Light (₹199, viral on reels) */
-        /* Brief "she scrolls more" beat between adding the hoodie and the
-         * unlock banner — so the suggestion feels like it surfaces
-         * organically during browsing, not as a hard cut. */
+        /* Brief "she scrolls more + the NEW OFFER UNLOCKED banner slides
+         * in" beat. The banner is now visible mid-scroll instead of
+         * waiting for the next phase, so the learner sees it surface
+         * organically while Shanaya is still browsing. */
         {
           id: 's2-post-hoodie-browse',
           duration: 5500,
-          status: 'Scrolling a little more',
-          narration: 'Shanaya scrolls a little more on the home page.',
-          phone: after(['shoes', 'socks', 'hoodie'], { scrollHint: true }),
+          status: 'Scrolling — New Offer Unlocked',
+          narration: 'Shanaya scrolls a little more — and a new offer slides in.',
+          phone: after(['shoes', 'socks', 'hoodie'], {
+            scrollHint: true,
+            unlockOffer: {
+              headline: 'NEW OFFER UNLOCKED',
+              message: 'Add 1 more item and get a Phone Case FREE',
+              gift: 'phone-case',
+              emoji: '🎀',
+            },
+          }),
+          cue: 'alert',
         },
         {
           /* Suddenly — a NEW OFFER UNLOCKED banner slides in over the
@@ -454,7 +467,7 @@ function act1Scenes() {
         },
         {
           id: 's2-w3-bubble1',
-          duration: 5500,
+          duration: 7500,
           status: 'Curious about the free gift',
           phone: after(['shoes', 'socks', 'hoodie'], {
             unlockOffer: {
@@ -465,8 +478,7 @@ function act1Scenes() {
             },
           }),
           bubbles: [
-            { side: 'right', type: 'thought', text: 'Ooooo wait…' },
-            { side: 'right', type: 'thought', text: 'I was anyway going to buy the phone case — mine looks old.' },
+            { side: 'right', type: 'thought', text: 'Oo wait… I was anyway going to buy the phone case — mine looks old.' },
           ],
         },
         {
@@ -482,22 +494,56 @@ function act1Scenes() {
             },
           }),
           bubbles: [
-            { side: 'right', type: 'thought', text: 'Ooooo wait…' },
-            { side: 'right', type: 'thought', text: 'I was anyway going to buy the phone case — mine looks old.' },
-            { side: 'right', type: 'thought', text: 'And it’s FREE if I add one more thing?' },
-            { side: 'right', type: 'thought', text: 'Okay let me just see what counts.' },
+            { side: 'right', type: 'thought', text: 'Oo wait… I was anyway going to buy the phone case — mine looks old.' },
+            { side: 'right', type: 'thought', text: 'And it’s FREE if I add one more thing? Okay let me just see what counts.' },
           ],
         },
+        /* Bridge beats — she scrolls more on the feed, then taps the
+         * Electronics category at the top so the next page lands on a
+         * shelf of electronics-y items (Selfie Light hightlighted). */
         {
-          /* Selfie Glow Clip Light recommendation card slides in. Viral
-           * badge + "9K bought this week" lights up the social-proof
-           * pressure. No narration — the screen does the work. */
-          id: 's2-w3-rec',
-          duration: 5500,
-          status: 'Selfie Glow Clip Light appears',
+          id: 's2-w3-browse',
+          duration: 4000,
+          status: 'Scrolling a little more',
+          narration: 'Shanaya scrolls a little more.',
           phone: after(['shoes', 'socks', 'hoodie'], {
-            recommendations: ['selfie-light'],
-            rowLabel: 'Recommended Add-On',
+            scrollHint: true,
+            unlockOffer: {
+              headline: 'NEW OFFER UNLOCKED',
+              message: 'Add 1 more item and get a Phone Case FREE',
+              gift: 'phone-case',
+              emoji: '🎀',
+            },
+          }),
+        },
+        {
+          id: 's2-w3-tap-electronics',
+          duration: 4000,
+          status: 'Tapping Electronics',
+          narration: 'And taps on Electronics.',
+          phone: after(['shoes', 'socks', 'hoodie'], {
+            scrollToTop: true,
+            tapTarget: 'cat-electronics',
+            unlockOffer: {
+              headline: 'NEW OFFER UNLOCKED',
+              message: 'Add 1 more item and get a Phone Case FREE',
+              gift: 'phone-case',
+              emoji: '🎀',
+            },
+          }),
+          cue: 'tap',
+        },
+        {
+          /* Electronics page opens — a shelf of multiple products. The
+           * Selfie Glow Clip Light carries the saffron highlight ring +
+           * "🔥 Viral on reels / 9K bought" badges so the eye lands on
+           * it even with several other tiles in the row. */
+          id: 's2-w3-rec',
+          duration: 6000,
+          status: 'Electronics · Selfie Light highlighted',
+          phone: after(['shoes', 'socks', 'hoodie'], {
+            recommendations: ['selfie-light', 'iphone-17', 'smartwatch', 'phone-case'],
+            rowLabel: 'Top in Electronics',
             viralBadge: 'selfie-light',
             highlight: 'selfie-light',
             unlockOffer: {
@@ -514,8 +560,8 @@ function act1Scenes() {
           duration: 2200,
           status: 'Tapping the Selfie Light',
           phone: after(['shoes', 'socks', 'hoodie'], {
-            recommendations: ['selfie-light'],
-            rowLabel: 'Recommended Add-On',
+            recommendations: ['selfie-light', 'iphone-17', 'smartwatch', 'phone-case'],
+            rowLabel: 'Top in Electronics',
             viralBadge: 'selfie-light',
             unlockOffer: {
               headline: 'NEW OFFER UNLOCKED',
@@ -533,17 +579,7 @@ function act1Scenes() {
           status: 'Reading Selfie Light details',
           phone: { cart: ['shoes', 'socks', 'hoodie'], view: 'detail', showProduct: 'selfie-light', viralBadge: 'selfie-light' },
           bubbles: [
-            { side: 'right', type: 'thought', text: 'Wow! This would make my birthday pictures look SO much better.' },
-          ],
-        },
-        {
-          id: 's2-w3-bubble3',
-          duration: 6500,
-          status: 'Stacking the justifications',
-          phone: { cart: ['shoes', 'socks', 'hoodie'], view: 'detail', showProduct: 'selfie-light', viralBadge: 'selfie-light' },
-          bubbles: [
-            { side: 'right', type: 'thought', text: 'Wow! This would make my birthday pictures look SO much better.' },
-            { side: 'right', type: 'thought', text: 'And then I get the phone case free too.' },
+            { side: 'right', type: 'thought', text: 'Wow! This would make my birthday pictures look so much better.' },
           ],
         },
         {
@@ -552,8 +588,7 @@ function act1Scenes() {
           status: '"Such a smart deal"',
           phone: { cart: ['shoes', 'socks', 'hoodie'], view: 'detail', showProduct: 'selfie-light', viralBadge: 'selfie-light' },
           bubbles: [
-            { side: 'right', type: 'thought', text: 'Wow! This would make my birthday pictures look SO much better.' },
-            { side: 'right', type: 'thought', text: 'And then I get the phone case free too.' },
+            { side: 'right', type: 'thought', text: 'Wow! This would make my birthday pictures look so much better.' },
             { side: 'right', type: 'thought', text: 'That’s actually such a smart deal.' },
           ],
         },
@@ -606,7 +641,7 @@ function act1Scenes() {
     {
       id: 'scene-3',
       title: 'Final Cart Reveal',
-      ambience: 'silent',
+      ambience: 'reflective',
       emotion: 'unsettled',
       phases: [
         {
@@ -614,8 +649,9 @@ function act1Scenes() {
            * spoken here). The cart-reveal view shows the full breakdown
            * with the 5 items + total + savings banner. */
           id: 's3-cart-reveal',
-          duration: 7500,
+          duration: 4500,
           status: 'Cart updated',
+          narration: 'Shanaya is now proceeding to checkout.',
           phone: {
             cart: FULL_CART,
             view: 'cart-reveal',
@@ -625,62 +661,13 @@ function act1Scenes() {
         },
         {
           id: 's3-cart-total',
-          duration: 5000,
+          duration: 2000,
           status: 'TOTAL · ₹2,796',
           phone: {
             cart: FULL_CART,
             view: 'cart-reveal',
             revealItems: true,
             revealTotal: true,
-          },
-        },
-        {
-          /* "You Saved ₹1,400" — the manipulative savings line that
-           * makes the over-budget spend feel like a win. */
-          id: 's3-saved-banner',
-          duration: 5500,
-          status: 'You Saved ₹1,400 ✨',
-          phone: {
-            cart: FULL_CART,
-            view: 'cart-reveal',
-            revealItems: true,
-            revealTotal: true,
-            revealSavings: 1400,
-          },
-          cue: 'sparkle',
-        },
-        {
-          /* Quiet contrast — the original ₹1,500 budget reappears next
-           * to the ₹2,796 total. The visual gap is the lesson. */
-          id: 's3-budget-flash',
-          duration: 6500,
-          status: 'Original Budget · ₹1,500',
-          phone: {
-            cart: FULL_CART,
-            view: 'cart-reveal',
-            revealItems: true,
-            revealTotal: true,
-            revealSavings: 1400,
-            revealBudget: true,
-            showGap: true,
-          },
-        },
-        {
-          /* Slow zoom into Shanaya's face — handled by the avatar pulse +
-           * the phone dim. No narration. */
-          id: 's3-zoom-shanaya',
-          duration: 5000,
-          status: 'The room goes quiet',
-          emotion: 'realised',
-          phone: {
-            cart: FULL_CART,
-            view: 'cart-reveal',
-            revealItems: true,
-            revealTotal: true,
-            revealSavings: 1400,
-            revealBudget: true,
-            showGap: true,
-            dim: true,
           },
         },
         {
@@ -694,9 +681,6 @@ function act1Scenes() {
             revealItems: true,
             revealTotal: true,
             revealSavings: 1400,
-            revealBudget: true,
-            showGap: true,
-            dim: true,
           },
           bubbles: [
             { side: 'right', type: 'thought', text: 'Wait…' },
@@ -713,14 +697,78 @@ function act1Scenes() {
             revealItems: true,
             revealTotal: true,
             revealSavings: 1400,
-            revealBudget: true,
-            showGap: true,
-            dim: true,
           },
           bubbles: [
             { side: 'right', type: 'thought', text: 'Wait…' },
-            { side: 'right', type: 'thought', text: 'I only came here to buy shoes. How did I end up spending so much?!' },
+            { side: 'right', type: 'thought', text: 'I only came here to buy shoes. How did I end up spending so much?! Okay, let me checkout first.' },
           ],
+        },
+
+        /* ---- CHECKOUT → PAYMENT → SUCCESS  ----
+         * After Shanaya catches herself she still proceeds to check out.
+         * The phone walks through the cart view → place-order tap →
+         * payment screen → pay tap → processing → confirmation, so the
+         * learner sees the actual cost of the impulse cart land. */
+        {
+          id: 's3-checkout-tap',
+          duration: 4000,
+          status: 'Tapping Place Order',
+          emotion: 'realised',
+          phone: {
+            cart: FULL_CART,
+            view: 'cart-focus',
+            freeDeliveryBanner: false,
+            revealTotal: true,
+            showPlaceOrder: true,
+            tapTarget: 'place-order',
+          },
+          cue: 'tap',
+        },
+        {
+          id: 's3-payment',
+          duration: 5000,
+          status: 'Choosing payment method',
+          emotion: 'realised',
+          phone: {
+            cart: FULL_CART,
+            view: 'payment',
+          },
+          narration: 'She moves to checkout — ₹2,796 to pay.',
+        },
+        {
+          id: 's3-payment-tap',
+          duration: 3500,
+          status: 'Tapping Pay',
+          emotion: 'realised',
+          phone: {
+            cart: FULL_CART,
+            view: 'payment',
+            tapTarget: 'pay',
+          },
+          cue: 'tap',
+        },
+        {
+          id: 's3-payment-processing',
+          duration: 3500,
+          status: 'Processing payment',
+          emotion: 'realised',
+          phone: {
+            cart: FULL_CART,
+            view: 'payment',
+            processing: true,
+          },
+        },
+        {
+          id: 's3-success',
+          duration: 5500,
+          status: 'Order placed',
+          emotion: 'realised',
+          phone: {
+            cart: FULL_CART,
+            view: 'confirmation',
+          },
+          cue: 'ding',
+          narration: 'Done. ₹2,796 gone — almost twice what she planned.',
         },
 
         /* ---- REFLECTION — the single free-text question that ends Act 1 ---- */
@@ -971,9 +1019,9 @@ const SIZE_PRESETS = {
  * the flash-deal timer + the social-proof beat. */
 export const products = {
   shoes:          { id: 'shoes',        emoji: '👟', image: UN('1622760806364-5ccac8096b59'), name: 'White Sneakers',          tagline: 'Trending Now',                  price: 1499, rating: 4.5, sizeOptions: SIZE_PRESETS.shoeUK },
-  socks:          { id: 'socks',        emoji: '🧦', image: UN('1604671801908-6f0c6a092c05'), name: 'Branded Socks',           tagline: 'Looks amazing with sneakers',   price: 299,  rating: 4.3, sizeOptions: SIZE_PRESETS.apparel },
+  socks:          { id: 'socks',        emoji: '🧦', image: 'https://ik.imagekit.io/vyka3olhl/uk/product-81/grey-white/original_match_socks_MORMf1-p7.png?tr=w-420,h-420,fo-center', name: 'Branded Socks',           tagline: 'Perfect for your new sneakers', price: 299,  rating: 4.3, sizeOptions: SIZE_PRESETS.apparel },
   /* Hoodie pricing flipped: 20% OFF means MRP ₹999 → sale ₹799 (was 50% off). */
-  hoodie:         { id: 'hoodie',       emoji: '👕', image: UN('1620799140188-3b2a02fd9a77'), name: 'Birthday Hoodie',         tagline: '20% OFF · only 7 min left',     price: 799,  originalPrice: 999, discountPct: 20, rating: 4.6, sizeOptions: SIZE_PRESETS.apparel },
+  hoodie:         { id: 'hoodie',       emoji: '👕', image: UN('1620799140188-3b2a02fd9a77'), name: 'Birthday Hoodie',         tagline: '20% OFF · only 5 min left',     price: 799,  originalPrice: 999, discountPct: 20, rating: 4.6, sizeOptions: SIZE_PRESETS.apparel },
   'hoodie-2':     { id: 'hoodie-2',     emoji: '👕', image: UN('1556821840-3a63f95609a7'),    name: 'Classic Pullover',        tagline: 'Best seller',                   price: 1299, rating: 4.4, sizeOptions: SIZE_PRESETS.apparel },
   'hoodie-3':     { id: 'hoodie-3',     emoji: '👕', image: UN('1542406775-ade58c52d2e4'),    name: 'Cosy Hoodie',             tagline: 'New drop',                      price: 1599, rating: 4.5, sizeOptions: SIZE_PRESETS.apparel },
   /* Selfie Glow Clip Light — viral / social-proof add-on for the birthday photos beat. */
@@ -981,6 +1029,9 @@ export const products = {
   /* Phone Case — bundled FREE when one more item is added. price: 0 keeps
    * the cart math honest while the UI shows a "FREE" pill instead of ₹0. */
   'phone-case':   { id: 'phone-case',   emoji: '🎀', image: UN('1601593346740-925612772716'), name: 'Phone Case',              tagline: 'FREE with offer',               price: 0,    originalPrice: 599, rating: 4.4, sizeOptions: SIZE_PRESETS.phoneCase, free: true },
+  /* iPhone 17 (orange) — shows up in the Trending Now strip as a "wow,
+   * everyone's getting one" foil, not in Shanaya's cart. */
+  'iphone-17':    { id: 'iphone-17',    emoji: '📱', image: UN('1632661674596-df8be070a5c5'), name: 'iPhone 17 · Orange',      tagline: 'Latest drop · sold out twice',   price: 89999, rating: 4.9, sizeOptions: SIZE_PRESETS.watch },
   /* Legacy products — referenced by Act 2 match-board examples, kept for
    * backwards compat even though the new Act 1 script no longer adds them. */
   smartwatch:     { id: 'smartwatch',   emoji: '⌚', image: UN('1546868871-7041f2a55e12'),    name: 'Smartwatch X1',           tagline: '12K bought this week',          price: 799,  rating: 4.8, sizeOptions: SIZE_PRESETS.watch },

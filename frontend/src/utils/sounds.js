@@ -152,37 +152,41 @@ const CHORDS = {
 // a "song you've heard before" warmth instead of an abstract pad.
 const MOODS = {
   calm: {
-    // vi–IV–I–V (Am major) — emotional coming-of-age progression with a
-    // melancholic lean (was I–V–vi–IV); makes the cosy opening scenes feel
-    // a touch more heartfelt rather than bright-and-flat.
+    // vi–IV–I–V emotional pop progression with a hooky pluck on top —
+    // the cosy storytelling scenes get a "Spotify chill playlist" vibe
+    // instead of a flat pad bed.
     progression: ['Am', 'F', 'C', 'G'],
-    hasPad: true, hasBass: true, hasShaker: false, hasBell: true,
-    padGain: 0.075, bassGain: 0.16, bellGain: 0.11,
-    busGain: 0.44, lpfHz: 1200,
+    hasPad: true, hasBass: true, hasShaker: false, hasBell: true, hasPluck: true,
+    padGain: 0.08, bassGain: 0.16, bellGain: 0.11, pluckGain: 0.05,
+    busGain: 0.48, lpfHz: 1300,
   },
   'app-tempo': {
-    // Browsing / scrolling — warm key + steady shaker + eighth-note ticks
-    // for the "swiping" feel. Slightly brighter mix + fuller pad.
+    // Shopping / scrolling — same warm key, but now with a soft 808-
+    // style sub kick on beat 1 + a synth pluck on beats 1/3 + tight
+    // eighth-note shaker. GenZ "TikTok shopping reel" energy.
     progression: ['Am', 'F', 'C', 'G'],
     hasPad: true, hasBass: true, hasShaker: true, hasBell: true,
+    hasPluck: true, hasKick: true,
     extraTick: true,
-    padGain: 0.08, bassGain: 0.22, bellGain: 0.09,
-    busGain: 0.5, lpfHz: 1600,
+    padGain: 0.085, bassGain: 0.22, bellGain: 0.09,
+    pluckGain: 0.075, kickGain: 0.18,
+    busGain: 0.58, lpfHz: 1800,
   },
   thinking: {
-    // Quiet, sparse, low — pad + slow bell only. Slightly louder than
-    // before so the contemplative mood actually carries.
+    // Quiet, sparse, low — pad + slow bell + a single far-away pluck on
+    // beat 1 so it doesn't feel sterile.
     progression: ['Am', 'Fmaj7', 'C', 'G'],
-    hasPad: true, hasBass: false, hasShaker: false, hasBell: true,
-    padGain: 0.06, bellGain: 0.11,
-    busGain: 0.28, lpfHz: 850,
+    hasPad: true, hasBass: false, hasShaker: false, hasBell: true, hasPluck: true,
+    padGain: 0.06, bellGain: 0.11, pluckGain: 0.03,
+    busGain: 0.32, lpfHz: 900,
   },
   reflective: {
-    // vi–IV–I–V — gentle major-leaning resolve, perfect for Act 2.
+    // vi–IV–I–V — gentle major-leaning resolve with a soft pluck so the
+    // cart-reveal beat still has emotional momentum.
     progression: ['Am', 'F', 'C', 'G'],
-    hasPad: true, hasBass: true, hasShaker: false, hasBell: true,
-    padGain: 0.08, bassGain: 0.13, bellGain: 0.11,
-    busGain: 0.42, lpfHz: 1100,
+    hasPad: true, hasBass: true, hasShaker: false, hasBell: true, hasPluck: true,
+    padGain: 0.085, bassGain: 0.13, bellGain: 0.11, pluckGain: 0.045,
+    busGain: 0.46, lpfHz: 1200,
   },
   hit: {
     // Tense chord set + bright LPF + big bus bump. Impact swell fires
@@ -248,6 +252,45 @@ function scheduleShaker(start) {
   src.connect(hp).connect(g).connect(musicGain);
   src.start(start);
   src.stop(start + dur + 0.02);
+}
+
+function schedulePluck(freq, start, peak) {
+  // Crisp synth pluck — triangle wave, fast attack, short decay. Sits
+  // above the pad / bell, gives the shopping moods a modern "playlist
+  // pop" hook on the strong beats.
+  const o = ctx.createOscillator();
+  const o2 = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.type = 'triangle';
+  o2.type = 'sine';
+  o.frequency.value = freq;
+  o2.frequency.value = freq * 1.5;   // a fifth above for sparkle
+  o2.detune.value = 8;
+  const dur = 0.42;
+  g.gain.setValueAtTime(0, start);
+  g.gain.linearRampToValueAtTime(peak, start + 0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+  o.connect(g);
+  o2.connect(g);
+  g.connect(lowPassFilter);
+  o.start(start);  o2.start(start);
+  o.stop(start + dur + 0.05);  o2.stop(start + dur + 0.05);
+}
+
+function scheduleSubKick(start, peak) {
+  // Tight 808-style sub kick — sine that drops from ~95Hz to ~38Hz. Sits
+  // on beat 1 to give the chord a "drop" instead of just floating in.
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(95, start);
+  o.frequency.exponentialRampToValueAtTime(38, start + 0.18);
+  g.gain.setValueAtTime(0, start);
+  g.gain.linearRampToValueAtTime(peak, start + 0.008);
+  g.gain.exponentialRampToValueAtTime(0.0001, start + 0.32);
+  o.connect(g).connect(musicGain);
+  o.start(start);
+  o.stop(start + 0.35);
 }
 
 function scheduleBellNote(freq, start, dur, peak) {
@@ -344,6 +387,19 @@ function scheduleBar(barIdx, startTime) {
     // more emotional top layer without competing with the bell melody.
     schedulePad(chord.notes[0] * 2, startTime, BAR, mood.padGain * 0.45);
     schedulePad(chord.notes[2] * 2, startTime, BAR, mood.padGain * 0.35);
+  }
+  // Soft synth pluck on beats 1 + 3 — a hooky top-line note that gives
+  // the shopping moods a GenZ "modern pop" feel without overshadowing
+  // the bell melody.
+  if (mood.hasPluck) {
+    schedulePluck(chord.notes[2] * 2, startTime + BEAT * 0,    mood.pluckGain || 0.06);
+    schedulePluck(chord.notes[1] * 2, startTime + BEAT * 2,    mood.pluckGain || 0.06);
+  }
+  // Sub-kick on beat 1 of every bar — anchors the chord like an 808 in
+  // a TikTok track. Only the shopping-tempo mood gets it so calmer moods
+  // stay airy.
+  if (mood.hasKick) {
+    scheduleSubKick(startTime, mood.kickGain || 0.18);
   }
   if (mood.hasBass) {
     scheduleBass(chord.bass, startTime, BAR / 2, mood.bassGain);
@@ -634,15 +690,27 @@ export function pauseSpeech() {
   stopAmplitudeLoop();
 }
 
-/* Counterpart to pauseSpeech — resumes the paused audio element (if any)
- * and lets the queue start processing again. If nothing was in flight when
- * pause was called, this is effectively a no-op + a queue kick. */
+/* Counterpart to pauseSpeech — resumes the paused audio element so the
+ * sentence continues from the exact word it was paused on. Falls back to
+ * advancing the queue if the audio element is already finished / errored,
+ * so Pause+Resume never gets stuck in silence. */
 export function resumeSpeech() {
   queuePaused = false;
-  if (currentCloudAudio && currentCloudAudio.paused) {
+  if (currentCloudAudio && currentCloudAudio.paused && !currentCloudAudio.ended) {
     try {
-      currentCloudAudio.play().then(() => startAmplitudeLoop()).catch(() => {});
-    } catch {}
+      currentCloudAudio.play()
+        .then(() => startAmplitudeLoop())
+        .catch(() => {
+          // play() rejected (autoplay block / disposed element) — drop
+          // the dead audio and kick the queue forward so the learner
+          // doesn't end up in silence.
+          currentCloudAudio = null;
+          if (!processing && speechQueue.length > 0) processSpeechQueue();
+        });
+    } catch {
+      currentCloudAudio = null;
+      if (!processing && speechQueue.length > 0) processSpeechQueue();
+    }
   } else if (!processing && speechQueue.length > 0) {
     processSpeechQueue();
   }

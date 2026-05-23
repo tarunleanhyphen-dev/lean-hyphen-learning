@@ -38,5 +38,10 @@ export default function LessonPage() {
     }
   }, [actId, lessonId, navigate]);
 
-  return <ActComponent onComplete={handleComplete} />;
+  /* Explicit "Go to home" handler — used by the secondary button on
+   * the end-of-act celebration so the learner can exit to the lesson
+   * picker at any time without being routed to the next act. */
+  const handleGoHome = useCallback(() => navigate('/'), [navigate]);
+
+  return <ActComponent onComplete={handleComplete} onGoHome={handleGoHome} />;
 }

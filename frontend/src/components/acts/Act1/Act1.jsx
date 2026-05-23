@@ -69,7 +69,7 @@ function emotionFor(phase, sceneEmotion) {
   return sceneEmotion;
 }
 
-export default function Act1({ onComplete }) {
+export default function Act1({ onComplete, onGoHome }) {
   const act = lesson.acts.act1;
 
   const { phases, phaseToScene } = useMemo(() => {
@@ -663,6 +663,8 @@ export default function Act1({ onComplete }) {
             takeaway="Every purchase felt justified in the moment. The trap doesn't ambush you — it works by making each next step feel reasonable. That's why pausing before you tap 'Buy' matters."
             continueLabel="Move to Act 2 →"
             onContinue={finishAct}
+            secondaryLabel="Go to home"
+            onSecondary={onGoHome}
           />
         )}
       </AnimatePresence>

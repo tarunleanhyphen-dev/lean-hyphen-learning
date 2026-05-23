@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Sparkles, ArrowRight } from 'lucide-react';
+import { Sparkles, ArrowRight, Home } from 'lucide-react';
 import MicroConfetti from './MicroConfetti.jsx';
 
 /**
@@ -24,8 +24,20 @@ import MicroConfetti from './MicroConfetti.jsx';
  *   - takeaway       : long form text — the one thing to remember
  *   - continueLabel  : "Move to Act 2 →" / "Back to home →"
  *   - onContinue     : () => void
+ *   - secondaryLabel : optional second button label (e.g. "Go to home")
+ *   - onSecondary    : () => void  — when set, renders the secondary
+ *                      button to the left of the primary one
  */
-export default function EndOfActCelebration({ actLabel, title, stats = [], takeaway, continueLabel = 'Continue →', onContinue }) {
+export default function EndOfActCelebration({
+  actLabel,
+  title,
+  stats = [],
+  takeaway,
+  continueLabel = 'Continue →',
+  onContinue,
+  secondaryLabel,
+  onSecondary,
+}) {
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -88,11 +100,20 @@ export default function EndOfActCelebration({ actLabel, title, stats = [], takea
           </motion.div>
         )}
 
-        <div className="mt-6 flex items-center justify-end">
+        <div className="mt-6 flex flex-col-reverse items-stretch gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
+          {secondaryLabel && onSecondary && (
+            <button
+              type="button"
+              onClick={onSecondary}
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-ink-300/30 bg-white px-4 py-2.5 text-[12px] font-bold uppercase tracking-widest text-ink-700 shadow-sm transition hover:bg-cream-50 active:scale-[0.98]"
+            >
+              <Home className="h-4 w-4" /> {secondaryLabel}
+            </button>
+          )}
           <button
             type="button"
             onClick={onContinue}
-            className="inline-flex items-center gap-2 rounded-full bg-saffron-500 px-5 py-2.5 text-[12px] font-bold uppercase tracking-widest text-ink-900 shadow-lg shadow-saffron-500/30 transition hover:bg-saffron-400 active:scale-[0.98]"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-saffron-500 px-5 py-2.5 text-[12px] font-bold uppercase tracking-widest text-ink-900 shadow-lg shadow-saffron-500/30 transition hover:bg-saffron-400 active:scale-[0.98]"
           >
             {continueLabel} <ArrowRight className="h-4 w-4" />
           </button>

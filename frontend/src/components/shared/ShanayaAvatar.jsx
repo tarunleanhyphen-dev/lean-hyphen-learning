@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { createAvatar } from '@dicebear/core';
 import * as avataaars from '@dicebear/avataaars';
@@ -59,31 +59,12 @@ export default function ShanayaAvatar({ emotion = 'neutral', speaking = false, w
   const face = EMOTIONS[emotion] || EMOTIONS.neutral;
   const uri = useMemo(() => dataUriFor(emotion), [emotion]);
 
-  // Smoothed real-time mouth openness, driven by the audio analyser's
-  // amplitude ref. A RAF loop reads the latest amplitude and runs it
-  // through a low-pass filter (alpha = 0.32) so the mouth doesn't twitch
-  // on every micro-spike. Falls back to wordTick-based pulsing if no
-  // amplitude ref is provided.
-  const [mouthOpen, setMouthOpen] = useState(0);
-  useEffect(() => {
-    if (!speaking) {
-      setMouthOpen(0);
-      return undefined;
-    }
-    let raf = 0;
-    let smoothed = 0;
-    const tick = () => {
-      const raw = amplitudeRef?.current ?? 0;
-      // Re-shape: speech sits in a fairly narrow amplitude band; boost
-      // mid values and clamp.
-      const boosted = Math.min(1, Math.max(0, (raw - 0.04) * 1.9));
-      smoothed = smoothed * 0.68 + boosted * 0.32;
-      setMouthOpen(smoothed);
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [speaking, amplitudeRef]);
+  // Real-time amplitude smoothing used to live here — it drove a
+  // separate mouth overlay rendered on top of the DiceBear face. That
+  // overlay was removed (it produced a "two mouths" visual), so we no
+  // longer need to maintain a smoothed mouthOpen value. `amplitudeRef`
+  // is still accepted in the props API for backwards compatibility
+  // with callers; it's just ignored.
 
   // Idle blink — every 4–7 s while NOT speaking, briefly squash the
   // eye-line area so Shanaya feels alive between phases. Skipped during
@@ -208,50 +189,13 @@ export default function ShanayaAvatar({ emotion = 'neutral', speaking = false, w
           />
         )}
 
-        {/*
-          Real-time lip-sync. The amplitude RAF loop above computes a
-          smoothed `mouthOpen` value (0–1) every frame. We render two
-          layered SVG shapes positioned over the avataaars mouth:
-            - The lip line (top lip, always visible while speaking)
-            - The oral cavity (a small dark oval that grows when open)
-          mouthOpen scales the cavity's height, so the mouth genuinely
-          opens and closes in time with the audio waveform instead of
-          flashing on every word boundary.
-
-          Position 60.5% from the top of the avatar block matches where
-          avataaars renders its static mouth shape. wordTick is no longer
-          used to drive animation but is kept in the API for backwards
-          compatibility with callers that haven't been updated.
-        */}
-        {speaking && (
-          <div
-            aria-hidden
-            style={{ top: '60.2%' }}
-            className="pointer-events-none absolute left-1/2 z-10 -translate-x-1/2 -translate-y-1/2"
-          >
-            {/* Soft halo behind the mouth, tied to amplitude */}
-            <motion.div
-              animate={{ opacity: 0.18 + mouthOpen * 0.35, scale: 0.9 + mouthOpen * 0.45 }}
-              transition={{ duration: 0.12, ease: 'easeOut' }}
-              className="absolute left-1/2 top-1/2 h-7 w-12 -translate-x-1/2 -translate-y-1/2 rounded-full bg-coral-500/40 blur-md sm:h-8 sm:w-14"
-            />
-            {/* Oral cavity — opens vertically with amplitude */}
-            <motion.div
-              animate={{
-                height: 2 + Math.round(mouthOpen * 12),
-                opacity: 0.78 + mouthOpen * 0.18,
-              }}
-              transition={{ duration: 0.08, ease: 'linear' }}
-              style={{ background: 'rgba(90, 22, 18, 0.92)' }}
-              className="relative w-6 origin-center rounded-full sm:w-7"
-            />
-            {/* Lip highlight — subtle thin line at top of cavity */}
-            <span
-              aria-hidden
-              className="pointer-events-none absolute left-1/2 top-1/2 h-[1.5px] w-7 -translate-x-1/2 -translate-y-[7px] rounded-full bg-coral-400/80 sm:w-8"
-            />
-          </div>
-        )}
+        {/* The separate amplitude-driven lip overlay used to live here —
+           a small dark oval + coral highlight rendered ON TOP of the
+           DiceBear avatar's static mouth. QA flagged it as showing two
+           mouths during speech, so we now rely purely on the avataaars
+           mouth shape (driven by the `emotion` prop) plus the speaking
+           ring + bob below. The amplitude ref still feeds the speaking
+           ring's pulse intensity if we want to wire that back in later. */}
 
         {/* Idle eye-blink overlay — a thin band of skin colour briefly
            covers the eyes between speech to suggest a natural blink. */}

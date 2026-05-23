@@ -19,7 +19,7 @@ import {
   speak, cancelSpeech, pauseSpeech, resumeSpeech, setSpeechCallbacks,
 } from '../../../utils/sounds.js';
 
-export default function Act2({ onComplete }) {
+export default function Act2({ onComplete, onGoHome }) {
   const act = lesson.acts.act2;
 
   const { phases, phaseToScene } = useMemo(() => {
@@ -397,6 +397,8 @@ export default function Act2({ onComplete }) {
             takeaway="The trap has a name — IMPULSE BUYING. FOMO, suggestions, emotion, and 'saving' tricks slowly change what we buy. Now that you can name them, you can pause before you tap 'Buy'."
             continueLabel="Move to Act 3 →"
             onContinue={finishAct}
+            secondaryLabel="Go to home"
+            onSecondary={onGoHome}
           />
         )}
       </AnimatePresence>

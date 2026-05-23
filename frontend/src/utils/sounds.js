@@ -943,7 +943,7 @@ function playChunkSequence(chunks, i, who, volume, onFinished) {
   // Without it, browsers that cached the old Google Translate MP3 (under
   // Cache-Control: immutable) would keep replaying the old voice for the
   // same phrase, even after a backend deploy. Bump this when voices change.
-  const url = `${CLOUD_TTS_BASE}/api/tts?voice=${encodeURIComponent(who)}&v=4&text=${encodeURIComponent(chunks[i])}`;
+  const url = `${CLOUD_TTS_BASE}/api/tts?voice=${encodeURIComponent(who)}&v=5&text=${encodeURIComponent(chunks[i])}`;
   const audio = new Audio(url);
   currentCloudAudio = audio;
   audio.volume = volume;
@@ -952,20 +952,16 @@ function playChunkSequence(chunks, i, who, volume, onFinished) {
   audio.preservesPitch = true;
   // Both voices use the same en-IN locale on the backend; prosody is what
   // makes them distinct on the client side.
-  //   shanaya  → 1.0  : natural Indian-English female voice
-  //   narrator → 0.92 : slower so the narrator reads as more "adult"
-  // We previously sped Shanaya to 1.15× with preservesPitch=false to make her
-  // sound younger, but that distorted the accent.
   //   shanaya  → 1.0  : natural Indian-English female (hi-IN-Swara)
-  //   narrator → 1.3  : QA wants the male voice to read younger / GenZ.
-  //                     en-IN-Prabhat is the only Indian-English male the
-  //                     Edge endpoint serves, and Aarav/Rehaan/Kunal/Expressive
-  //                     variants all 404 via msedge-tts. Pushing the
-  //                     playback to 1.3× (with preservesPitch=true) keeps
-  //                     the Indian accent but reads as a peer-age voice,
-  //                     not a news anchor. We tried 1.5× first — it felt
-  //                     rushed; 1.3× is the sweet spot.
-  audio.playbackRate = who === 'shanaya' ? 1.0 : 1.3;
+  //   narrator → 1.1  : hi-IN-Madhur is a Hindi-locale male voice with
+  //                     warmer, more conversational prosody than the
+  //                     previous en-IN-Prabhat (which QA flagged as
+  //                     sounding fake/robotic). Madhur's natural pace
+  //                     is slower, so we nudge to 1.1× — fast enough to
+  //                     read as a peer voice, slow enough to keep his
+  //                     prosody intact. 1.3× (the old Prabhat setting)
+  //                     made Madhur sound rushed; 1.0× felt too narrator-y.
+  audio.playbackRate = who === 'shanaya' ? 1.0 : 1.1;
   audio.crossOrigin = 'anonymous';
 
   // Route this chunk through the Web Audio analyser so the avatar can

@@ -23,17 +23,17 @@ const router = Router();
 //   shanaya  → hi-IN-SwaraNeural   — Hindi female reading English. Thick
 //                                    Indian English accent, youthful range.
 //                                    QA confirms this one sounds great.
-//   narrator → en-IN-PrabhatNeural — Indian English male. Replaced the
-//                                    previous hi-IN-MadhurNeural which QA
-//                                    flagged as "flaggy" — too news-anchor /
-//                                    formal. Prabhat is a cleaner Indian
-//                                    English baseline; the frontend plays
-//                                    it back at 1.0× (not 0.92× like before)
-//                                    so it reads as a peer voice, not an
-//                                    older narrator.
+//   narrator → hi-IN-MadhurNeural — Indian male, Hindi-locale voice that
+//                                    speaks English with a much more
+//                                    natural, conversational Indian
+//                                    accent than Prabhat (which QA
+//                                    flagged as sounding fake/synthetic).
+//                                    Madhur reads English fluently and
+//                                    its prosody on Hindi-English mix
+//                                    sentences is noticeably more human.
 const VOICES = {
   shanaya:  { neural: 'hi-IN-SwaraNeural',  googleTl: 'en-IN' },
-  narrator: { neural: 'en-IN-PrabhatNeural', googleTl: 'en-IN' },
+  narrator: { neural: 'hi-IN-MadhurNeural', googleTl: 'en-IN' },
 };
 
 router.get('/', async (req, res, next) => {

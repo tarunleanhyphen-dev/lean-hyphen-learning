@@ -291,15 +291,6 @@ function act1Scenes() {
           cue: 'ding',
         },
         {
-          id: 's2-w1-detail',
-          duration: 6500,
-          status: 'Reading socks details',
-          phone: { cart: ['shoes'], view: 'detail', showProduct: 'socks' },
-          bubbles: [
-            { side: 'right', type: 'thought', text: 'Hmm… socks would actually go well with the shoes.' },
-          ],
-        },
-        {
           id: 's2-w1-bubble2',
           duration: 6500,
           status: 'Justifying the add-on',
@@ -384,15 +375,6 @@ function act1Scenes() {
           cue: 'tap',
         },
         {
-          id: 's2-w2-bubble2',
-          duration: 6500,
-          status: 'Reading hoodie details',
-          phone: { cart: ['shoes', 'socks'], view: 'detail', showProduct: 'hoodie', urgencyMinutes: 5 },
-          bubbles: [
-            { side: 'right', type: 'thought', text: 'This hoodie is so trendy and that’s a great discount.' },
-          ],
-        },
-        {
           id: 's2-w2-bubble3',
           duration: 7000,
           status: 'Justifying the add-on',
@@ -459,22 +441,6 @@ function act1Scenes() {
           cue: 'alert',
         },
         {
-          id: 's2-w3-bubble1',
-          duration: 7500,
-          status: 'Curious about the free gift',
-          phone: after(['shoes', 'socks', 'hoodie'], {
-            unlockOffer: {
-              headline: 'NEW OFFER UNLOCKED',
-              message: 'Add 1 more item and get a Phone Case FREE',
-              gift: 'phone-case',
-              emoji: '🎀',
-            },
-          }),
-          bubbles: [
-            { side: 'right', type: 'thought', text: 'Oo wait… I was anyway going to buy the phone case — mine looks old.' },
-          ],
-        },
-        {
           id: 's2-w3-bubble2',
           duration: 6500,
           status: 'Connecting the dots',
@@ -487,7 +453,7 @@ function act1Scenes() {
             },
           }),
           bubbles: [
-            { side: 'right', type: 'thought', text: 'Oo wait… I was anyway going to buy the phone case — mine looks old.' },
+            { side: 'right', type: 'thought', text: 'Ohh wait… I was anyway going to buy the phone case — mine looks old.' },
             { side: 'right', type: 'thought', text: 'And it’s FREE if I add one more thing? Okay let me just see what counts.' },
           ],
         },
@@ -567,15 +533,6 @@ function act1Scenes() {
           cue: 'tap',
         },
         {
-          id: 's2-w3-detail',
-          duration: 6000,
-          status: 'Reading Selfie Light details',
-          phone: { cart: ['shoes', 'socks', 'hoodie'], view: 'detail', showProduct: 'selfie-light', viralBadge: 'selfie-light' },
-          bubbles: [
-            { side: 'right', type: 'thought', text: 'Wow! This would make my birthday pictures look so much better.' },
-          ],
-        },
-        {
           id: 's2-w3-bubble4',
           duration: 7000,
           status: '"Such a smart deal"',
@@ -652,56 +609,14 @@ function act1Scenes() {
           },
           cue: 'freeze',
         },
-        {
-          id: 's3-cart-total',
-          duration: 2000,
-          status: 'TOTAL · ₹2,796',
-          phone: {
-            cart: FULL_CART,
-            view: 'cart-reveal',
-            revealItems: true,
-            revealTotal: true,
-          },
-        },
-        {
-          id: 's3-final-thought-1',
-          duration: 5500,
-          status: 'Shanaya catches herself',
-          emotion: 'realised',
-          phone: {
-            cart: FULL_CART,
-            view: 'cart-reveal',
-            revealItems: true,
-            revealTotal: true,
-            revealSavings: 1400,
-          },
-          bubbles: [
-            { side: 'right', type: 'thought', text: 'Wait…' },
-          ],
-        },
-        {
-          id: 's3-final-thought-2',
-          duration: 11000,
-          status: 'Shanaya catches herself',
-          emotion: 'realised',
-          phone: {
-            cart: FULL_CART,
-            view: 'cart-reveal',
-            revealItems: true,
-            revealTotal: true,
-            revealSavings: 1400,
-          },
-          bubbles: [
-            { side: 'right', type: 'thought', text: 'Wait…' },
-            { side: 'right', type: 'thought', text: 'I only came here to buy shoes. How did I end up spending so much?! Okay, let me checkout first.' },
-          ],
-        },
-
-        /* ---- CHECKOUT → PAYMENT → SUCCESS  ----
-         * After Shanaya catches herself she still proceeds to check out.
-         * The phone walks through the cart view → place-order tap →
-         * payment screen → pay tap → processing → confirmation, so the
-         * learner sees the actual cost of the impulse cart land. */
+        /* ---- CHECKOUT → PAYMENT → SUCCESS → REGRET  ----
+         * Per the refreshed script, Shanaya proceeds straight from the
+         * cart reveal into checkout without the in-cart "wait…" pause.
+         * The phone walks through cart view → place-order tap → payment
+         * screen → pay tap → processing → confirmation. ONLY AFTER the
+         * order lands does the realisation hit — the regret bubble
+         * (s3-final-thought-2) now lives after s3-success so the
+         * student sees ₹2,796 actually paid before Shanaya wakes up. */
         {
           id: 's3-checkout-tap',
           duration: 4000,
@@ -762,6 +677,23 @@ function act1Scenes() {
           },
           cue: 'ding',
           narration: 'Done. ₹2,796 gone — almost twice what she planned.',
+        },
+        /* The regret hits AFTER the order goes through, not before.
+         * Two thought bubbles: a short "Wait…" pause, then the full
+         * "I only came here to buy shoes…" realisation. */
+        {
+          id: 's3-final-thought-2',
+          duration: 9500,
+          status: 'Shanaya catches herself',
+          emotion: 'realised',
+          phone: {
+            cart: FULL_CART,
+            view: 'confirmation',
+          },
+          bubbles: [
+            { side: 'right', type: 'thought', text: 'Wait…' },
+            { side: 'right', type: 'thought', text: 'I only came here to buy shoes. How did I end up spending so much?!' },
+          ],
         },
 
         /* ---- REFLECTION — the single free-text question that ends Act 1 ---- */

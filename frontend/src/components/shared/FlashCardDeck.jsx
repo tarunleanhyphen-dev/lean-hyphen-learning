@@ -23,83 +23,66 @@ import { cancelSpeech } from '../../utils/sounds.js';
  */
 export default function FlashCardDeck({ data, onReveal, speakingDone = true, onComplete }) {
   const [idx, setIdx] = useState(0);
-  /* Track which cards have been flipped at least once. Used to gate
-   * the Finish button (all cards must be flipped) and to decide
-   * whether the back face shows on render. */
-  const [flipped, setFlipped] = useState(() => new Set());
 
-  /* Refs instead of state — these are decisions, not displayed UI, so
-   * they don't need to re-render the component (which is what caused
-   * the earlier double-fire bug). */
-  // True once the learner has interacted (tapped or navigated). Card 1's
-  // first tap sets this; navigation also sets it. Initial mount stays
-  // false so the deck doesn't talk over the scene's intro narration.
-  const hasInteractedRef = useRef(false);
-  // Last idx the auto-fire effect spoke for. Prevents React 18 strict
-  // mode's double effect run from firing TTS twice for the same card.
-  const lastAutoFiredIdxRef = useRef(-1);
+  /* TRUE one-by-one model:
+   *   - Each card lands on its FRONT face when navigated to.
+   *   - Tap the card → flips to back, plays TTS, marks "seen".
+   *   - Next button is disabled until the current card has been tapped.
+   *   - Back / dot navigation goes to the target card and ALWAYS resets
+   *     to FRONT face (so the learner has to re-tap → TTS replays).
+   *   - Finish is enabled only after all cards have been seen at least
+   *     once + the TTS queue is idle.
+   *
+   * State model:
+   *   `revealedCurrent`  — has the current card been tapped this visit?
+   *                        Resets to false on every idx change.
+   *   `seen`             — Set<cardId> of cards tapped at any point.
+   *                        Drives the Finish button + closer line. */
+  const [revealedCurrent, setRevealedCurrent] = useState(false);
+  const [seen, setSeen] = useState(() => new Set());
+
+  // Strict-mode guard for the reset effect so it can't double-trigger.
+  const lastResetIdxRef = useRef(-1);
+
+  useEffect(() => {
+    if (lastResetIdxRef.current === idx) return;
+    lastResetIdxRef.current = idx;
+    // New card visit — flip back to FRONT face and stop any in-flight
+    // TTS from the previous card.
+    setRevealedCurrent(false);
+    cancelSpeech();
+  }, [idx]);
 
   const card = data.cards[idx];
   const total = data.cards.length;
   const isLast = idx === total - 1;
-  const isFlipped = flipped.has(card.id);
-  const allFlipped = flipped.size === total;
-
-  /* Auto-fire TTS whenever the learner lands on a card via Next / Back /
-   * dot navigation. Cancels any in-flight speech first so the previous
-   * card's voice stops the moment they move. Skipped on initial mount
-   * (hasInteractedRef=false) so card 1 waits for the tap, AND on
-   * strict-mode duplicate runs for the same idx. */
-  useEffect(() => {
-    if (!hasInteractedRef.current) return;
-    if (lastAutoFiredIdxRef.current === idx) return;
-    lastAutoFiredIdxRef.current = idx;
-    cancelSpeech();
-    onReveal?.(card);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idx]);
-
-  /* Mark a card as flipped synchronously alongside the idx change, so
-   * the entering card's back face is already visible on the first
-   * render (no awkward "front face flashes, then auto-flips" beat). */
-  const flipCard = (cardId) => {
-    setFlipped((prev) => {
-      if (prev.has(cardId)) return prev;
-      const next = new Set(prev);
-      next.add(cardId);
-      return next;
-    });
-  };
+  const isFlipped = revealedCurrent;
+  const allSeen = seen.size === total;
 
   const handleFlip = () => {
+    // Tap-to-reveal is a one-way action per card visit. A second tap
+    // on an already-flipped card does nothing (use Back to revisit).
+    if (revealedCurrent) return;
     cancelSpeech();
-    hasInteractedRef.current = true;
-    // Also lock the auto-fire ref to this idx so the effect, if it
-    // runs after this tap, doesn't re-fire TTS for the same card.
-    lastAutoFiredIdxRef.current = idx;
-    flipCard(card.id);
+    setRevealedCurrent(true);
+    setSeen((prev) => (prev.has(card.id) ? prev : new Set(prev).add(card.id)));
     onReveal?.(card);
   };
 
   const goNext = () => {
     if (isLast) return;
+    if (!revealedCurrent) return; // must reveal current card first
     cancelSpeech();
-    hasInteractedRef.current = true;
-    flipCard(data.cards[idx + 1].id);
     setIdx((i) => i + 1);
   };
   const goBack = () => {
     if (idx <= 0) return;
     cancelSpeech();
-    hasInteractedRef.current = true;
-    flipCard(data.cards[idx - 1].id);
     setIdx((i) => i - 1);
   };
   const goToDot = (i) => {
     if (i === idx) return;
     cancelSpeech();
-    hasInteractedRef.current = true;
-    flipCard(data.cards[i].id);
     setIdx(i);
   };
 
@@ -262,8 +245,8 @@ export default function FlashCardDeck({ data, onReveal, speakingDone = true, onC
         ) : (
           <button
             type="button"
-            onClick={() => speakingDone && allFlipped && onComplete?.()}
-            disabled={!speakingDone || !allFlipped}
+            onClick={() => speakingDone && allSeen && onComplete?.()}
+            disabled={!speakingDone || !allSeen}
             className="inline-flex items-center gap-1.5 rounded-full bg-saffron-500 px-5 py-2 text-[11.5px] font-bold text-ink-900 shadow-lg shadow-saffron-500/30 transition hover:bg-saffron-400 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Sparkles className="h-3.5 w-3.5" /> Finish Act 2
@@ -271,7 +254,7 @@ export default function FlashCardDeck({ data, onReveal, speakingDone = true, onC
         )}
       </div>
 
-      {data.closer && allFlipped && (
+      {data.closer && allSeen && (
         <motion.p
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}

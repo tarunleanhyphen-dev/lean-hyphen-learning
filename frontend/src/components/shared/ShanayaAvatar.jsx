@@ -91,50 +91,71 @@ export default function ShanayaAvatar({ emotion = 'neutral', speaking = false, w
    *
    * Emotions whose natural mouth is already open (shocked, realised)
    * skip the swap — they're already speaking-shaped. */
+  /* Lip-sync v5 — 3-state progressive amplitude lip-sync.
+   *
+   * Why three states and not two: with just closed/open the mouth only
+   * has one "open" pose, which makes loud vs quiet vowels look identical.
+   * Three pre-rendered mouth glyphs that progress from closed → slight
+   * → medium let the mouth grow with vowel strength, the way real lips
+   * do, while never reaching dramatic screamOpen territory.
+   *
+   *   level 0  closed     — emotion's natural mouth   (silent / consonants)
+   *   level 1  slight     — 'disbelief'  (~3 px V)    (soft vowels)
+   *   level 2  medium     — 'eating'     (~5 px M)    (strong vowels)
+   *
+   * `screamOpen` is INTENTIONALLY skipped — its ~15 px O reads as a
+   * yell, which is what QA flagged as "over-reacting".
+   *
+   * Driver: smoothed amplitude with double hysteresis (separate thresholds
+   * between each adjacent pair of levels) + minimum 80 ms hold between
+   * transitions. Caps switching at ~12/sec, matches relaxed speech.
+   *
+   * Emotions whose natural mouth is already open or already 'disbelief'
+   * skip the swap entirely (shocked / realised). */
   const uris = useMemo(() => ({
     closed: dataUriFor(emotion),
-    // Open variant uses 'disbelief' — the SMALLEST open mouth shape in
-    // avataaars (a ~3-px V-open vs 'eating's ~5-px M or 'screamOpen's
-    // ~15-px O). Reads as "lips slightly parted", not "mouth flapping".
-    // Per QA: small lip-sync only, no full-mouth stretch.
-    open:   dataUriFor(emotion, 'disbelief'),
+    slight: dataUriFor(emotion, 'disbelief'),
+    medium: dataUriFor(emotion, 'eating'),
   }), [emotion]);
-  // Skip lip-sync for emotions whose natural mouth is already open or
-  // is the SAME shape as our alt ('realised' already uses 'disbelief').
-  const skipAltLayer = emotion === 'shocked' || emotion === 'realised';
+  const skipLipSync = emotion === 'shocked' || emotion === 'realised';
 
-  // Tighter thresholds → mouth opens ONLY on louder syllables, not
-  // every passing consonant. Less frequent = less perceived motion.
-  const OPEN_THRESHOLD  = 0.22; // amplitude needed to open mouth
-  const CLOSE_THRESHOLD = 0.12; // amplitude needed to close (lower → hysteresis)
-  const MIN_HOLD_MS     = 110;  // ~9 swaps/sec cap → matches relaxed speech
+  // Three-level hysteresis. Open-up requires more amplitude than close-down
+  // at the same boundary — that's what stops the mouth from chattering
+  // around a single noise floor value.
+  const LV0_TO_1 = 0.14;  // closed → slight (open up)
+  const LV1_TO_0 = 0.08;  // slight → closed (close down)
+  const LV1_TO_2 = 0.30;  // slight → medium (open further)
+  const LV2_TO_1 = 0.22;  // medium → slight (close partially)
+  const MIN_HOLD_MS = 80;
 
-  const [mouthOpen, setMouthOpen] = useState(false);
+  const [mouthLevel, setMouthLevel] = useState(0);
   useEffect(() => {
     if (!speaking) {
-      setMouthOpen(false);
+      setMouthLevel(0);
       return undefined;
     }
     let raf = 0;
     let smoothed = 0;
-    let isOpen = false;
+    let level = 0;
     let lastSwitchAt = 0;
     const tick = (now) => {
       const raw = amplitudeRef?.current ?? 0;
-      // Boost + floor — speech amplitude sits in a narrow band.
+      // Boost narrow speech band into a usable 0..1 range.
       const boosted = Math.min(1, Math.max(0, (raw - 0.04) * 2.2));
-      // Asymmetric smoothing: rise fast (track vowels), decay slow
-      // (don't snap shut on consonants).
+      // Asymmetric smoothing: rise α=0.5 (track each vowel quickly),
+      // decay α=0.18 (don't snap shut on quick consonant dips).
       const alpha = boosted > smoothed ? 0.5 : 0.18;
       smoothed = smoothed * (1 - alpha) + boosted * alpha;
-      // Hysteresis decision.
-      const wantsOpen = isOpen
-        ? smoothed > CLOSE_THRESHOLD
-        : smoothed > OPEN_THRESHOLD;
-      if (wantsOpen !== isOpen && now - lastSwitchAt >= MIN_HOLD_MS) {
-        isOpen = wantsOpen;
+      // Compute target level using direction-aware hysteresis.
+      let next = level;
+      if (level === 0 && smoothed > LV0_TO_1) next = 1;
+      else if (level === 1 && smoothed > LV1_TO_2) next = 2;
+      else if (level === 1 && smoothed < LV1_TO_0) next = 0;
+      else if (level === 2 && smoothed < LV2_TO_1) next = 1;
+      if (next !== level && now - lastSwitchAt >= MIN_HOLD_MS) {
+        level = next;
         lastSwitchAt = now;
-        setMouthOpen(wantsOpen);
+        setMouthLevel(level);
       }
       raf = requestAnimationFrame(tick);
     };
@@ -142,10 +163,13 @@ export default function ShanayaAvatar({ emotion = 'neutral', speaking = false, w
     return () => cancelAnimationFrame(raf);
   }, [speaking, amplitudeRef]);
 
-  // Pick exactly one mouth URI to render — no blending.
-  const activeUri = (speaking && !skipAltLayer && mouthOpen)
-    ? uris.open
-    : uris.closed;
+  // Pick exactly one mouth URI to render — no blending, no overlay.
+  const activeUri = (() => {
+    if (!speaking || skipLipSync) return uris.closed;
+    if (mouthLevel === 2) return uris.medium;
+    if (mouthLevel === 1) return uris.slight;
+    return uris.closed;
+  })();
 
   // Idle blink — every 4–7 s while NOT speaking, briefly squash the
   // eye-line area so Shanaya feels alive between phases. Skipped during
@@ -162,11 +186,14 @@ export default function ShanayaAvatar({ emotion = 'neutral', speaking = false, w
     return () => clearTimeout(id);
   }, [speaking, blink]);
 
+  // Bob amplitudes drastically reduced — QA flagged the previous values
+  // (up to 5-8 px y-shift + 1.2° rotate) as "over-reacting". The avatar
+  // should still feel alive but not bobble through every scene.
   const bob = emotion === 'shocked'
-    ? { y: [0, -5, 3, -2, 0] }
+    ? { y: [0, -2, 1, 0] }
     : emotion === 'excited' || emotion === 'happy'
-      ? { y: [0, -5, 0], rotate: [-1.2, 1.2, -1.2] }
-      : { y: [0, -3, 0] };
+      ? { y: [0, -1.5, 0], rotate: [-0.35, 0.35, -0.35] }
+      : { y: [0, -1, 0] };
 
   const sizeClass = size === 'xl'
     ? 'h-40 w-40 sm:h-56 sm:w-56 md:h-60 md:w-60 lg:h-72 lg:w-72'
@@ -174,19 +201,27 @@ export default function ShanayaAvatar({ emotion = 'neutral', speaking = false, w
 
   return (
     <div className="relative inline-flex flex-col items-center">
+      {/* Aura glow — toned WAY down from the previous values. Was
+         pulsing scale 1→1.1 at 0.7s while speaking, which read as the
+         avatar "throbbing" at the camera. Now a barely-perceptible
+         scale 1→1.025 at 1.6s — alive but not distracting. */}
       <motion.div
         aria-hidden
-        animate={{ scale: speaking ? [1, 1.1, 1] : [1, 1.05, 1], opacity: [0.55, 0.85, 0.55] }}
-        transition={{ duration: speaking ? 0.7 : 4.5, repeat: Infinity, ease: 'easeInOut' }}
+        animate={{ scale: speaking ? [1, 1.025, 1] : [1, 1.02, 1], opacity: [0.4, 0.55, 0.4] }}
+        transition={{ duration: speaking ? 1.6 : 5, repeat: Infinity, ease: 'easeInOut' }}
         className={`absolute inset-0 -z-10 rounded-full blur-3xl ${face.aura}`}
       />
 
-      <motion.span aria-hidden className="absolute -top-3 -right-3 text-xl" animate={{ y: [0, -5, 0], opacity: [0.6, 1, 0.6] }} transition={{ duration: 2.4, repeat: Infinity }}>✨</motion.span>
-      <motion.span aria-hidden className="absolute -bottom-1 -left-3 text-base" animate={{ y: [0, 3, 0], opacity: [0.4, 0.9, 0.4] }} transition={{ duration: 3, repeat: Infinity, delay: 0.6 }}>💖</motion.span>
+      {/* Floating ✨ / 💖 — kept but with tiny travel (1.5-2 px instead
+         of 3-5 px) and lower max opacity so they don't draw the eye. */}
+      <motion.span aria-hidden className="absolute -top-3 -right-3 text-xl" animate={{ y: [0, -2, 0], opacity: [0.4, 0.7, 0.4] }} transition={{ duration: 3, repeat: Infinity }}>✨</motion.span>
+      <motion.span aria-hidden className="absolute -bottom-1 -left-3 text-base" animate={{ y: [0, 1.5, 0], opacity: [0.3, 0.6, 0.3] }} transition={{ duration: 3.6, repeat: Infinity, delay: 0.6 }}>💖</motion.span>
 
       <motion.div
         animate={bob}
-        transition={{ duration: emotion === 'shocked' ? 0.6 : 3.8, repeat: Infinity, ease: 'easeInOut' }}
+        // Shocked beat was 0.6s — too quick / jittery. 1.2s reads as
+        // surprise without strobing. Calm bob stays slow at 4.5s.
+        transition={{ duration: emotion === 'shocked' ? 1.2 : 4.5, repeat: Infinity, ease: 'easeInOut' }}
         className={`relative ${sizeClass} overflow-hidden rounded-[2rem] shadow-2xl ring-[4px] ring-white/80`}
       >
         {/* Room scene behind Shanaya. The avataaars character has a
@@ -275,9 +310,12 @@ export default function ShanayaAvatar({ emotion = 'neutral', speaking = false, w
         {speaking && (
           <motion.div
             aria-hidden
-            className="pointer-events-none absolute inset-0 rounded-[2rem] ring-[5px] ring-saffron-500/45"
-            animate={{ scale: [1, 1.02, 1] }}
-            transition={{ duration: 0.5, repeat: Infinity }}
+            // Thinner ring (3px not 5px), lower opacity (25 not 45),
+            // slower pulse (1.4s not 0.5s) → reads as "speaking
+            // indicator", not "alert siren".
+            className="pointer-events-none absolute inset-0 rounded-[2rem] ring-[3px] ring-saffron-500/25"
+            animate={{ scale: [1, 1.008, 1] }}
+            transition={{ duration: 1.4, repeat: Infinity }}
           />
         )}
 

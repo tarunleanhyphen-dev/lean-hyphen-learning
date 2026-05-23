@@ -626,7 +626,10 @@ function act1Scenes() {
           id: 's3-checkout-tap',
           duration: 4000,
           status: 'Tapping Place Order',
-          emotion: 'realised',
+          // Override scene-level 'unsettled' — Shanaya is just going
+          // through checkout motions here, not having a realisation
+          // moment yet. Neutral face per QA: "make her normal not tense".
+          emotion: 'neutral',
           phone: {
             cart: FULL_CART,
             view: 'cart-focus',
@@ -641,7 +644,7 @@ function act1Scenes() {
           id: 's3-payment',
           duration: 5000,
           status: 'Choosing payment method',
-          emotion: 'realised',
+          emotion: 'neutral',
           phone: {
             cart: FULL_CART,
             view: 'payment',
@@ -652,7 +655,7 @@ function act1Scenes() {
           id: 's3-payment-tap',
           duration: 3500,
           status: 'Tapping Pay',
-          emotion: 'realised',
+          emotion: 'neutral',
           phone: {
             cart: FULL_CART,
             view: 'payment',
@@ -664,7 +667,7 @@ function act1Scenes() {
           id: 's3-payment-processing',
           duration: 3500,
           status: 'Processing payment',
-          emotion: 'realised',
+          emotion: 'neutral',
           phone: {
             cart: FULL_CART,
             view: 'payment',
@@ -675,7 +678,9 @@ function act1Scenes() {
           id: 's3-success',
           duration: 5500,
           status: 'Order placed',
-          emotion: 'realised',
+          // Neutral face on the confirmation screen — the realisation
+          // doesn't hit until s3-final-thought-2 right after this.
+          emotion: 'neutral',
           phone: {
             cart: FULL_CART,
             view: 'confirmation',
@@ -1269,8 +1274,12 @@ export const products = {
   hoodie:         { id: 'hoodie',       emoji: '👕', image: UN('1620799140188-3b2a02fd9a77'), name: 'Birthday Hoodie',         tagline: '20% OFF · only 5 min left',     price: 799,  originalPrice: 999, discountPct: 20, rating: 4.6, sizeOptions: SIZE_PRESETS.apparel },
   'hoodie-2':     { id: 'hoodie-2',     emoji: '👕', image: UN('1556821840-3a63f95609a7'),    name: 'Classic Pullover',        tagline: 'Best seller',                   price: 1299, rating: 4.4, sizeOptions: SIZE_PRESETS.apparel },
   'hoodie-3':     { id: 'hoodie-3',     emoji: '👕', image: UN('1542406775-ade58c52d2e4'),    name: 'Cosy Hoodie',             tagline: 'New drop',                      price: 1599, rating: 4.5, sizeOptions: SIZE_PRESETS.apparel },
-  /* Selfie Glow Clip Light — viral / social-proof add-on for the birthday photos beat. */
-  'selfie-light': { id: 'selfie-light', emoji: '💡', image: UN('1505740420928-5e560c06d30e'), name: 'Selfie Glow Clip Light',  tagline: 'Viral on reels · 9K bought',    price: 199,  rating: 4.7, sizeOptions: SIZE_PRESETS.light },
+  /* Selfie Glow Clip Light — viral / social-proof add-on for the
+   * birthday photos beat. Image is hosted on IndiaMART's free CDN; it's
+   * the actual product photo (rechargeable clip-on LED selfie/video
+   * light) from a real Surat seller — much more accurate than the
+   * Unsplash stock photo we used before. */
+  'selfie-light': { id: 'selfie-light', emoji: '💡', image: 'https://5.imimg.com/data5/SELLER/Default/2025/7/531095482/XS/OB/KK/95601433/61lhudmgyol-sl1500-500x500.jpg', name: 'Selfie Glow Clip Light',  tagline: 'Viral on reels · 9K bought',    price: 199,  rating: 4.7, sizeOptions: SIZE_PRESETS.light },
   /* Phone Case — bundled FREE when one more item is added. price: 0 keeps
    * the cart math honest while the UI shows a "FREE" pill instead of ₹0. */
   'phone-case':   { id: 'phone-case',   emoji: '🎀', image: UN('1601593346740-925612772716'), name: 'Phone Case',              tagline: 'FREE with offer',               price: 0,    originalPrice: 599, rating: 4.4, sizeOptions: SIZE_PRESETS.phoneCase, free: true },

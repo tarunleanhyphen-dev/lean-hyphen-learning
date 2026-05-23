@@ -23,17 +23,27 @@ const router = Router();
 //   shanaya  → hi-IN-SwaraNeural   — Hindi female reading English. Thick
 //                                    Indian English accent, youthful range.
 //                                    QA confirms this one sounds great.
-//   narrator → hi-IN-MadhurNeural — Indian male, Hindi-locale voice that
-//                                    speaks English with a much more
-//                                    natural, conversational Indian
-//                                    accent than Prabhat (which QA
-//                                    flagged as sounding fake/synthetic).
-//                                    Madhur reads English fluently and
-//                                    its prosody on Hindi-English mix
-//                                    sentences is noticeably more human.
+//   narrator → en-IN-PrabhatNeural at pitch=+15% — the only genuine
+//                                    English-India male voice Edge
+//                                    serves. Earlier attempts (Madhur
+//                                    hi-IN, Salman ur-IN, Niranjan
+//                                    gu-IN, Bashkar bn-IN) used non-
+//                                    English locales reading English,
+//                                    which left a synthetic edge. We
+//                                    now use Prabhat for genuine
+//                                    Indian-English phonetics + SSML
+//                                    pitch +15 % to raise the formants
+//                                    so the adult voice reads younger
+//                                    (closer to a peer-age tutor). For
+//                                    a *truly* young Indian tutor
+//                                    voice, see the ElevenLabs path
+//                                    in synthEdge — set
+//                                    ELEVENLABS_API_KEY +
+//                                    ELEVENLABS_VOICE_NARRATOR in env
+//                                    and it overrides Edge entirely.
 const VOICES = {
-  shanaya:  { neural: 'hi-IN-SwaraNeural',  googleTl: 'en-IN' },
-  narrator: { neural: 'hi-IN-MadhurNeural', googleTl: 'en-IN' },
+  shanaya:  { neural: 'hi-IN-SwaraNeural',    googleTl: 'en-IN' },
+  narrator: { neural: 'en-IN-PrabhatNeural',  googleTl: 'en-IN', pitch: '+15%', rate: 1.0 },
 };
 
 router.get('/', async (req, res, next) => {
@@ -49,12 +59,30 @@ router.get('/', async (req, res, next) => {
     const voice = VOICES[voiceKey] || VOICES.shanaya;
 
     let buf;
-    try {
-      buf = await synthEdge(voice.neural, text);
-    } catch (edgeErr) {
-      // eslint-disable-next-line no-console
-      console.warn('[tts] edge failed, falling back to google:', edgeErr?.message);
-      buf = await synthGoogle(voice.googleTl, text);
+    // ElevenLabs override — if the API key is set, use ElevenLabs first
+    // for whichever voice keys have an env-configured voice ID. That
+    // gives a real human-sounding Indian tutor voice when configured,
+    // and silently falls through to Edge/Google if not set or fails.
+    const elevenKey = process.env.ELEVENLABS_API_KEY;
+    const elevenVoiceId = voiceKey === 'narrator'
+      ? process.env.ELEVENLABS_VOICE_NARRATOR
+      : process.env.ELEVENLABS_VOICE_SHANAYA;
+    if (elevenKey && elevenVoiceId) {
+      try {
+        buf = await synthEleven(elevenKey, elevenVoiceId, text);
+      } catch (elevenErr) {
+        // eslint-disable-next-line no-console
+        console.warn('[tts] elevenlabs failed, falling back to edge:', elevenErr?.message);
+      }
+    }
+    if (!buf) {
+      try {
+        buf = await synthEdge(voice.neural, text, { pitch: voice.pitch, rate: voice.rate });
+      } catch (edgeErr) {
+        // eslint-disable-next-line no-console
+        console.warn('[tts] edge failed, falling back to google:', edgeErr?.message);
+        buf = await synthGoogle(voice.googleTl, text);
+      }
     }
 
     res.set('Content-Type', 'audio/mpeg');
@@ -69,10 +97,17 @@ router.get('/', async (req, res, next) => {
 /* Edge Neural TTS (primary)                                          */
 /* ------------------------------------------------------------------ */
 
-async function synthEdge(voiceName, text) {
+async function synthEdge(voiceName, text, prosody = {}) {
   const tts = new MsEdgeTTS();
   await tts.setMetadata(voiceName, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
-  const { audioStream } = tts.toStream(text);
+  // msedge-tts wraps the input in an SSML <prosody> tag using these
+  // options — `pitch` accepts "+12%" / "+50Hz" / "+2st", `rate` accepts
+  // 1.0 (default) / "+10%". This is *true* SSML pitch shift (handled
+  // by the voice model itself), distinct from client-side playbackRate.
+  const options = {};
+  if (prosody.pitch) options.pitch = prosody.pitch;
+  if (typeof prosody.rate === 'number' || typeof prosody.rate === 'string') options.rate = prosody.rate;
+  const { audioStream } = tts.toStream(text, options);
 
   const chunks = [];
   await new Promise((resolve, reject) => {
@@ -91,6 +126,52 @@ async function synthEdge(voiceName, text) {
 
   const buf = Buffer.concat(chunks);
   if (buf.length < 200) throw new Error(`edge tts returned ${buf.length} bytes`);
+  return buf;
+}
+
+/* ------------------------------------------------------------------ */
+/* ElevenLabs TTS (optional override)                                 */
+/*                                                                    */
+/* Activated by setting env vars:                                     */
+/*   ELEVENLABS_API_KEY        = xi-...                               */
+/*   ELEVENLABS_VOICE_NARRATOR = the voice_id of an Indian-male voice */
+/*   ELEVENLABS_VOICE_SHANAYA  = (optional) voice_id for Shanaya      */
+/*                                                                    */
+/* The free tier (10k chars/month) is enough to evaluate. Pick a       */
+/* voice from https://elevenlabs.io/app/voice-library — search for    */
+/* "Indian male tutor" or similar. Copy the Voice ID and put it in    */
+/* ELEVENLABS_VOICE_NARRATOR. Restart the backend. Done — every       */
+/* narrator line will now come from that voice instead of Edge.       */
+/*                                                                    */
+/* Uses the cheapest/fastest model (eleven_turbo_v2_5) and MP3 22kHz  */
+/* 32kbps output to keep latency low.                                 */
+/* ------------------------------------------------------------------ */
+async function synthEleven(apiKey, voiceId, text) {
+  const upstream = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_22050_32`;
+  const r = await fetch(upstream, {
+    method: 'POST',
+    headers: {
+      'xi-api-key': apiKey,
+      'Content-Type': 'application/json',
+      'Accept': 'audio/mpeg',
+    },
+    body: JSON.stringify({
+      text,
+      model_id: 'eleven_turbo_v2_5',
+      voice_settings: {
+        stability: 0.5,
+        similarity_boost: 0.75,
+        style: 0.0,
+        use_speaker_boost: true,
+      },
+    }),
+  });
+  if (!r.ok) {
+    const body = await r.text().catch(() => '');
+    throw new Error(`elevenlabs ${r.status}: ${body.slice(0, 120)}`);
+  }
+  const buf = Buffer.from(await r.arrayBuffer());
+  if (buf.length < 200) throw new Error(`elevenlabs returned ${buf.length} bytes`);
   return buf;
 }
 

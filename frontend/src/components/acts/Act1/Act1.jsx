@@ -629,10 +629,10 @@ export default function Act1({ onComplete, onGoHome }) {
         <button
           onClick={() => {
             const target = Math.max(0, seq.index - 1);
+            // Stop the current scene's TTS so it doesn't keep speaking
+            // over the previous scene's narration.
+            cancelSpeech();
             spokenTexts.current.clear();
-            // Clear completed-hold flags from the target phase onward so
-            // any interactive add-to-cart prompt re-arms when stepping
-            // back through the scene.
             setCompletedHolds((prev) => {
               const next = new Set(prev);
               for (let i = target; i < phases.length; i += 1) next.delete(phases[i]?.id);
@@ -647,7 +647,13 @@ export default function Act1({ onComplete, onGoHome }) {
           <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Back
         </button>
         <button
-          onClick={seq.advance}
+          onClick={() => {
+            // Stop the current scene's TTS so the NEW scene's voice
+            // starts cleanly without bleed-through from the old one.
+            cancelSpeech();
+            spokenTexts.current.clear();
+            seq.advance();
+          }}
           className="inline-flex items-center gap-1.5 rounded-full bg-saffron-500 px-4 py-2 text-[11px] font-bold text-ink-900 shadow-lg shadow-saffron-500/30 transition hover:bg-saffron-400 active:scale-[0.98] sm:gap-2 sm:px-5 sm:py-2.5 sm:text-xs"
         >
           Next <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />

@@ -601,6 +601,11 @@ function act1Scenes() {
           id: 's3-cart-reveal',
           duration: 4500,
           status: 'Cart updated',
+          // Override the scene-level 'unsettled' emotion — at this beat
+          // Shanaya is just looking at her cart, not realising anything
+          // yet, so a normal/calm face reads better than the sad-concerned
+          // brows the unsettled emotion inherits.
+          emotion: 'neutral',
           narration: 'Shanaya is now proceeding to checkout.',
           phone: {
             cart: FULL_CART,

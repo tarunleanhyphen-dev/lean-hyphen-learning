@@ -125,17 +125,58 @@ Open <http://localhost:5173>, click **Start Act 1**, and walk through Shanaya's 
 ## Environment variables
 
 ### `backend/.env`
-| Var             | Required | Notes |
-|-----------------|----------|-------|
-| `PORT`          | no       | Defaults to `4000`. |
-| `DATABASE_URL`  | no       | Leave blank to use file fallback (`backend/data/fallback.json`). |
-| `PGSSL`         | no       | `true` (default) for Neon/managed Postgres; `false` for local Postgres. |
-| `CORS_ORIGINS`  | no       | Comma-separated allowed origins. Defaults to allow-all in dev. |
+| Var                          | Required | Notes |
+|------------------------------|----------|-------|
+| `PORT`                       | no       | Defaults to `4000`. |
+| `DATABASE_URL`               | no       | Leave blank to use file fallback (`backend/data/fallback.json`). |
+| `PGSSL`                      | no       | `true` (default) for Neon/managed Postgres; `false` for local Postgres. |
+| `CORS_ORIGINS`               | no       | Comma-separated allowed origins. Defaults to allow-all in dev. |
+| `ELEVENLABS_API_KEY`         | no       | Set to override MS Edge TTS with ElevenLabs. See section below. |
+| `ELEVENLABS_VOICE_NARRATOR`  | no       | ElevenLabs Voice ID for the narrator role. |
+| `ELEVENLABS_VOICE_SHANAYA`   | no       | ElevenLabs Voice ID for Shanaya (optional). |
 
 ### `frontend/.env.local`
 | Var                  | Required | Notes |
 |----------------------|----------|-------|
 | `VITE_API_BASE_URL`  | no       | Leave blank for local (uses Vite proxy). Set to your deployed API URL in production. |
+
+---
+
+## Voice setup (free MS Edge → optional ElevenLabs upgrade)
+
+The lesson uses two voices:
+
+- **Shanaya** — `hi-IN-SwaraNeural` (Hindi-locale female, Indian-English accent, youthful range).
+- **Narrator** — `en-IN-PrabhatNeural` at SSML pitch `+15 %` (the only en-IN male MS Edge serves, formant-shifted to read younger).
+
+That's free, no signup needed, and ships with the repo. If the narrator still sounds too synthetic for you, there's a one-env-var upgrade path to **ElevenLabs** for a genuinely human-sounding voice.
+
+### Switching to ElevenLabs (5 min, free tier)
+
+1. Sign up at <https://elevenlabs.io/sign-up>. The free tier covers 10,000 chars/month — plenty for testing the full lesson.
+2. Profile menu → **API Keys** → copy your `xi-...` key.
+3. Open the **[Voice Library](https://elevenlabs.io/app/voice-library)** → filter `Language: English (Indian)` + `Gender: Male` → preview voices → click "Add to My Voices" on one that fits.
+4. **My Voices** → click the voice → copy its **Voice ID** (looks like `21m00Tcm4TlvDq8ikWAM`).
+5. Add to `backend/.env`:
+   ```env
+   ELEVENLABS_API_KEY=xi-your-key-here
+   ELEVENLABS_VOICE_NARRATOR=paste-voice-id-here
+   ```
+6. Restart the backend (`npm start` inside `backend/`).
+
+Done — every narrator line now comes from ElevenLabs instead of Edge. The wiring lives in [`backend/src/routes/tts.js`](backend/src/routes/tts.js) (`synthEleven` function); if ElevenLabs ever errors, the request **silently falls back to Edge** so the lesson never breaks.
+
+To override Shanaya's voice too, set `ELEVENLABS_VOICE_SHANAYA` the same way. Leave it blank to keep her on Edge.
+
+### Production (Vercel) ElevenLabs setup
+
+In the Vercel dashboard for the **backend** project:
+
+1. Settings → **Environment Variables**.
+2. Add `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_NARRATOR`, and (optional) `ELEVENLABS_VOICE_SHANAYA` for the **Production** environment.
+3. Redeploy the backend (any push to `main`, or "Redeploy" from the Deployments tab).
+
+The same fallback applies — if the keys aren't set in production, the deployed backend uses MS Edge TTS just like it does today.
 
 ---
 

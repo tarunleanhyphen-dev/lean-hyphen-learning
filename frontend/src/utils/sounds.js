@@ -943,7 +943,7 @@ function playChunkSequence(chunks, i, who, volume, onFinished) {
   // Without it, browsers that cached the old Google Translate MP3 (under
   // Cache-Control: immutable) would keep replaying the old voice for the
   // same phrase, even after a backend deploy. Bump this when voices change.
-  const url = `${CLOUD_TTS_BASE}/api/tts?voice=${encodeURIComponent(who)}&v=5&text=${encodeURIComponent(chunks[i])}`;
+  const url = `${CLOUD_TTS_BASE}/api/tts?voice=${encodeURIComponent(who)}&v=9&text=${encodeURIComponent(chunks[i])}`;
   const audio = new Audio(url);
   currentCloudAudio = audio;
   audio.volume = volume;
@@ -953,15 +953,10 @@ function playChunkSequence(chunks, i, who, volume, onFinished) {
   // Both voices use the same en-IN locale on the backend; prosody is what
   // makes them distinct on the client side.
   //   shanaya  → 1.0  : natural Indian-English female (hi-IN-Swara)
-  //   narrator → 1.1  : hi-IN-Madhur is a Hindi-locale male voice with
-  //                     warmer, more conversational prosody than the
-  //                     previous en-IN-Prabhat (which QA flagged as
-  //                     sounding fake/robotic). Madhur's natural pace
-  //                     is slower, so we nudge to 1.1× — fast enough to
-  //                     read as a peer voice, slow enough to keep his
-  //                     prosody intact. 1.3× (the old Prabhat setting)
-  //                     made Madhur sound rushed; 1.0× felt too narrator-y.
-  audio.playbackRate = who === 'shanaya' ? 1.0 : 1.1;
+  //   narrator → 1.3  : Per QA — pushes the male voice into a younger
+  //                     17-18 year-old read. preservesPitch is TRUE so
+  //                     the Indian accent is preserved.
+  audio.playbackRate = who === 'shanaya' ? 1.0 : 1.3;
   audio.crossOrigin = 'anonymous';
 
   // Route this chunk through the Web Audio analyser so the avatar can

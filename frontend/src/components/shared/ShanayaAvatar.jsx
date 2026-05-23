@@ -45,26 +45,107 @@ const EMOTIONS = {
   realised:  { eyes: 'surprised', eyebrows: 'raisedExcited',   mouth: 'disbelief',  aura: 'bg-burgundy-500/60', label: 'realising' },
 };
 
-function dataUriFor(emotion) {
+/* Build an avataaars data-URI for the given emotion + an optional
+ * mouth override. When `mouthOverride` is null we use the mouth shape
+ * specified by the emotion (closed/at-rest face). When it's a real
+ * mouth name like 'disbelief' or 'screamOpen' we render the same face
+ * with a more-open mouth shape — that powers lip-sync. */
+function dataUriFor(emotion, mouthOverride = null) {
   const e = EMOTIONS[emotion] || EMOTIONS.neutral;
   return createAvatar(avataaars, {
     ...BASE,
     eyes: [e.eyes],
     eyebrows: [e.eyebrows],
-    mouth: [e.mouth],
+    mouth: [mouthOverride || e.mouth],
   }).toDataUri();
 }
 
+// eslint-disable-next-line no-unused-vars
 export default function ShanayaAvatar({ emotion = 'neutral', speaking = false, wordTick = 0, amplitudeRef, size = 'xl', showPhone = true }) {
   const face = EMOTIONS[emotion] || EMOTIONS.neutral;
-  const uri = useMemo(() => dataUriFor(emotion), [emotion]);
 
-  // Real-time amplitude smoothing used to live here — it drove a
-  // separate mouth overlay rendered on top of the DiceBear face. That
-  // overlay was removed (it produced a "two mouths" visual), so we no
-  // longer need to maintain a smoothed mouthOpen value. `amplitudeRef`
-  // is still accepted in the props API for backwards compatibility
-  // with callers; it's just ignored.
+  /* ===== Real-time lip-sync (research-driven rewrite v3) =====
+   *
+   * Previous attempts that didn't work:
+   *   v1  Separate SVG mouth overlay on top of the avatar  → "two mouths"
+   *   v2  3-state snap (closed/disbelief/screamOpen)        → too dramatic
+   *   v3a Continuous opacity blending closed + eating       → "ghost mouth"
+   *
+   * What actually works (this version): a single open-state, hard-snap
+   * mouth swap driven by amplitude, with hysteresis to prevent flicker
+   * and a max ~5 swaps/second cap. NO opacity blending — exactly ONE
+   * mouth is rendered at any moment. That's how every viseme-based
+   * lip-sync system in production works (Snap Lens Studio, Ready Player
+   * Me, Apple's Memoji): pick a shape, render it cleanly, switch.
+   *
+   * Mouth shapes used:
+   *   closed → emotion's natural mouth (smile / serious / twinkle / etc.)
+   *   open   → 'eating' — subtle M-shape, NOT the dramatic 'screamOpen'.
+   *            Chosen because it changes mouth height by only a few px,
+   *            so the snap reads as "lips parted" not "mouth flapped open".
+   *
+   * Hysteresis: amplitude must exceed `OPEN_THRESHOLD` to open, must
+   * drop below `CLOSE_THRESHOLD` (lower) to close. With a min hold time
+   * of 90ms, the mouth never opens/closes more than ~11×/sec — matches
+   * real speech rhythm (4-7 syllables/sec in English).
+   *
+   * Emotions whose natural mouth is already open (shocked, realised)
+   * skip the swap — they're already speaking-shaped. */
+  const uris = useMemo(() => ({
+    closed: dataUriFor(emotion),
+    // Open variant uses 'disbelief' — the SMALLEST open mouth shape in
+    // avataaars (a ~3-px V-open vs 'eating's ~5-px M or 'screamOpen's
+    // ~15-px O). Reads as "lips slightly parted", not "mouth flapping".
+    // Per QA: small lip-sync only, no full-mouth stretch.
+    open:   dataUriFor(emotion, 'disbelief'),
+  }), [emotion]);
+  // Skip lip-sync for emotions whose natural mouth is already open or
+  // is the SAME shape as our alt ('realised' already uses 'disbelief').
+  const skipAltLayer = emotion === 'shocked' || emotion === 'realised';
+
+  // Tighter thresholds → mouth opens ONLY on louder syllables, not
+  // every passing consonant. Less frequent = less perceived motion.
+  const OPEN_THRESHOLD  = 0.22; // amplitude needed to open mouth
+  const CLOSE_THRESHOLD = 0.12; // amplitude needed to close (lower → hysteresis)
+  const MIN_HOLD_MS     = 110;  // ~9 swaps/sec cap → matches relaxed speech
+
+  const [mouthOpen, setMouthOpen] = useState(false);
+  useEffect(() => {
+    if (!speaking) {
+      setMouthOpen(false);
+      return undefined;
+    }
+    let raf = 0;
+    let smoothed = 0;
+    let isOpen = false;
+    let lastSwitchAt = 0;
+    const tick = (now) => {
+      const raw = amplitudeRef?.current ?? 0;
+      // Boost + floor — speech amplitude sits in a narrow band.
+      const boosted = Math.min(1, Math.max(0, (raw - 0.04) * 2.2));
+      // Asymmetric smoothing: rise fast (track vowels), decay slow
+      // (don't snap shut on consonants).
+      const alpha = boosted > smoothed ? 0.5 : 0.18;
+      smoothed = smoothed * (1 - alpha) + boosted * alpha;
+      // Hysteresis decision.
+      const wantsOpen = isOpen
+        ? smoothed > CLOSE_THRESHOLD
+        : smoothed > OPEN_THRESHOLD;
+      if (wantsOpen !== isOpen && now - lastSwitchAt >= MIN_HOLD_MS) {
+        isOpen = wantsOpen;
+        lastSwitchAt = now;
+        setMouthOpen(wantsOpen);
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [speaking, amplitudeRef]);
+
+  // Pick exactly one mouth URI to render — no blending.
+  const activeUri = (speaking && !skipAltLayer && mouthOpen)
+    ? uris.open
+    : uris.closed;
 
   // Idle blink — every 4–7 s while NOT speaking, briefly squash the
   // eye-line area so Shanaya feels alive between phases. Skipped during
@@ -114,17 +195,28 @@ export default function ShanayaAvatar({ emotion = 'neutral', speaking = false, w
            sitting in her actual room rather than floating in a peach blob. */}
         <RoomScene />
         <AnimatePresence mode="wait">
-          <motion.img
+          <motion.div
             key={emotion}
-            src={uri}
-            alt={`Shanaya looking ${face.label}`}
-            draggable={false}
             initial={{ opacity: 0, scale: 0.94, y: 4 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.98 }}
             transition={{ duration: 0.45, ease: 'easeOut' }}
-            className="absolute inset-0 h-full w-full select-none object-cover"
-          />
+            className="absolute inset-0 h-full w-full"
+          >
+            {/* Single mouth render — exactly one URI is shown at any
+               moment (closed when silent / hysteresis says closed, open
+               when amplitude has crossed the open threshold). No
+               opacity blending = no "ghost mouth" artefact. The img's
+               src is swapped directly, and since it's the SAME face SVG
+               with only the mouth glyph differing, only the mouth area
+               changes between renders. */}
+            <img
+              src={activeUri}
+              alt={`Shanaya looking ${face.label}`}
+              draggable={false}
+              className="absolute inset-0 h-full w-full select-none object-cover"
+            />
+          </motion.div>
         </AnimatePresence>
 
         {/* iPhone overlay — held in Shanaya's hand against the centre of

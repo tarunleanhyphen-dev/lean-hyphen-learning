@@ -1171,20 +1171,17 @@ function act2Scenes() {
           emotion: 'curious',
           activity: { kind: 'mind-trap', id: 'thought-spiral' },
         },
-        {
-          id: 's6-close',
-          duration: 7500,
-          status: 'All twelve sorted',
-          emotion: 'realised',
-          bubbles: [
-            { side: 'right', type: 'thought', text: 'Same brain, four different tricks. No wonder each step felt normal.' },
-          ],
-        },
       ],
     },
 
     /* ============================================================
-     * SCENE 7 — DEFINITION  (no game, just narration)
+     * SCENE 7 — DEFINITION
+     *
+     * Previously three phases (s6-close → s7-open → s7-name) all
+     * covered the same beat: "four tricks recap" + "name the pattern".
+     * Per QA: collapsed into ONE tight phase — narrator names the
+     * trick set + the trap name in a single sentence, Shanaya reacts
+     * once. ~7s total instead of the prior ~25s of repetition.
      * ============================================================ */
     {
       id: 'scene-7',
@@ -1193,18 +1190,11 @@ function act2Scenes() {
       emotion: 'curious',
       phases: [
         {
-          id: 's7-open',
-          duration: 8500,
-          status: 'Connecting the dots',
-          emotion: 'realised',
-          narration: 'Shanaya only planned to buy shoes. But discounts, excitement, "FREE" offers, and emotional decisions slowly changed her choices.',
-        },
-        {
           id: 's7-name',
-          duration: 9500,
+          duration: 7500,
           status: 'It has a name',
           emotion: 'realised',
-          narration: "Buying something you didn't plan to buy — because it feels right in the moment. This is called IMPULSE BUYING.",
+          narration: "Four tricks — discounts, FREE offers, emotion, and 'savings'. There's one name for all of them: IMPULSE BUYING.",
           bubbles: [
             { side: 'right', type: 'thought', text: 'Oh… so that’s what it’s called.' },
           ],

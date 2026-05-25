@@ -917,18 +917,20 @@ function act4Scenes() {
         narration: 'Five rules to take with you. Tap each card one by one to reveal it.',
       },
       {
+        /* LAST phase. The KeyTakeawaysGrid's own "Finish Act 4" button
+         * fires onComplete → handleActivityComplete → advanceOrFinish,
+         * which (since this is now the last phase) opens the
+         * end-of-act celebration. From there the learner clicks
+         * "Back to home →" to exit. The identity statement still
+         * lands on this scene — it's the big animated card that
+         * slides in inside the takeaways activity once all 5 cards
+         * are revealed, so we don't need an extra narrator-only
+         * phase to repeat it. */
         id: 's9-takeaways',
         hold: true,
         status: 'Five takeaways',
         emotion: 'curious',
         activity: { kind: 'takeaways-grid', id: 'takeaways' },
-      },
-      {
-        id: 's9-identity',
-        duration: 6500,
-        status: 'Identity close',
-        emotion: 'excited',
-        narration: 'I can pause and choose before I spend.',
       },
     ],
   }];

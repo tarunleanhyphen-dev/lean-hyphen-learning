@@ -204,7 +204,6 @@ export default function Act4({ onComplete, onGoHome }) {
 
   const activity = phase?.activity;
   const isActivityActive = !!activity && !completedHolds.has(phase.id);
-  const isReflectPhase = phase?.id === 's9-identity';
 
   return (
     <div className="relative mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-3 px-3 py-4 sm:gap-4 sm:px-5 sm:py-5 md:px-6 md:py-6 lg:px-8 xl:px-10">
@@ -319,8 +318,6 @@ export default function Act4({ onComplete, onGoHome }) {
                 speakingDone={!isSpeaking}
                 onComplete={(payload) => handleActivityComplete(activity.kind, payload || {})}
               />
-            ) : isReflectPhase ? (
-              <FinalIdentityPanel meterLabel={meterLabel} />
             ) : (
               <PrePhasePlaceholder phaseId={phase?.id} />
             )}
@@ -442,33 +439,6 @@ function PrePhasePlaceholder({ phaseId }) {
       </div>
       <h3 className="text-xl font-extrabold text-ink-900 sm:text-2xl md:text-3xl">{b.title}</h3>
       <p className="max-w-md text-[13px] leading-relaxed text-ink-700 sm:text-[14px] md:text-[15px]">{b.body}</p>
-    </div>
-  );
-}
-
-/* =================== Final identity statement panel =================== */
-function FinalIdentityPanel({ meterLabel }) {
-  return (
-    <div className="flex min-h-[260px] flex-col items-start justify-center gap-4 p-2 sm:min-h-[340px] md:min-h-[440px]">
-      <div className="text-[10.5px] font-bold uppercase tracking-widest text-saffron-500 sm:text-[11px]">
-        🪞 Identity close
-      </div>
-      <h3 className="text-2xl font-extrabold leading-tight text-ink-900 sm:text-3xl md:text-4xl">
-        "I can pause and choose before I spend."
-      </h3>
-      <p className="max-w-md text-[13px] leading-relaxed text-ink-700 sm:text-[14px] md:text-[15px]">
-        Whatever zone you landed on today, what just changed is small but real — you now know what to look for. The next time a reel, a deal, or a notification pulls at you, that knowledge is the pause.
-      </p>
-      {meterLabel && (
-        <div className="rounded-2xl bg-gradient-to-br from-saffron-500/12 to-coral-500/10 p-3 ring-1 ring-saffron-500/30">
-          <div className="text-[10.5px] font-extrabold uppercase tracking-widest text-saffron-600">
-            Your snapshot today
-          </div>
-          <div className="mt-1 text-[14px] font-semibold text-ink-900">
-            {meterLabel}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

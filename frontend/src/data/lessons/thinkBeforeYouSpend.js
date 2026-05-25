@@ -55,7 +55,15 @@ export const lesson = {
        * `const` temporal dead zone. */
       scenes: [],
     },
-    act4: { id: 'act4', title: 'Act 4 — Reflect & Realise', minutes: 3, kind: 'impulse-meter', status: 'coming-soon' },
+    act4: {
+      id: 'act4',
+      title: 'Act 4 — Reflect & Realise',
+      minutes: 3,
+      kind: 'impulse-meter',
+      /* scenes are assigned below after act4Activities is initialised
+       * — same late-bind trick as act3 to dodge the const TDZ. */
+      scenes: [],
+    },
   },
 };
 function act1Scenes() {
@@ -807,6 +815,126 @@ export const act2Activities = {
 };
 
 /* =========================================================================
+ * ACT 4 ACTIVITIES — Reflect & Realise
+ *
+ * Two short interactions stitched into one ~3-minute reflective close:
+ *   1. ImpulseMeter — student places themselves on a 5-zone slider
+ *      ("I go with the moment" → "I pause and choose"). No right
+ *      answer — the act is a self-snapshot, not a quiz.
+ *   2. KeyTakeawaysGrid — 5 tap-to-reveal cards distilling the
+ *      lesson into a portable rule set. After all 5 are revealed the
+ *      identity statement "I can pause and choose before I spend"
+ *      lands as the final beat.
+ * ======================================================================== */
+export const act4Activities = {
+  meter: {
+    title: 'Place yourself on the Impulse Meter',
+    instruction: 'Where do you usually land right before you tap "Buy"? No right answer — just an honest snapshot.',
+    zones: [
+      { id: 'go',      emoji: '🎢', label: 'I go with the moment', short: 'Go with the moment' },
+      { id: 'react',   emoji: '😬', label: 'I react quickly',       short: 'React quickly' },
+      { id: 'think',   emoji: '🤔', label: 'I think sometimes',     short: 'Think sometimes' },
+      { id: 'careful', emoji: '👍', label: 'I try to be careful',   short: 'Try to be careful' },
+      { id: 'pause',   emoji: '🎯', label: 'I pause and choose',    short: 'Pause and choose' },
+    ],
+    affirmation: 'And that\'s okay. The point isn\'t to be at one end — it\'s to know where you are. Awareness is what changes the next tap.',
+  },
+  takeaways: {
+    title: 'Five things to take with you',
+    instruction: 'Tap each card — one at a time — to reveal the rule.',
+    cards: [
+      {
+        id: 'pause',
+        emoji: '⏸️',
+        title: 'Pause before you decide',
+        body: 'Quick decisions often lead to extra spending.',
+      },
+      {
+        id: 'small-spends',
+        emoji: '🪙',
+        title: 'Think beyond "small amounts"',
+        body: 'Small spends can quietly add up.',
+      },
+      {
+        id: 'triggers',
+        emoji: '🚦',
+        title: 'Notice the triggers',
+        body: 'Offers, timers, and excitement influence choices.',
+      },
+      {
+        id: 'time',
+        emoji: '⏰',
+        title: 'Give yourself time',
+        body: 'Pausing helps you think clearly.',
+      },
+      {
+        id: 'purpose',
+        emoji: '🎯',
+        title: 'Choose with purpose',
+        body: 'Decide based on what you need, not the situation.',
+      },
+    ],
+    /* The closing identity statement — displayed prominently once all
+     * five cards have been revealed. Also spoken in the closing phase. */
+    identity: 'I can pause and choose before I spend.',
+  },
+};
+
+/* Scene assembly for Act 4 — one continuous reflective scene. */
+function act4Scenes() {
+  return [{
+    id: 'scene-act4',
+    title: 'Reflect & Realise',
+    ambience: 'reflective',
+    emotion: 'realised',
+    phases: [
+      {
+        id: 's9-intro',
+        duration: 9500,
+        status: 'A small reflection',
+        emotion: 'realised',
+        narration: "Impulse buying can happen to anyone. Sometimes decisions are influenced by excitement, pressure, trends, emotions, or the feeling of getting a good deal. The important thing isn't being perfect all the time — it's becoming more aware of what shapes our choices.",
+      },
+      {
+        id: 's9-meter-intro',
+        duration: 4500,
+        status: 'Impulse Meter',
+        emotion: 'curious',
+        narration: 'Place yourself on the Impulse Meter. Where do you usually land?',
+      },
+      {
+        id: 's9-meter',
+        hold: true,
+        status: 'Your honest snapshot',
+        emotion: 'curious',
+        activity: { kind: 'impulse-meter', id: 'meter' },
+      },
+      {
+        id: 's9-takeaways-intro',
+        duration: 7500,
+        status: 'Key takeaways',
+        emotion: 'happy',
+        narration: 'Five rules to take with you. Tap each card one by one to reveal it.',
+      },
+      {
+        id: 's9-takeaways',
+        hold: true,
+        status: 'Five takeaways',
+        emotion: 'curious',
+        activity: { kind: 'takeaways-grid', id: 'takeaways' },
+      },
+      {
+        id: 's9-identity',
+        duration: 6500,
+        status: 'Identity close',
+        emotion: 'excited',
+        narration: 'I can pause and choose before I spend.',
+      },
+    ],
+  }];
+}
+
+/* =========================================================================
  * ACT 3 ACTIVITIES
  *
  * Four 2-minute "real-life simulations" — each a different impulse context
@@ -1151,3 +1279,4 @@ export const intendedBudget = 1500;
  * compute the scenes after both const blocks have initialised. Keeps
  * the lesson const free of the const-temporal-dead-zone trap. */
 lesson.acts.act3.scenes = act3Scenes();
+lesson.acts.act4.scenes = act4Scenes();

@@ -140,7 +140,7 @@ function FloatingBubbles() {
 }
 
 function ActCard({ act, index }) {
-  const isPlayable = act.id === 'act1' || act.id === 'act2' || act.id === 'act3';
+  const isPlayable = act.id === 'act1' || act.id === 'act2' || act.id === 'act3' || act.id === 'act4';
   const showAct2Tip = act.id === 'act2';
   const body = (
     <div className="relative flex h-full flex-col rounded-2xl border border-white/10 bg-white/[0.04] p-5 transition group-hover:border-saffron-500/40 group-hover:bg-white/[0.06]">

@@ -400,7 +400,7 @@ export default function Act3({ onComplete }) {
             title="The Better Deal trap, decoded"
             stats={celebrationStats}
             takeaway="Branding, popularity, and social image can make a product feel more valuable than it actually is. You just practised spotting it — same pause works on every reel from here on."
-            continueLabel="Back to home →"
+            continueLabel="Move to Act 4 →"
             onContinue={finishAct}
           />
         )}

@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Check, ArrowDown } from 'lucide-react';
+import { Sparkles, Check, ArrowDown, Zap, Flame, Lightbulb, Shield, Target } from 'lucide-react';
+
+/* Resolve `icon` string from lesson data to a lucide component. */
+const ZONE_ICON = { Zap, Flame, Lightbulb, Shield, Target };
 
 /**
  * Act 4's Impulse Meter — v3 "Card Strip + Morphing Personality"
@@ -132,6 +135,7 @@ function ZoneCardStrip({ zones, selectedIdx, onPick }) {
       {zones.map((zone, i) => {
         const isSelected = i === selectedIdx;
         const isDimmed = hasSelection && !isSelected;
+        const Icon = ZONE_ICON[zone.icon];
         return (
           <motion.button
             key={zone.id}
@@ -170,6 +174,23 @@ function ZoneCardStrip({ zones, selectedIdx, onPick }) {
               />
             )}
 
+            {/* Large illustrative lucide icon as a watermark behind the
+               emoji. Soft opacity so the emoji stays the focal point
+               but the card reads as designed, not just emoji + label. */}
+            {Icon && (
+              <motion.span
+                aria-hidden
+                animate={isSelected ? { rotate: [0, -4, 4, 0], scale: 1 } : { rotate: 0, scale: 1 }}
+                transition={isSelected ? { duration: 2.4, repeat: Infinity, ease: 'easeInOut' } : {}}
+                className={[
+                  'pointer-events-none absolute -right-2 -top-2 sm:-right-3 sm:-top-3',
+                  isSelected ? 'text-white/30' : `${zone.accent} opacity-25`,
+                ].join(' ')}
+              >
+                <Icon className="h-10 w-10 sm:h-12 sm:w-12" strokeWidth={2} />
+              </motion.span>
+            )}
+
             {/* Sparkle burst on selection */}
             <AnimatePresence>
               {isSelected && (
@@ -198,7 +219,7 @@ function ZoneCardStrip({ zones, selectedIdx, onPick }) {
                 initial={{ scale: 0, rotate: -20 }}
                 animate={{ scale: 1, rotate: 0 }}
                 transition={{ type: 'spring', stiffness: 320, damping: 18 }}
-                className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-white text-ink-900 shadow"
+                className="absolute left-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-white text-ink-900 shadow"
               >
                 <Check className="h-3 w-3" strokeWidth={3.2} />
               </motion.span>

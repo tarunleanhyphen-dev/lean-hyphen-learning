@@ -834,9 +834,9 @@ export const act4Activities = {
       {
         id: 'go',
         emoji: '🎢',
+        icon: 'Zap',              // complementary lucide icon — fast/charged
         label: 'I go with the moment',
         short: 'Go with the moment',
-        // gradient stops + per-zone "vibe" line shown when selected
         gradient: 'from-rose-500 to-red-600',
         ring:     'ring-rose-500',
         accent:   'text-rose-600',
@@ -846,6 +846,7 @@ export const act4Activities = {
       {
         id: 'react',
         emoji: '😬',
+        icon: 'Flame',
         label: 'I react quickly',
         short: 'React quickly',
         gradient: 'from-orange-500 to-rose-500',
@@ -857,6 +858,7 @@ export const act4Activities = {
       {
         id: 'think',
         emoji: '🤔',
+        icon: 'Lightbulb',
         label: 'I think sometimes',
         short: 'Think sometimes',
         gradient: 'from-amber-400 to-orange-500',
@@ -868,6 +870,7 @@ export const act4Activities = {
       {
         id: 'careful',
         emoji: '👍',
+        icon: 'Shield',
         label: 'I try to be careful',
         short: 'Try to be careful',
         gradient: 'from-lime-400 to-emerald-500',
@@ -879,6 +882,7 @@ export const act4Activities = {
       {
         id: 'pause',
         emoji: '🎯',
+        icon: 'Target',
         label: 'I pause and choose',
         short: 'Pause and choose',
         gradient: 'from-teal-400 to-cyan-600',
@@ -977,10 +981,10 @@ function act4Scenes() {
       },
       {
         id: 's9-takeaways-intro',
-        duration: 7500,
-        status: 'Key takeaways',
-        emotion: 'happy',
-        narration: 'Five rules to take with you. Tap each card one by one to reveal it.',
+        duration: 10500,
+        status: 'The flow of awareness',
+        emotion: 'realised',
+        narration: 'Understanding impulse buying helps us notice when emotions, pressure, or quick excitement are influencing our decisions — so we can make more thoughtful choices.',
       },
       {
         /* LAST phase. The KeyTakeawaysGrid's own "Finish Act 4" button
@@ -1040,8 +1044,8 @@ export const act3Scenarios = {
        * mute, loop, and the player chrome stripped (controls=0,
        * modestbranding=1). pointer-events on the iframe are disabled so
        * the YouTube watermark click doesn't fight with our reel chrome.
-       *   Source: https://www.youtube.com/shorts/y9NsiIG-Dlo  */
-      youtubeId: 'y9NsiIG-Dlo',
+       *   Source: https://www.youtube.com/shorts/AVx_e-yDy90  */
+      youtubeId: 'AVx_e-yDy90',
       /* Secondary fallback chain — direct MP4s. If the YouTube embed
        * is blocked (e.g. corporate firewall), ReelPlayer tries each of
        * these in order, then finally drops to the animated CSS sim.

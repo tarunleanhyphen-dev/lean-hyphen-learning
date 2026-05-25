@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PauseCircle, PlayCircle, RotateCcw, ChevronRight, ChevronLeft } from 'lucide-react';
+import { PauseCircle, PlayCircle, RotateCcw, ChevronRight, ChevronLeft, ArrowDown, Eye, Check, Target } from 'lucide-react';
 import ShanayaAvatar from '../../shared/ShanayaAvatar.jsx';
 import ThoughtBubble from '../../shared/ThoughtBubble.jsx';
 import LiveStatus from '../../shared/LiveStatus.jsx';
@@ -318,6 +318,8 @@ export default function Act4({ onComplete, onGoHome }) {
                 speakingDone={!isSpeaking}
                 onComplete={(payload) => handleActivityComplete(activity.kind, payload || {})}
               />
+            ) : phase?.id === 's9-takeaways-intro' ? (
+              <AwarenessFlowPanel />
             ) : (
               <PrePhasePlaceholder phaseId={phase?.id} />
             )}
@@ -440,6 +442,182 @@ function PrePhasePlaceholder({ phaseId }) {
       <h3 className="text-xl font-extrabold text-ink-900 sm:text-2xl md:text-3xl">{b.title}</h3>
       <p className="max-w-md text-[13px] leading-relaxed text-ink-700 sm:text-[14px] md:text-[15px]">{b.body}</p>
     </div>
+  );
+}
+
+/* ===========================================================================
+ * AwarenessFlowPanel — rendered on the s9-takeaways-intro phase.
+ *
+ * Visually mirrors the narration ("emotions, pressure, excitement, trends,
+ * good-deal feeling → notice them → make thoughtful choices") as a three-
+ * stage downward flow:
+ *
+ *     Influences chips   (chaotic, drifting, gradient pills)
+ *           ↓ Notice it
+ *     Awareness hub      (single coloured card with a pulsing eye)
+ *           ↓ Decide on purpose
+ *     Thoughtful Choice  (calm green outcome card with a ✓ stamp)
+ *
+ * Every layer animates in with a stagger so the visual reads
+ * left-to-right with the narration. The eye / arrows / outcome card
+ * all carry their own micro-loops so the scene never feels static. */
+function AwarenessFlowPanel() {
+  const influences = [
+    { id: 'emotion',    emoji: '💖', label: 'Emotions',     grad: 'from-pink-500 to-rose-500' },
+    { id: 'pressure',   emoji: '⚡', label: 'Pressure',     grad: 'from-orange-500 to-amber-500' },
+    { id: 'excitement', emoji: '🎢', label: 'Excitement',   grad: 'from-amber-500 to-saffron-500' },
+    { id: 'trends',     emoji: '🔥', label: 'Trends',       grad: 'from-coral-500 to-burgundy-500' },
+    { id: 'deal',       emoji: '💸', label: '"Good deal"',  grad: 'from-purple-500 to-fuchsia-500' },
+  ];
+
+  return (
+    <div className="flex min-h-[300px] flex-col items-center gap-3 p-2 sm:min-h-[380px] md:min-h-[460px]">
+      <header className="text-center">
+        <div className="text-[10.5px] font-bold uppercase tracking-widest text-saffron-500 sm:text-[11px]">
+          🧠 The flow of awareness
+        </div>
+        <h3 className="mt-1 text-lg font-extrabold text-ink-900 sm:text-xl md:text-2xl">
+          What pulls you · what you do about it
+        </h3>
+      </header>
+
+      {/* Layer 1 — what's pulling you */}
+      <div className="w-full">
+        <div className="text-center text-[10px] font-bold uppercase tracking-widest text-ink-500 sm:text-[10.5px]">
+          What's pulling you
+        </div>
+        <div className="mt-2 flex flex-wrap justify-center gap-1.5">
+          {influences.map((inf, i) => (
+            <motion.span
+              key={inf.id}
+              initial={{ opacity: 0, y: 12, scale: 0.85 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ delay: 0.05 + i * 0.1, type: 'spring', stiffness: 240, damping: 20 }}
+              className={`inline-flex items-center gap-1 rounded-full bg-gradient-to-r ${inf.grad} px-2.5 py-1 text-[11px] font-bold text-white shadow-md ring-1 ring-white/30`}
+            >
+              <motion.span
+                animate={{ y: [0, -1.5, 0] }}
+                transition={{ duration: 2 + (i * 0.2), repeat: Infinity, ease: 'easeInOut', delay: i * 0.18 }}
+              >
+                {inf.emoji}
+              </motion.span>
+              <span>{inf.label}</span>
+            </motion.span>
+          ))}
+        </div>
+      </div>
+
+      {/* Connector arrow 1 — "Notice it" */}
+      <FlowArrow delay={0.7} accent="text-saffron-500" label="Notice it" />
+
+      {/* Layer 2 — awareness hub */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.85 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.9, type: 'spring', stiffness: 220, damping: 22 }}
+        className="relative w-full overflow-hidden rounded-2xl bg-gradient-to-br from-saffron-500 via-coral-500 to-burgundy-500 p-3 text-white shadow-xl ring-1 ring-white/20 sm:p-4"
+      >
+        {/* Pulsing ring */}
+        <motion.span
+          aria-hidden
+          animate={{ scale: [1, 1.04, 1], opacity: [0.4, 0.75, 0.4] }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+          className="pointer-events-none absolute inset-0 rounded-2xl ring-2 ring-saffron-500"
+        />
+        {/* Shimmer sweep */}
+        <motion.span
+          aria-hidden
+          initial={{ x: '-120%' }}
+          animate={{ x: '120%' }}
+          transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
+          className="pointer-events-none absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+        />
+        <div className="relative flex items-center gap-3">
+          <motion.span
+            animate={{ scale: [1, 1.08, 1] }}
+            transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+            className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white/20 ring-1 ring-white/30 backdrop-blur-sm sm:h-14 sm:w-14"
+          >
+            <Eye className="h-6 w-6 sm:h-7 sm:w-7" strokeWidth={2.4} />
+          </motion.span>
+          <div className="min-w-0 flex-1">
+            <div className="text-[10px] font-extrabold uppercase tracking-[0.22em] opacity-90">
+              The pause
+            </div>
+            <div className="text-[15px] font-extrabold leading-tight sm:text-[17px]">
+              Awareness
+            </div>
+            <div className="mt-0.5 text-[11.5px] leading-snug opacity-95">
+              Catch the pull before you act on it.
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Connector arrow 2 — "Decide on purpose" */}
+      <FlowArrow delay={1.25} accent="text-teal-500" label="Decide on purpose" />
+
+      {/* Layer 3 — thoughtful choice outcome */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9, y: 8 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ delay: 1.45, type: 'spring', stiffness: 220, damping: 22 }}
+        className="relative w-full overflow-hidden rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 p-3 text-white shadow-xl ring-1 ring-white/20 sm:p-4"
+      >
+        <div className="relative flex items-center gap-3">
+          <motion.span
+            animate={{ rotate: [0, -4, 4, 0] }}
+            transition={{ duration: 3.4, repeat: Infinity, ease: 'easeInOut' }}
+            className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white/20 text-2xl ring-1 ring-white/30 backdrop-blur-sm sm:h-14 sm:w-14"
+          >
+            <Target className="h-6 w-6 sm:h-7 sm:w-7" strokeWidth={2.4} />
+          </motion.span>
+          <div className="min-w-0 flex-1">
+            <div className="text-[10px] font-extrabold uppercase tracking-[0.22em] opacity-90">
+              The result
+            </div>
+            <div className="text-[15px] font-extrabold leading-tight sm:text-[17px]">
+              Thoughtful choice
+            </div>
+            <div className="mt-0.5 text-[11.5px] leading-snug opacity-95">
+              Decide on what you need, not on what the situation is doing to you.
+            </div>
+          </div>
+          {/* ✓ stamp */}
+          <motion.span
+            initial={{ scale: 0, rotate: -20 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ delay: 1.75, type: 'spring', stiffness: 280, damping: 18 }}
+            className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white text-emerald-600 shadow ring-1 ring-white/40 sm:h-8 sm:w-8"
+          >
+            <Check className="h-4 w-4 sm:h-4 sm:w-4" strokeWidth={3} />
+          </motion.span>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+/* Tiny pulsing connector arrow used between AwarenessFlowPanel layers. */
+function FlowArrow({ delay, accent, label }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay }}
+      className="flex flex-col items-center"
+    >
+      <motion.span
+        animate={{ y: [0, 3, 0], opacity: [0.55, 1, 0.55] }}
+        transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+        className={accent}
+      >
+        <ArrowDown className="h-4 w-4 sm:h-5 sm:w-5" />
+      </motion.span>
+      <span className={`mt-0.5 text-[9.5px] font-extrabold uppercase tracking-[0.18em] ${accent}`}>
+        {label}
+      </span>
+    </motion.div>
   );
 }
 

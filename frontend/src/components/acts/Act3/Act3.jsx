@@ -158,11 +158,12 @@ export default function Act3({ onComplete }) {
 
   const celebrationStats = useMemo(() => {
     const mins = Math.max(1, Math.round((Date.now() - startTimeRef.current) / 60000));
+    const cleared = scoreboard.size > 0;
     return [
-      { label: 'Scenarios cleared', value: `${scoreboard.size} / 4`, sub: 'Better Deal · Food Spiral · Group Chat · Flash Sale' },
-      { label: 'Mindful choices', value: scoreboard.size,           sub: 'badges unlocked' },
-      { label: 'Frameworks applied', value: 'NEED vs EMOTION',      sub: 'in 4 real-life contexts' },
-      { label: 'Time taken',        value: `${mins} min`,           sub: 'self-paced'         },
+      { label: 'Scenario cleared',  value: cleared ? '✓' : '—',     sub: 'The "Better Deal" Confusion' },
+      { label: 'Badge unlocked',    value: cleared ? 'Mindful Choice' : '—', sub: 'Branding ≠ better product' },
+      { label: 'Framework applied', value: 'NEED vs EMOTION',       sub: 'Spot brand vs function' },
+      { label: 'Time taken',        value: `${mins} min`,           sub: 'self-paced' },
     ];
   }, [scoreboard.size]);
 
@@ -205,7 +206,16 @@ export default function Act3({ onComplete }) {
 
   const activity = phase?.activity;
   const isActivityActive = !!activity && !completedHolds.has(phase.id);
-  const isInsightPhase = phase?.id?.endsWith('-insight') || phase?.id?.endsWith('-takeaway') || phase?.id?.endsWith('-wrap');
+  // Once the challenge is cleared, all the wrap-up phases (insight,
+  // micro-challenge, real-world connect, identity close) render the
+  // same InsightPanel on the right — the narrator drives the focus by
+  // reading each beat aloud while the panel stays stable.
+  const isInsightPhase = phase?.id?.endsWith('-insight')
+    || phase?.id?.endsWith('-micro')
+    || phase?.id?.endsWith('-real-world')
+    || phase?.id?.endsWith('-close')
+    || phase?.id?.endsWith('-takeaway')
+    || phase?.id?.endsWith('-wrap');
 
   return (
     <div className="relative mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-3 px-3 py-4 sm:gap-4 sm:px-5 sm:py-5 md:px-6 md:py-6 lg:px-8 xl:px-10">
@@ -249,8 +259,10 @@ export default function Act3({ onComplete }) {
 
       <SceneProgress current={seq.index} total={phases.length} label={scene.title} actLabel="Act 3" />
 
-      {/* Scoreboard pill — running tally of cleared scenarios */}
-      <Scoreboard scoreboard={scoreboard} currentId={scenario?.id} />
+      {/* Single-badge progress pill — Act 3 now ships one deep
+         scenario, so the 4-box scoreboard is replaced with a clean
+         "Mindful Choice" badge that lights up on completion. */}
+      <BadgeStrip cleared={scoreboard.size > 0} currentScenario={scenario} />
 
       {/* Stage — left avatar + narration (~40%), right scenario panel (~60%) */}
       <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-[2fr_3fr] md:gap-5 lg:gap-6">
@@ -259,11 +271,11 @@ export default function Act3({ onComplete }) {
           <Backdrop ambience={scene.ambience} />
           <div className="relative flex h-full min-h-[380px] flex-col sm:min-h-[460px] md:min-h-[520px]">
             <div className="flex items-center justify-between">
-              <div className="text-[10px] font-bold uppercase tracking-widest text-ink-500 sm:text-[11px]">
-                Scenario {sceneIdx + 1} of {act.scenes.length}
+              <div className="text-[10px] font-bold uppercase tracking-widest text-saffron-500 sm:text-[11px]">
+                {scenario?.contextTag || 'Real-life simulation'}
               </div>
               <div className="hidden text-right md:block">
-                <div className="text-[11px] text-ink-500">{scenario?.contextTag}</div>
+                <div className="text-[11px] text-ink-500">20-second challenge</div>
               </div>
             </div>
 
@@ -290,7 +302,7 @@ export default function Act3({ onComplete }) {
                   {scene.title}
                 </div>
                 <div className="mt-1 text-[11.5px] text-ink-700 sm:text-[12.5px] md:text-sm">
-                  Test your impulse control · 4 mindful choices
+                  Test your impulse control · the "Better Deal" trap
                 </div>
               </div>
             </div>
@@ -377,9 +389,9 @@ export default function Act3({ onComplete }) {
         {showCelebration && (
           <EndOfActCelebration
             actLabel="Act 3"
-            title="Four Mindful Choices"
+            title="The Better Deal trap, decoded"
             stats={celebrationStats}
-            takeaway="Same pause, four very different traps — branding, mood, peer pressure, urgency. You can spot the trick before it spots you."
+            takeaway="Branding, popularity, and social image can make a product feel more valuable than it actually is. You just practised spotting it — same pause works on every reel from here on."
             continueLabel="Back to home →"
             onContinue={finishAct}
           />
@@ -438,6 +450,16 @@ function InsightPanel({ scenario }) {
           {scenario.takeaway}
         </div>
       </div>
+      {scenario.realWorldConnect && (
+        <div className="rounded-2xl bg-gradient-to-br from-coral-500/15 to-burgundy-500/10 p-3 ring-1 ring-coral-500/30">
+          <div className="text-[10.5px] font-extrabold uppercase tracking-widest text-coral-600">
+            🌍 Real-world connect
+          </div>
+          <div className="mt-1 text-[13px] font-semibold text-ink-900">
+            {scenario.realWorldConnect}
+          </div>
+        </div>
+      )}
       <div className="rounded-2xl bg-gradient-to-br from-purple-500/15 to-fuchsia-500/10 p-3 ring-1 ring-purple-500/30">
         <div className="text-[10.5px] font-extrabold uppercase tracking-widest text-purple-600">
           🪞 Identity
@@ -450,36 +472,31 @@ function InsightPanel({ scenario }) {
   );
 }
 
-/* =================== Scoreboard pill row =================== */
-function Scoreboard({ scoreboard, currentId }) {
-  const ids = ['better-deal', 'food-spiral', 'group-chat-pull', 'flash-sale'];
-  const labels = ['1', '2', '3', '4'];
+/* =================== Single-badge progress strip ===================
+ * Act 3 now ships ONE scenario, so the old 4-dot scoreboard is
+ * replaced with a single Mindful Choice badge that lights up gold
+ * once the learner clears the challenge. The current scenario's
+ * context tag sits next to it as a contextual subtitle. */
+function BadgeStrip({ cleared, currentScenario }) {
   return (
-    <div className="flex flex-wrap items-center justify-center gap-2 text-[11px] font-bold uppercase tracking-widest text-white/70">
+    <div className="flex flex-wrap items-center justify-center gap-3 text-[11px] font-bold uppercase tracking-widest text-white/70">
       <Trophy className="h-3.5 w-3.5 opacity-70" />
-      <span className="opacity-70">Mindful choices:</span>
-      {ids.map((id, i) => {
-        const cleared = scoreboard.has(id);
-        const active = id === currentId;
-        return (
-          <motion.span
-            key={id}
-            animate={active ? { scale: [1, 1.06, 1] } : {}}
-            transition={active ? { duration: 1.6, repeat: Infinity } : {}}
-            className={[
-              'grid h-6 w-6 place-items-center rounded-full ring-1 transition-colors',
-              cleared
-                ? 'bg-gradient-to-br from-saffron-500 to-coral-500 text-ink-900 ring-saffron-500/60 shadow-md'
-                : active
-                  ? 'bg-white/15 text-white ring-white/40'
-                  : 'bg-white/5 text-white/40 ring-white/15',
-            ].join(' ')}
-          >
-            {cleared ? '✓' : labels[i]}
-          </motion.span>
-        );
-      })}
-      <span className="ml-1 opacity-70">{scoreboard.size}/4</span>
+      <span className="opacity-70">Goal:</span>
+      <motion.span
+        animate={cleared ? { scale: [1, 1.05, 1] } : {}}
+        transition={cleared ? { duration: 1.6, repeat: Infinity, ease: 'easeInOut' } : {}}
+        className={[
+          'inline-flex items-center gap-1.5 rounded-full px-3 py-1 ring-1 transition-colors',
+          cleared
+            ? 'bg-gradient-to-br from-saffron-500 to-coral-500 text-ink-900 ring-saffron-500/60 shadow-md'
+            : 'bg-white/5 text-white/85 ring-white/20',
+        ].join(' ')}
+      >
+        {cleared ? '🏆 Mindful Choice — unlocked' : 'Unlock the Mindful Choice badge'}
+      </motion.span>
+      {currentScenario?.contextTag && (
+        <span className="hidden text-white/60 sm:inline">· {currentScenario.contextTag}</span>
+      )}
     </div>
   );
 }

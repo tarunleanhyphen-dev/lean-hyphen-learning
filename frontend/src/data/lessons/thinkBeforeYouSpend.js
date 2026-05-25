@@ -47,8 +47,8 @@ export const lesson = {
     },
     act3: {
       id: 'act3',
-      title: 'Act 3 — Four Real-life Simulations',
-      minutes: 9,
+      title: 'Act 3 — Real-life Simulation',
+      minutes: 4,
       kind: 'scenarios',
       /* scenes are assigned below after act3Scenarios (which act3Scenes
        * needs) is initialised — assigning inline here would hit the
@@ -909,184 +909,46 @@ export const act3Scenarios = {
       title: 'Both products solve the same problem.',
       body: 'The expensive one feels more valuable because of branding, popularity, and social image — not because it actually works better.',
     },
-    microChallenge: 'Next time you almost buy from a reel, ask: would I still want this if the influencer wasn\'t holding it?',
-    takeaway: 'Branding + popularity ≠ better product.',
+    microChallenge: 'Next time you almost buy from a reel, ask one question: would I still want this if the influencer wasn\'t holding it?',
+    takeaway: 'Branding plus popularity does not equal a better product.',
+    realWorldConnect: 'Think about the last thing you almost bought right after watching a reel. Was it the product you wanted — or the version of you the reel was selling?',
     identity: 'You\'re someone who can spot what the brand is selling — and what the product is actually doing.',
-  },
-
-  /* SCENARIO 2 — The 11 PM Food Spiral (food ordering · boredom) */
-  s2: {
-    id: 'food-spiral',
-    number: 2,
-    title: 'The 11 PM Food Spiral',
-    contextTag: 'Food ordering · Late-night scroll',
-    badge: 'Mindful Choice',
-    stageKind: 'food-app',
-    food: {
-      header: 'Late-night cravings near you',
-      items: [
-        { emoji: '🍕', name: 'Cheese Burst Pizza', price: 449, badge: 'Trending tonight' },
-        { emoji: '🍔', name: 'Spicy Loaded Burger', price: 329, badge: '50% OFF · ends 12 AM' },
-        { emoji: '🍟', name: 'Cheesy Loaded Fries', price: 199, badge: '⚡ Flash deal' },
-        { emoji: '🥤', name: 'Choco Shake Combo',   price: 249, badge: 'Pairs perfectly' },
-      ],
-    },
-    narration: "It's 11 PM. Shanaya isn't really hungry — but the screen is bright, the colours are warm, and the deals keep blinking. Her thumb keeps scrolling.",
-    challenge: {
-      prompt: "What's REALLY pulling Shanaya to order?",
-      hint: 'Pick THREE that fit.',
-      timerSeconds: 20,
-      requiredPicks: 3,
-      retryMessage: 'Try again — is this hunger, or something else?',
-      options: [
-        { id: 'hunger',   emoji: '🍽️', label: 'Real Hunger',     correct: false },
-        { id: 'boredom',  emoji: '😴', label: 'Boredom',          correct: true  },
-        { id: 'mood',     emoji: '💖', label: 'Mood Boost',       correct: true  },
-        { id: 'healthy',  emoji: '🥗', label: 'Healthy Choice',   correct: false },
-        { id: 'fomo',     emoji: '⏳', label: 'Fear of Missing the Deal', correct: true },
-      ],
-    },
-    insight: {
-      eyebrow: '🧠 Mindful Choice unlocked',
-      title: 'This is emotional eating, not hungry eating.',
-      body: 'Late-night apps use bright photos + deal timers to turn boredom into orders. The food is real — but the craving is engineered.',
-    },
-    microChallenge: 'When you reach for the food app at night, pause and ask: am I hungry, or am I bored?',
-    takeaway: 'Mood ≠ hunger. Deals ≠ savings.',
-    identity: 'You\'re someone who eats when your body asks, not when an app asks.',
-  },
-
-  /* SCENARIO 3 — The Group Chat Pull (peer pressure · sneaker drop) */
-  s3: {
-    id: 'group-chat-pull',
-    number: 3,
-    title: 'The Group Chat Pull',
-    contextTag: 'Peer pressure · Group chat',
-    badge: 'Mindful Choice',
-    stageKind: 'group-chat',
-    stageEmotion: 'unsettled',
-    chat: {
-      groupName: '✨ The Squad',
-      messages: [
-        { who: 'Riya',  text: 'GUYS the new Nikes dropped 😭🔥' },
-        { who: 'Aanya', text: 'Already pre-ordered. Everyone\'s getting them.' },
-        { who: 'Krish', text: 'School trip = matching sneakers??' },
-        { who: 'Riya',  text: 'Don\'t be the odd one out 😅' },
-      ],
-    },
-    narration: 'Shanaya already owns two pairs of sneakers that work fine. But the chat keeps lighting up, and every notification feels like she\'s falling behind.',
-    challenge: {
-      prompt: "What's pulling Shanaya toward buying?",
-      hint: 'Pick THREE that fit.',
-      timerSeconds: 20,
-      requiredPicks: 3,
-      retryMessage: 'Try again — is this need, or belonging?',
-      options: [
-        { id: 'need',    emoji: '🎯', label: 'Real Need',          correct: false },
-        { id: 'fitting', emoji: '🫂', label: 'Fitting In',          correct: true  },
-        { id: 'fomo',    emoji: '⚡', label: 'FOMO',                correct: true  },
-        { id: 'quality', emoji: '🛡️', label: 'Sneaker Quality',    correct: false },
-        { id: 'cool',    emoji: '🆒', label: 'Cool Factor',         correct: true  },
-      ],
-    },
-    insight: {
-      eyebrow: '🧠 Mindful Choice unlocked',
-      title: 'You\'re buying the group, not the shoes.',
-      body: 'Peer pressure swaps "do I need this?" for "what will they think if I don\'t?". The product becomes a ticket into the group — not a thing you use.',
-    },
-    microChallenge: 'Before you tap "Buy", ask: would I still want this if my friends didn\'t know I bought it?',
-    takeaway: 'Belonging ≠ buying.',
-    identity: 'You\'re someone who can stay in the squad without buying every drop.',
-  },
-
-  /* SCENARIO 4 — The 5-Minute Flash Sale (urgency · scarcity) */
-  s4: {
-    id: 'flash-sale',
-    number: 4,
-    title: 'The 5-Minute Flash Sale',
-    contextTag: 'Limited-time sale · Urgency',
-    badge: 'Mindful Choice',
-    stageKind: 'flash-sale',
-    stageEmotion: 'shocked',
-    sale: {
-      bannerText: '⚡ FLASH DEAL · 70% OFF',
-      countdownSeconds: 5 * 60, // visual ticker
-      product: {
-        emoji: '⌚',
-        name: 'Smart Fitness Watch',
-        price: 1499,
-        original: 4999,
-        stockLeft: 3,
-      },
-      noise: [
-        '🔥 248 people viewing right now',
-        '⚡ Deal ends in 04:47',
-        '⏳ Only 3 left in stock',
-      ],
-    },
-    narration: "The timer is ticking, the price keeps blinking red, and a little banner shouts that only 3 are left. Shanaya wasn't even shopping for a watch.",
-    challenge: {
-      prompt: "What's the REAL trap here?",
-      hint: 'Pick THREE that fit.',
-      timerSeconds: 20,
-      requiredPicks: 3,
-      retryMessage: 'Try again — what is the design pushing her to feel?',
-      options: [
-        { id: 'need',     emoji: '🎯', label: 'Real Need',           correct: false },
-        { id: 'urgency',  emoji: '⏳', label: 'Urgency',              correct: true  },
-        { id: 'scarcity', emoji: '📦', label: 'Scarcity Pressure',    correct: true  },
-        { id: 'fair',     emoji: '⚖️', label: 'Fair Price',           correct: false },
-        { id: 'anchor',   emoji: '💸', label: 'Discount Anchoring',  correct: true  },
-      ],
-    },
-    insight: {
-      eyebrow: '🧠 Mindful Choice unlocked',
-      title: 'The deal is the bait, not the product.',
-      body: 'Countdowns + "only 3 left" + a strikethrough original price hijack the part of your brain that hates losing. You start buying the deal, not the watch.',
-    },
-    microChallenge: 'When a banner says "ends in 5 minutes" — pause for 5 minutes. If you still want it, it wasn\'t the timer talking.',
-    takeaway: 'Urgency is a design choice, not a real shortage.',
-    identity: 'You\'re someone who can let a timer end and still feel okay.',
   },
 };
 
 function act3Scenes() {
-  /* Helper: each scenario follows the same 6-phase pattern.
-   *   open       narrator sets the context
-   *   stage      visual context (reel / food app / chat / sale) auto-runs
-   *   challenge  HOLD — the 5-option multi-select challenge with 20 s timer
-   *   insight    after correct answer, narrator reads the insight body
-   *   takeaway   sticky banner + microChallenge line
-   *   close      identity-close + auto-advance to next scenario
-   */
-  const buildScenario = (sc, isFirst, isLast) => ({
+  /* Act 3 now ships ONE deep scenario (The "Better Deal" Confusion)
+   * instead of four shallow ones. Per the original script the beat
+   * order is: context → choice → outcome → retry → insight →
+   * micro-challenge → takeaway → real-world connect → identity close.
+   * Each beat is its own phase so the avatar's emotion + the right-
+   * panel narration can shift independently. */
+  const sc = act3Scenarios.s1;
+  return [{
     id: `scene-${sc.id}`,
-    title: `Scenario ${sc.number} — ${sc.title}`,
+    title: sc.title,
     ambience: 'reflective',
     emotion: 'curious',
     scenarioId: sc.id,
     phases: [
-      isFirst && {
+      {
         id: `${sc.id}-unlock`,
-        duration: 5500,
+        duration: 6000,
         status: 'New challenge unlocked',
-        // Eyes-up "ooh, a game!" beat for the first scenario only.
         emotion: 'excited',
-        narration: 'New challenge unlocked — TEST YOUR IMPULSE CONTROL. Shopping apps are not the only places where impulse decisions happen. Let\'s see what happens when YOU face a different everyday situation.',
+        narration: 'New challenge unlocked — test your impulse control. Shopping apps are not the only places where impulse decisions happen. Let\'s see what happens when you face a different everyday situation.',
       },
       {
-        id: `${sc.id}-open`,
-        duration: 4500,
-        status: `Scenario ${sc.number} of 4`,
+        id: `${sc.id}-context`,
+        duration: 5500,
+        status: 'Setting the scene',
         emotion: 'curious',
-        narration: `Scenario ${sc.number}. ${sc.title}.`,
+        narration: 'Shanaya is scrolling through reels after school. An influencer\'s unboxing video suddenly appears.',
       },
       {
         id: `${sc.id}-stage`,
-        duration: 7500,
-        status: 'Watching the context',
-        // Scenario-specific pull: tempted by the reel/food, unsettled by
-        // group chat, shocked by the flash sale's countdown urgency.
+        duration: 9500,
+        status: 'Watching the reel',
         emotion: sc.stageEmotion || 'tempted',
         narration: sc.narration,
       },
@@ -1094,48 +956,39 @@ function act3Scenes() {
         id: `${sc.id}-challenge`,
         hold: true,
         status: 'Your move',
-        // Focused, thinking — eyes side / brows raised.
         emotion: 'curious',
         activity: { kind: 'simulation-challenge', scenarioId: sc.id },
       },
       {
         id: `${sc.id}-insight`,
-        duration: 8500,
+        duration: 8000,
         status: 'Insight',
-        // The "aha" moment — eyes wide, brows up.
-        // Intentionally NO narration here: per design, the insight panel
-        // (title + body + micro-challenge + takeaway + identity card)
-        // reads visually only, with no voice-over.
+        // Silent — the on-screen insight panel reads itself.
         emotion: 'realised',
       },
       {
-        id: `${sc.id}-takeaway`,
-        duration: 6500,
-        status: 'Takeaway',
-        // Lesson absorbed → genuine smile, more empowered.
+        id: `${sc.id}-micro`,
+        duration: 7500,
+        status: 'Micro-challenge',
         emotion: 'happy',
-        narration: `${sc.microChallenge} ${sc.identity}`,
+        narration: sc.microChallenge,
       },
-      isLast && {
-        id: `${sc.id}-wrap`,
-        duration: 6000,
-        status: 'All four scenarios cleared',
-        // Confident closer — biggest smile of Act 3.
+      {
+        id: `${sc.id}-real-world`,
+        duration: 8500,
+        status: 'Real-world connect',
+        emotion: 'happy',
+        narration: sc.realWorldConnect,
+      },
+      {
+        id: `${sc.id}-close`,
+        duration: 6500,
+        status: 'Identity close',
         emotion: 'excited',
-        narration: 'Four scenarios, four mindful choices. Same pause, different contexts — that\'s the muscle.',
+        narration: sc.identity,
       },
-    ].filter(Boolean),
-  });
-
-  const scenarios = [
-    act3Scenarios.s1,
-    act3Scenarios.s2,
-    act3Scenarios.s3,
-    act3Scenarios.s4,
-  ];
-  return scenarios.map((sc, i) =>
-    buildScenario(sc, i === 0, i === scenarios.length - 1),
-  );
+    ],
+  }];
 }
 
 function act2Scenes() {

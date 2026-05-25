@@ -967,10 +967,11 @@ function act4Scenes() {
     phases: [
       {
         id: 's9-meter-intro',
-        duration: 4500,
-        status: 'Impulse Meter',
-        emotion: 'curious',
-        narration: 'Place yourself on the Impulse Meter. Where do you usually land?',
+        duration: 9500,
+        status: 'A moment of reflection',
+        emotion: 'realised',
+        // Two-line recap of Acts 1-3 → pivot inward to the meter.
+        narration: "You just walked through Shanaya's impulse cart, named the four mind traps behind it, and decoded the influencer pull. Three acts in — the impulse you saw in her is also waiting in you.",
       },
       {
         id: 's9-meter',

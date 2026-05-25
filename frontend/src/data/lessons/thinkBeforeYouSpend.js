@@ -1195,9 +1195,6 @@ function act2Scenes() {
           status: 'It has a name',
           emotion: 'realised',
           narration: "Four tricks — discounts, FREE offers, emotion, and 'savings'. There's one name for all of them: IMPULSE BUYING.",
-          bubbles: [
-            { side: 'right', type: 'thought', text: 'Oh… so that’s what it’s called.' },
-          ],
         },
       ],
     },

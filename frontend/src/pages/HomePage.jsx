@@ -45,22 +45,6 @@ export default function HomePage() {
             <Play className="h-4 w-4" />
             Start Act 1
           </Link>
-          <span className="relative inline-flex group">
-            <Link
-              to={`/lesson/${lesson.id}/act2`}
-              className="inline-flex items-center gap-2 rounded-full border border-saffron-500/50 bg-saffron-500/10 px-6 py-4 text-base font-semibold text-saffron-400 transition hover:bg-saffron-500/20 hover:text-saffron-300"
-            >
-              <Play className="h-4 w-4" />
-              Start Act 2
-            </Link>
-            <span
-              role="tooltip"
-              className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-ink-900 px-3 py-1.5 text-xs font-semibold text-white opacity-0 shadow-lg ring-1 ring-white/15 transition group-hover:opacity-100"
-            >
-              Hope you completed Act 1 — now play Act 2
-              <span aria-hidden className="absolute left-1/2 top-full h-2 w-2 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-ink-900 ring-1 ring-white/15" />
-            </span>
-          </span>
         </div>
       </main>
 
@@ -139,9 +123,18 @@ function FloatingBubbles() {
   );
 }
 
+/* Prerequisite hover-tooltip text per act. Acts 2/3/4 nudge the
+ * learner to finish the previous act before jumping in. Act 1 has
+ * no prerequisite. */
+const PREREQ_TIP = {
+  act2: 'Hope you completed Act 1 — now play Act 2',
+  act3: 'Hope you completed Act 2 — now play Act 3',
+  act4: 'Hope you completed Act 3 — now play Act 4',
+};
+
 function ActCard({ act, index }) {
   const isPlayable = act.id === 'act1' || act.id === 'act2' || act.id === 'act3' || act.id === 'act4';
-  const showAct2Tip = act.id === 'act2';
+  const tip = PREREQ_TIP[act.id];
   const body = (
     <div className="relative flex h-full flex-col rounded-2xl border border-white/10 bg-white/[0.04] p-5 transition group-hover:border-saffron-500/40 group-hover:bg-white/[0.06]">
       <div className="flex items-center justify-between">
@@ -154,12 +147,12 @@ function ActCard({ act, index }) {
       <div className="mt-auto pt-4 text-xs text-white/50">
         {isPlayable ? 'Ready to play' : 'Coming soon'}
       </div>
-      {showAct2Tip && (
+      {tip && (
         <span
           role="tooltip"
           className="pointer-events-none absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-lg bg-ink-900 px-3 py-1.5 text-[11px] font-semibold text-white opacity-0 shadow-xl ring-1 ring-saffron-500/40 transition group-hover:opacity-100"
         >
-          Hope you completed Act 1 — now play Act 2
+          {tip}
           <span aria-hidden className="absolute left-1/2 top-full h-2 w-2 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-ink-900 ring-1 ring-saffron-500/40" />
         </span>
       )}

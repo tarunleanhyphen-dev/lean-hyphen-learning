@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Check, ArrowDown, Zap, Flame, Lightbulb, Shield, Target } from 'lucide-react';
 
@@ -47,6 +47,19 @@ export default function ImpulseMeter({
     onCueClick?.();
     setSelectedIdx(i);
   };
+
+  /* Speak the affirmation once when the learner picks their first
+   * zone. Subsequent changes don't re-fire — keeps the voice from
+   * looping if they hop between zones. Tiny delay so the card slides
+   * in before the voice starts. */
+  const affirmationSpokenRef = useRef(false);
+  useEffect(() => {
+    if (selectedIdx == null) return;
+    if (affirmationSpokenRef.current) return;
+    affirmationSpokenRef.current = true;
+    const t = setTimeout(() => onSpeakPrompt?.(data.affirmation), 280);
+    return () => clearTimeout(t);
+  }, [selectedIdx, data.affirmation, onSpeakPrompt]);
 
   // Marker position 0..1 along the gradient bar — centre of the
   // selected zone. Pre-selection it parks just inside the leftmost

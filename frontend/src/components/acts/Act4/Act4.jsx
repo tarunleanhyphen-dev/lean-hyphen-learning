@@ -28,7 +28,7 @@ import {
  * Mirrors Act 2 / Act 3's wrapper pattern: left card for avatar +
  * narration, right card swaps between activity and reflective panel.
  */
-export default function Act4({ onComplete, onGoHome }) {
+export default function Act4({ onComplete }) {
   const act = lesson.acts.act4;
 
   const { phases, phaseToScene } = useMemo(() => {
@@ -377,8 +377,6 @@ export default function Act4({ onComplete, onGoHome }) {
             takeaway="You walked through the same trap Shanaya did, named the four mind traps, spotted the influencer pull, and just gave yourself five rules you can take into the next reel, the next sale, the next group-chat drop. That's the muscle."
             continueLabel="Back to home →"
             onContinue={finishAct}
-            secondaryLabel={onGoHome ? 'Go to home' : undefined}
-            onSecondary={onGoHome}
           />
         )}
       </AnimatePresence>

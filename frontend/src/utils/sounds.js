@@ -943,7 +943,7 @@ function playChunkSequence(chunks, i, who, volume, onFinished) {
   // Without it, browsers that cached the old Google Translate MP3 (under
   // Cache-Control: immutable) would keep replaying the old voice for the
   // same phrase, even after a backend deploy. Bump this when voices change.
-  const url = `${CLOUD_TTS_BASE}/api/tts?voice=${encodeURIComponent(who)}&v=9&text=${encodeURIComponent(chunks[i])}`;
+  const url = `${CLOUD_TTS_BASE}/api/tts?voice=${encodeURIComponent(who)}&v=10&text=${encodeURIComponent(chunks[i])}`;
   const audio = new Audio(url);
   currentCloudAudio = audio;
   audio.volume = volume;

@@ -783,7 +783,7 @@ export const act2Activities = {
         title: 'FOMO',
         subtitle: 'Fear of Missing Out',
         visual: 'countdown',
-        body: 'Fomo — people may rush to buy something because they are worried the deal or opportunity will disappear later.',
+        body: 'People may rush to buy something because they are worried the deal or opportunity will disappear later.',
       },
       {
         id: 'triggers',

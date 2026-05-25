@@ -389,7 +389,13 @@ export default function Act2({ onComplete, onGoHome }) {
           <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Back
         </button>
         <button
-          onClick={isActivityActive ? undefined : seq.advance}
+          onClick={isActivityActive ? undefined : () => {
+            // Cancel any TTS still playing from the current phase so
+            // the next phase's narration starts cleanly without bleed.
+            cancelSpeech();
+            spokenTexts.current.clear();
+            seq.advance();
+          }}
           disabled={isActivityActive}
           className={[
             'inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[11px] font-bold shadow-lg transition active:scale-[0.98] sm:gap-2 sm:px-5 sm:py-2.5 sm:text-xs',

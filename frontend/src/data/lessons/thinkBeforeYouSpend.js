@@ -960,32 +960,24 @@ function act3Scenes() {
         activity: { kind: 'simulation-challenge', scenarioId: sc.id },
       },
       {
+        /* Per QA: the previous post-challenge sequence (insight →
+         * micro → real-world → close) was four separate phases. Same
+         * text, but it dragged. Now consolidated into ONE phase. The
+         * InsightPanel on the right still renders the full set of
+         * cards (insight, micro-challenge, takeaway, real-world
+         * connect, identity), so the learner sees every beat in
+         * writing — but the narrator delivers it as one cohesive
+         * reflection instead of four stop-and-start beats. */
         id: `${sc.id}-insight`,
-        duration: 8000,
-        status: 'Insight',
-        // Silent — the on-screen insight panel reads itself.
+        duration: 12000,
+        status: 'Mindful Choice unlocked',
         emotion: 'realised',
-      },
-      {
-        id: `${sc.id}-micro`,
-        duration: 7500,
-        status: 'Micro-challenge',
-        emotion: 'happy',
-        narration: sc.microChallenge,
-      },
-      {
-        id: `${sc.id}-real-world`,
-        duration: 8500,
-        status: 'Real-world connect',
-        emotion: 'happy',
-        narration: sc.realWorldConnect,
-      },
-      {
-        id: `${sc.id}-close`,
-        duration: 6500,
-        status: 'Identity close',
-        emotion: 'excited',
-        narration: sc.identity,
+        // Voice-over keeps only the two punchlines — insight + identity
+        // — so the moment lands tight. The micro-challenge and real-
+        // world connect still appear as cards in the InsightPanel on
+        // the right, so the learner SEES the same text — they just
+        // don't hear it read out separately.
+        narration: `${sc.insight.title} ${sc.insight.body} ${sc.identity}`,
       },
     ],
   }];

@@ -372,7 +372,15 @@ export default function Act3({ onComplete }) {
           <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Back
         </button>
         <button
-          onClick={isActivityActive ? undefined : (seq.isLast ? advanceOrFinish : seq.advance)}
+          onClick={isActivityActive ? undefined : () => {
+            // Stop any TTS in-flight from the current phase so the new
+            // phase's narration starts cleanly without bleed-through.
+            cancelSpeech();
+            spokenTexts.current.clear();
+            lastSpokenPhaseIdRef.current = null;
+            if (seq.isLast) advanceOrFinish();
+            else seq.advance();
+          }}
           disabled={isActivityActive}
           className={[
             'inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[11px] font-bold shadow-lg transition active:scale-[0.98] sm:gap-2 sm:px-5 sm:py-2.5 sm:text-xs',

@@ -440,24 +440,32 @@ function ActivityRenderer({ kind, onCueClick, onCueCorrect, onCueWrong, onSpeakP
  * thought-spiral game; Scene 2 holds the IMPULSE BUYING definition;
  * Scene 3 introduces the flash-card deck. */
 function PreActivityPlaceholder({ sceneIdx, isAfterActivity }) {
+  /* Per-scene "what's coming" panel. Each summary leads with a real
+   * consumer-research stat (the visual hook), then a short complement
+   * to the left-side narration — NEVER a repeat of it. The stat
+   * numbers are from widely-cited retail UX studies on impulse and
+   * unplanned in-app purchases. */
   const summaries = [
     {
-      eyebrow: 'Scene 1',
-      title: "Inside Shanaya's mind",
-      copy: 'Twelve thoughts. Four mind traps. Drag each thought into the trap that nudged her toward an unplanned purchase.',
-      tag: 'Rebuild the thought spiral',
+      eyebrow: 'Scene 1 · The game',
+      stat: { number: '84%', label: 'of shoppers leave with more than they planned' },
+      title: 'Why did her cart grow?',
+      copy: 'Same brain, four mental shortcuts. Spot which trick drove each of Shanaya\'s twelve thoughts and where each one belongs.',
+      tag: 'Drag 12 thoughts → 4 traps',
     },
     {
-      eyebrow: 'Scene 2',
-      title: 'It has a name',
-      copy: 'Discounts, “FREE” offers, suggestions, and emotional decisions slowly changed her choices. Together they have one name: IMPULSE BUYING.',
-      tag: 'Definition · Impulse buying',
+      eyebrow: 'Scene 2 · The pattern',
+      stat: { number: '7 in 10', label: 'small in-app purchases are unplanned' },
+      title: 'It already has a name',
+      copy: 'Marketers built entire funnels around this one behaviour. You just mapped four flavours of it — now the trap finally gets named.',
+      tag: 'Name the trick',
     },
     {
-      eyebrow: 'Scene 3',
-      title: 'How impulse buying works',
-      copy: 'Three quick flash cards on the patterns behind impulse buying — FOMO, shopping triggers, and how small spends add up fast.',
-      tag: 'Learn the patterns',
+      eyebrow: 'Scene 3 · Up close',
+      stat: { number: '3', label: 'patterns to spot before you tap "Buy"' },
+      title: 'Tap. Flip. Learn.',
+      copy: 'Three flash cards: FOMO, trigger design, and small-spend creep. The vocab you need to spot the trick before it spots you.',
+      tag: 'Tap a card to reveal',
     },
   ];
   const s = summaries[sceneIdx] || summaries[0];
@@ -465,9 +473,29 @@ function PreActivityPlaceholder({ sceneIdx, isAfterActivity }) {
   return (
     <div className="flex min-h-[260px] flex-col items-start justify-center gap-3 p-2 sm:min-h-[340px] md:min-h-[440px]">
       <div className="text-[10.5px] font-bold uppercase tracking-widest text-saffron-500 sm:text-[11px]">{s.eyebrow}</div>
-      <h3 className="text-xl font-extrabold text-ink-900 sm:text-2xl md:text-3xl">{s.title}</h3>
-      <p className="max-w-md text-[13px] leading-relaxed text-ink-700 sm:text-[14px] md:text-[15px]">{s.copy}</p>
-      <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-saffron-500/15 px-3 py-1.5 text-[10.5px] font-bold uppercase tracking-widest text-saffron-500 sm:text-[11px]">
+
+      {/* Big stat hook — the visual anchor that makes the panel feel
+         distinct from the narration on the left card. */}
+      {s.stat && (
+        <div className="relative w-full overflow-hidden rounded-2xl bg-gradient-to-br from-saffron-500/15 via-coral-500/10 to-burgundy-500/10 p-3 ring-1 ring-saffron-500/30 sm:p-4">
+          <div className="flex items-baseline gap-2">
+            <div className="text-3xl font-extrabold leading-none text-saffron-600 sm:text-4xl md:text-5xl">
+              {s.stat.number}
+            </div>
+            <div className="text-[10px] font-bold uppercase tracking-widest text-ink-500">
+              Source · retail UX research
+            </div>
+          </div>
+          <div className="mt-1 text-[12.5px] font-semibold leading-snug text-ink-700 sm:text-[13.5px]">
+            {s.stat.label}
+          </div>
+        </div>
+      )}
+
+      <h3 className="text-lg font-extrabold text-ink-900 sm:text-xl md:text-2xl">{s.title}</h3>
+      <p className="max-w-md text-[13px] leading-relaxed text-ink-700 sm:text-[14px] md:text-[14.5px]">{s.copy}</p>
+
+      <div className="mt-1 inline-flex items-center gap-2 rounded-full bg-saffron-500/15 px-3 py-1.5 text-[10.5px] font-bold uppercase tracking-widest text-saffron-500 sm:text-[11px]">
         <Sparkles className="h-3.5 w-3.5" />
         {isAfterActivity ? 'Activity complete · Next' : s.tag}
       </div>

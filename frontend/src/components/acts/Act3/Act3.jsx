@@ -26,7 +26,7 @@ import {
  * The right-hand panel swaps between the visual ScenarioStage (during
  * intro/stage phases) and the SimulationChallenge (during the hold).
  */
-export default function Act3({ onComplete }) {
+export default function Act3({ onComplete, onGoHome }) {
   const act = lesson.acts.act3;
 
   const { phases, phaseToScene } = useMemo(() => {
@@ -402,6 +402,8 @@ export default function Act3({ onComplete }) {
             takeaway="Branding, popularity, and social image can make a product feel more valuable than it actually is. You just practised spotting it — same pause works on every reel from here on."
             continueLabel="Move to Act 4 →"
             onContinue={finishAct}
+            secondaryLabel={onGoHome ? 'Go to home' : undefined}
+            onSecondary={onGoHome}
           />
         )}
       </AnimatePresence>

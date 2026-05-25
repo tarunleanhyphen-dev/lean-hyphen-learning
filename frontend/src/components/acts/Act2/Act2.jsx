@@ -330,8 +330,17 @@ export default function Act2({ onComplete, onGoHome }) {
                   if (!audioEnabled) return;
                   // Read the title (and subtitle when present) FIRST, then
                   // the body — so the heading lands before the explanation.
-                  const heading = c.subtitle ? `${c.title}. ${c.subtitle}.` : `${c.title}.`;
-                  speak(`${heading} ${c.body}`, { who: 'narrator' });
+                  // Most TTS engines spell out all-caps tokens letter by
+                  // letter (F-O-M-O), which sounds clinical. Re-case
+                  // known initialisms so they're pronounced as words.
+                  const sayable = (s) => s
+                    .replace(/\bFOMO\b/g, 'Fomo')
+                    .replace(/\bFREE\b/g, 'free');
+                  const title = sayable(c.title);
+                  const subtitle = c.subtitle ? sayable(c.subtitle) : '';
+                  const body = sayable(c.body);
+                  const heading = subtitle ? `${title}. ${subtitle}.` : `${title}.`;
+                  speak(`${heading} ${body}`, { who: 'narrator' });
                 }}
                 speakingDone={!isSpeaking}
                 onComplete={(payload) => handleActivityComplete(activity.kind, payload || {})}

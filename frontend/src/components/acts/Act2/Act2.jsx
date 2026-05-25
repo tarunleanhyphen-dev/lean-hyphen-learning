@@ -328,19 +328,24 @@ export default function Act2({ onComplete, onGoHome }) {
                 onSpeakPrompt={(text) => audioEnabled && speak(text, { who: 'narrator' })}
                 onRevealCard={(c) => {
                   if (!audioEnabled) return;
-                  // Read the title (and subtitle when present) FIRST, then
-                  // the body — so the heading lands before the explanation.
-                  // Most TTS engines spell out all-caps tokens letter by
-                  // letter (F-O-M-O), which sounds clinical. Re-case
-                  // known initialisms so they're pronounced as words.
+                  // Re-case known initialisms so the narrator says
+                  // "Fomo" / "free" instead of letter-spelling them.
                   const sayable = (s) => s
                     .replace(/\bFOMO\b/g, 'Fomo')
                     .replace(/\bFREE\b/g, 'free');
                   const title = sayable(c.title);
                   const subtitle = c.subtitle ? sayable(c.subtitle) : '';
                   const body = sayable(c.body);
+                  // Two separate speak() calls — the speech queue plays
+                  // them back-to-back, but each is its own MP3 fetch so
+                  // a chunking failure on the long body can't swallow
+                  // the short heading. Previously we sent one big string
+                  // and the title sometimes didn't land. Splitting fixes
+                  // that and also gives a natural micro-pause between
+                  // the heading and the explanation.
                   const heading = subtitle ? `${title}. ${subtitle}.` : `${title}.`;
-                  speak(`${heading} ${body}`, { who: 'narrator' });
+                  speak(heading, { who: 'narrator' });
+                  speak(body, { who: 'narrator' });
                 }}
                 speakingDone={!isSpeaking}
                 onComplete={(payload) => handleActivityComplete(activity.kind, payload || {})}

@@ -58,6 +58,27 @@ function dataUriFor(emotion, mouthOverride = null) {
   }).toDataUri();
 }
 
+/* Per-emotion "parted lips" mouth shape used during speech.
+ *
+ * Previously we used 'disbelief' (small V) universally — but on
+ * smile-baseline emotions (happy / excited / tempted / neutral) the
+ * V read as a frown, making Shanaya look unhappy while talking.
+ *
+ * Now matched per emotion: smile-baseline → 'grimace' (open mouth
+ * with smile character preserved); serious-baseline → 'disbelief';
+ * frown-baseline → 'sad' (subtly more open frown). shocked and
+ * realised are not in this map — their natural mouths are already
+ * open so lip-sync is skipped entirely. */
+const PARTED_MOUTH = {
+  neutral:   'grimace',
+  curious:   'disbelief',
+  tempted:   'grimace',
+  excited:   'grimace',
+  happy:     'grimace',
+  unsettled: 'sad',
+  guilty:    'sad',
+};
+
 // `wordTick` prop is no longer destructured — the word-tick eyebrow
 // pulse was removed (it caused visible face flicker on every syllable).
 // Callers passing wordTick={...} are silently ignored.
@@ -139,7 +160,9 @@ export default function ShanayaAvatar({ emotion = 'neutral', speaking = false, a
    * audible syllables, not every consonant breath. */
   const uris = useMemo(() => ({
     closed: dataUriFor(emotion),
-    parted: dataUriFor(emotion, 'disbelief'),
+    // Per-emotion parted lips — smile emotions get 'grimace' so the
+    // mouth opens while STILL reading as smile-shaped (not a V-frown).
+    parted: dataUriFor(emotion, PARTED_MOUTH[emotion] || 'disbelief'),
   }), [emotion]);
   const skipLipSync = emotion === 'shocked' || emotion === 'realised';
 

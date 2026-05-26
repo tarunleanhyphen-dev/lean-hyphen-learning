@@ -58,26 +58,34 @@ function dataUriFor(emotion, mouthOverride = null) {
   }).toDataUri();
 }
 
-/* Per-emotion "parted lips" mouth shape used during speech.
+/* "Speaking face" — pre-rendered once at module load.
  *
- * Previously we used 'disbelief' (small V) universally — but on
- * smile-baseline emotions (happy / excited / tempted / neutral) the
- * V read as a frown, making Shanaya look unhappy while talking.
+ * Per QA: while Shanaya is speaking her face should look normal /
+ * neutral (not happy, not unhappy, not shocked — just a calm talking
+ * face). We pre-bake two emotion-independent URIs and swap to them
+ * whenever speaking=true:
  *
- * Now matched per emotion: smile-baseline → 'grimace' (open mouth
- * with smile character preserved); serious-baseline → 'disbelief';
- * frown-baseline → 'sad' (subtly more open frown). shocked and
- * realised are not in this map — their natural mouths are already
- * open so lip-sync is skipped entirely. */
-const PARTED_MOUTH = {
-  neutral:   'grimace',
-  curious:   'disbelief',
-  tempted:   'grimace',
-  excited:   'grimace',
-  happy:     'grimace',
-  unsettled: 'sad',
-  guilty:    'sad',
-};
+ *   SPEAKING_FACE_CLOSED  — default eyes + default brows + 'default'
+ *                           mouth (small natural closed mouth)
+ *   SPEAKING_FACE_PARTED  — default eyes + default brows + 'disbelief'
+ *                           mouth (smallest open-lips shape in
+ *                           avataaars, ~3 px V)
+ *
+ * The mouth animates between these two; the rest of the face stays
+ * neutral. When she stops speaking, the avatar swaps back to the
+ * emotion's full expression. */
+const SPEAKING_FACE_CLOSED = createAvatar(avataaars, {
+  ...BASE,
+  eyes:     ['default'],
+  eyebrows: ['default'],
+  mouth:    ['default'],
+}).toDataUri();
+const SPEAKING_FACE_PARTED = createAvatar(avataaars, {
+  ...BASE,
+  eyes:     ['default'],
+  eyebrows: ['default'],
+  mouth:    ['disbelief'],
+}).toDataUri();
 
 // `wordTick` prop is no longer destructured — the word-tick eyebrow
 // pulse was removed (it caused visible face flicker on every syllable).
@@ -158,13 +166,10 @@ export default function ShanayaAvatar({ emotion = 'neutral', speaking = false, a
    * No screamOpen, no eating, no eyebrow pulse — face stays calm.
    * Tighter open threshold (0.22) so the mouth only parts on
    * audible syllables, not every consonant breath. */
-  const uris = useMemo(() => ({
-    closed: dataUriFor(emotion),
-    // Per-emotion parted lips — smile emotions get 'grimace' so the
-    // mouth opens while STILL reading as smile-shaped (not a V-frown).
-    parted: dataUriFor(emotion, PARTED_MOUTH[emotion] || 'disbelief'),
-  }), [emotion]);
-  const skipLipSync = emotion === 'shocked' || emotion === 'realised';
+  // While silent, the avatar shows the full emotion face. While
+  // speaking, it swaps to a pre-baked neutral face (SPEAKING_FACE_*)
+  // so the mouth-only animation doesn't drag the brows/eyes around.
+  const idleUri = useMemo(() => dataUriFor(emotion), [emotion]);
 
   // Single 2-state hysteresis. High open threshold + slower swap
   // limit (130 ms) so the mouth doesn't chatter between syllables.
@@ -203,11 +208,15 @@ export default function ShanayaAvatar({ emotion = 'neutral', speaking = false, a
     return () => cancelAnimationFrame(raf);
   }, [speaking, amplitudeRef]);
 
-  /* Pick exactly one mouth URI — closed when silent, slightly parted
-   * when speaking AND amplitude has crossed the open threshold. */
-  const activeUri = (!speaking || skipLipSync || !mouthOpen)
-    ? uris.closed
-    : uris.parted;
+  /* Pick exactly one URI:
+   *   - silent  → emotion's full face (idleUri)
+   *   - speaking + amplitude below open threshold → neutral closed mouth
+   *   - speaking + amplitude above open threshold → neutral parted mouth
+   * The neutral speaking face keeps eyes/brows static so the only
+   * thing the viewer sees moving is the lips. */
+  const activeUri = !speaking
+    ? idleUri
+    : (mouthOpen ? SPEAKING_FACE_PARTED : SPEAKING_FACE_CLOSED);
 
   // Idle blink — every 9–14 s while NOT speaking. Was 4–7 s but QA
   // flagged the eyes as "blinking every time"; slowing the loop +

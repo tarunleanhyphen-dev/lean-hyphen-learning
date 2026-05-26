@@ -971,7 +971,7 @@ function act4Scenes() {
         status: 'A moment of reflection',
         emotion: 'realised',
         // Two-line recap of Acts 1-3 → pivot inward to the meter.
-        narration: "Three acts in. You watched Shanaya overspend, named the four mind traps behind her cart, and spotted the influencer pull. Same brain, same traps — they show up in your day too.",
+        narration: "You watched Shanaya overspend, named the four mind traps behind her cart, and spotted the influencer pull. Same brain, same traps — they show up in your day too.",
       },
       {
         id: 's9-meter',

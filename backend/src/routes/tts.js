@@ -23,27 +23,25 @@ const router = Router();
 //   shanaya  → hi-IN-SwaraNeural   — Hindi female reading English. Thick
 //                                    Indian English accent, youthful range.
 //                                    QA confirms this one sounds great.
-//   narrator → en-IN-PrabhatNeural at pitch=+15% — the only genuine
-//                                    English-India male voice Edge
-//                                    serves. Earlier attempts (Madhur
-//                                    hi-IN, Salman ur-IN, Niranjan
-//                                    gu-IN, Bashkar bn-IN) used non-
-//                                    English locales reading English,
-//                                    which left a synthetic edge. We
-//                                    now use Prabhat for genuine
-//                                    Indian-English phonetics + SSML
-//                                    pitch +15 % to raise the formants
-//                                    so the adult voice reads younger
-//                                    (closer to a peer-age tutor). For
-//                                    a *truly* young Indian tutor
-//                                    voice, see the ElevenLabs path
-//                                    in synthEdge — set
+//   narrator → te-IN-MohanNeural at pitch=+18% — Telugu-locale male
+//                                    with a notably more measured,
+//                                    educational cadence than Prabhat
+//                                    (English-India), Madhur (Hindi),
+//                                    Salman (Urdu), Niranjan
+//                                    (Gujarati), or Bashkar (Bengali)
+//                                    which we've all cycled through.
+//                                    SSML pitch +18 % raises the
+//                                    formants so the adult voice reads
+//                                    closer to a 25-yr-old tutor.
+//                                    For a true young Indian tutor
+//                                    voice, see the ElevenLabs path in
+//                                    synthEdge — set
 //                                    ELEVENLABS_API_KEY +
 //                                    ELEVENLABS_VOICE_NARRATOR in env
 //                                    and it overrides Edge entirely.
 const VOICES = {
   shanaya:  { neural: 'hi-IN-SwaraNeural',    googleTl: 'en-IN' },
-  narrator: { neural: 'en-IN-PrabhatNeural',  googleTl: 'en-IN', pitch: '+15%', rate: 1.0 },
+  narrator: { neural: 'te-IN-MohanNeural',    googleTl: 'en-IN', pitch: '+18%', rate: 1.0 },
 };
 
 router.get('/', async (req, res, next) => {

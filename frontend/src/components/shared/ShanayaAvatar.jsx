@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { createAvatar } from '@dicebear/core';
 import * as avataaars from '@dicebear/avataaars';
@@ -46,36 +46,22 @@ const EMOTIONS = {
 };
 
 /* Build an avataaars data-URI for the given emotion + optional mouth
- * and eyebrow overrides. The eyebrow override drives the word-tick
- * micro-pulse — every TTS word boundary swaps to alternate brows for
- * ~110 ms, mimicking the natural prosody twitch on each syllable. */
-function dataUriFor(emotion, mouthOverride = null, eyebrowOverride = null) {
+ * override. The 2-state lip-sync (closed + small-open) renders one of
+ * these two URIs based on smoothed amplitude. */
+function dataUriFor(emotion, mouthOverride = null) {
   const e = EMOTIONS[emotion] || EMOTIONS.neutral;
   return createAvatar(avataaars, {
     ...BASE,
     eyes: [e.eyes],
-    eyebrows: [eyebrowOverride || e.eyebrows],
+    eyebrows: [e.eyebrows],
     mouth: [mouthOverride || e.mouth],
   }).toDataUri();
 }
 
-/* Per-emotion "pulse" eyebrow — picked so the swap is visible (must
- * differ from the natural brow). 110 ms swap on each word boundary
- * gives Shanaya a subtle facial prosody pulse during speech. */
-const PULSE_EYEBROW = {
-  neutral:   'raisedExcited',
-  curious:   'default',
-  tempted:   'default',
-  excited:   'default',
-  happy:     'default',
-  shocked:   'raisedExcited',
-  unsettled: 'default',
-  guilty:    'default',
-  realised:  'default',
-};
-
-// eslint-disable-next-line no-unused-vars
-export default function ShanayaAvatar({ emotion = 'neutral', speaking = false, wordTick = 0, amplitudeRef, size = 'xl', showPhone = true }) {
+// `wordTick` prop is no longer destructured — the word-tick eyebrow
+// pulse was removed (it caused visible face flicker on every syllable).
+// Callers passing wordTick={...} are silently ignored.
+export default function ShanayaAvatar({ emotion = 'neutral', speaking = false, amplitudeRef, size = 'xl', showPhone = true }) {
   const face = EMOTIONS[emotion] || EMOTIONS.neutral;
 
   /* ===== Real-time lip-sync (research-driven rewrite v3) =====
@@ -138,85 +124,55 @@ export default function ShanayaAvatar({ emotion = 'neutral', speaking = false, w
    * which reads as the natural prosody pulse you see in real talking
    * faces.
    *
-   *   level 0  closed     — emotion's natural mouth
-   *   level 1  slight     — 'disbelief'  (~3 px V)
-   *   level 2  medium     — 'eating'     (~5 px M)
-   *   level 3  wide       — 'screamOpen' (~15 px O) — only on very
-   *                          loud vowels, gives stressed syllables
-   *                          their natural punch. */
-  /* 8 URIs per emotion: 4 mouth states × 2 eyebrow states (natural +
-   * pulse). The pulse variants are swapped in for ~110ms on each TTS
-   * word boundary, giving the face a subtle prosody twitch. */
-  const uris = useMemo(() => {
-    const pulseBrow = PULSE_EYEBROW[emotion] || PULSE_EYEBROW.neutral;
-    return {
-      closed:      dataUriFor(emotion),
-      closedP:     dataUriFor(emotion, null,         pulseBrow),
-      slight:      dataUriFor(emotion, 'disbelief'),
-      slightP:     dataUriFor(emotion, 'disbelief',  pulseBrow),
-      medium:      dataUriFor(emotion, 'eating'),
-      mediumP:     dataUriFor(emotion, 'eating',     pulseBrow),
-      wide:        dataUriFor(emotion, 'screamOpen'),
-      wideP:       dataUriFor(emotion, 'screamOpen', pulseBrow),
-    };
-  }, [emotion]);
+   * Lip-sync v7 — SUBTLE 2-state.
+   *
+   * Per QA: previous 4-state version stretched the full mouth and the
+   * word-tick eyebrow pulse made the face look like it was flickering
+   * on every syllable. Removed both. Now exactly two mouth states:
+   *
+   *   level 0  closed  — emotion's natural mouth
+   *   level 1  parted  — 'disbelief'  (~3 px V open, the SMALLEST
+   *                       open mouth shape in avataaars)
+   *
+   * No screamOpen, no eating, no eyebrow pulse — face stays calm.
+   * Tighter open threshold (0.22) so the mouth only parts on
+   * audible syllables, not every consonant breath. */
+  const uris = useMemo(() => ({
+    closed: dataUriFor(emotion),
+    parted: dataUriFor(emotion, 'disbelief'),
+  }), [emotion]);
   const skipLipSync = emotion === 'shocked' || emotion === 'realised';
 
-  // Four-level hysteresis — each adjacent pair has its own up/down
-  // threshold to prevent chatter around any one boundary.
-  const LV0_TO_1 = 0.13;
-  const LV1_TO_0 = 0.07;
-  const LV1_TO_2 = 0.28;
-  const LV2_TO_1 = 0.20;
-  const LV2_TO_3 = 0.55;
-  const LV3_TO_2 = 0.40;
-  const MIN_HOLD_MS = 45; // ~22 max swaps/sec — keeps up with English speech
+  // Single 2-state hysteresis. High open threshold + slower swap
+  // limit (130 ms) so the mouth doesn't chatter between syllables.
+  const OPEN_THRESHOLD  = 0.22;
+  const CLOSE_THRESHOLD = 0.12;
+  const MIN_HOLD_MS     = 130; // ~7 swaps/sec cap — relaxed speech
 
-  /* Word-tick driven eyebrow pulse. Each new wordTick value flips
-   * `pulse` on for 110 ms then back off — visually micro-twitches the
-   * eyebrows in time with each spoken syllable. Disabled while idle. */
-  const [pulse, setPulse] = useState(false);
-  const lastWordRef = useRef(0);
-  useEffect(() => {
-    if (!speaking) { setPulse(false); return undefined; }
-    if (wordTick === lastWordRef.current) return undefined;
-    lastWordRef.current = wordTick;
-    setPulse(true);
-    const t = setTimeout(() => setPulse(false), 110);
-    return () => clearTimeout(t);
-  }, [wordTick, speaking]);
-
-  const [mouthLevel, setMouthLevel] = useState(0);
+  const [mouthOpen, setMouthOpen] = useState(false);
   useEffect(() => {
     if (!speaking) {
-      setMouthLevel(0);
+      setMouthOpen(false);
       return undefined;
     }
     let raf = 0;
     let smoothed = 0;
-    let level = 0;
+    let isOpen = false;
     let lastSwitchAt = 0;
     const tick = (now) => {
       const raw = amplitudeRef?.current ?? 0;
-      // Boost narrow speech band into a usable 0..1 range.
       const boosted = Math.min(1, Math.max(0, (raw - 0.04) * 2.2));
-      // Asymmetric smoothing: rise faster (α=0.62) to track each vowel
-      // onset within ~2 frames, decay slower (α=0.22) so consonants
-      // don't slam the mouth shut.
-      const alpha = boosted > smoothed ? 0.62 : 0.22;
+      // Asymmetric smoothing — rise fast, decay slow so the mouth
+      // doesn't snap shut between consonants.
+      const alpha = boosted > smoothed ? 0.5 : 0.18;
       smoothed = smoothed * (1 - alpha) + boosted * alpha;
-      // Compute target level using direction-aware hysteresis (4 levels).
-      let next = level;
-      if (level === 0 && smoothed > LV0_TO_1) next = 1;
-      else if (level === 1 && smoothed > LV1_TO_2) next = 2;
-      else if (level === 2 && smoothed > LV2_TO_3) next = 3;
-      else if (level === 3 && smoothed < LV3_TO_2) next = 2;
-      else if (level === 2 && smoothed < LV2_TO_1) next = 1;
-      else if (level === 1 && smoothed < LV1_TO_0) next = 0;
-      if (next !== level && now - lastSwitchAt >= MIN_HOLD_MS) {
-        level = next;
+      const want = isOpen
+        ? smoothed > CLOSE_THRESHOLD
+        : smoothed > OPEN_THRESHOLD;
+      if (want !== isOpen && now - lastSwitchAt >= MIN_HOLD_MS) {
+        isOpen = want;
         lastSwitchAt = now;
-        setMouthLevel(level);
+        setMouthOpen(want);
       }
       raf = requestAnimationFrame(tick);
     };
@@ -224,21 +180,15 @@ export default function ShanayaAvatar({ emotion = 'neutral', speaking = false, w
     return () => cancelAnimationFrame(raf);
   }, [speaking, amplitudeRef]);
 
-  /* Pick exactly one mouth URI per frame — no blending, no overlay.
-   * Combines mouth-level (4 amplitude bands) with pulse (eyebrow
-   * micro-twitch on each word boundary). */
-  const activeUri = (() => {
-    if (!speaking || skipLipSync) return uris.closed;
-    const baseKey = mouthLevel === 3 ? 'wide'
-                  : mouthLevel === 2 ? 'medium'
-                  : mouthLevel === 1 ? 'slight'
-                  : 'closed';
-    return pulse ? uris[baseKey + 'P'] : uris[baseKey];
-  })();
+  /* Pick exactly one mouth URI — closed when silent, slightly parted
+   * when speaking AND amplitude has crossed the open threshold. */
+  const activeUri = (!speaking || skipLipSync || !mouthOpen)
+    ? uris.closed
+    : uris.parted;
 
-  // Idle blink — every 4–7 s while NOT speaking, briefly squash the
-  // eye-line area so Shanaya feels alive between phases. Skipped during
-  // speech so the speaking mouth motion stays the focal point.
+  // Idle blink — every 9–14 s while NOT speaking. Was 4–7 s but QA
+  // flagged the eyes as "blinking every time"; slowing the loop +
+  // skipping it entirely during speech keeps the face still.
   const [blink, setBlink] = useState(false);
   useEffect(() => {
     if (speaking) return undefined;
@@ -246,7 +196,7 @@ export default function ShanayaAvatar({ emotion = 'neutral', speaking = false, w
       setBlink(true);
       setTimeout(() => setBlink(false), 140);
     };
-    const delay = 4000 + Math.random() * 3000;
+    const delay = 9000 + Math.random() * 5000;
     const id = setTimeout(next, delay);
     return () => clearTimeout(id);
   }, [speaking, blink]);

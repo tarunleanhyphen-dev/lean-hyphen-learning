@@ -42,6 +42,15 @@ const router = Router();
 const VOICES = {
   shanaya:  { neural: 'hi-IN-SwaraNeural',    googleTl: 'en-IN' },
   narrator: { neural: 'te-IN-MohanNeural',    googleTl: 'en-IN', pitch: '+18%', rate: 1.0 },
+  /* New for the Click-to-Pay lesson. `ritwik` is a teen-boy line — uses
+   * the en-IN Prabhat neural voice raised in pitch so it reads younger.
+   * `system` is the digital-world voice that frames the cyber scenes —
+   * deeper en-IN Prabhat with slowed rate for a measured, AI-narrator
+   * cadence. `mom` (separate from `shanaya`) keeps Swara but slightly
+   * slower so adult lines don't blur with the teen voice. */
+  ritwik:   { neural: 'en-IN-PrabhatNeural',  googleTl: 'en-IN', pitch: '+22%', rate: 1.05 },
+  system:   { neural: 'en-IN-PrabhatNeural',  googleTl: 'en-IN', pitch: '-8%',  rate: 0.92 },
+  mom:      { neural: 'hi-IN-SwaraNeural',    googleTl: 'en-IN', rate: 0.95 },
 };
 
 router.get('/', async (req, res, next) => {

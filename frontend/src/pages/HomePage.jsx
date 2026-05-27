@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Play, Clock, Sparkles, Lock, CheckCircle2 } from 'lucide-react';
-import { lesson } from '../data/lessons/thinkBeforeYouSpend.js';
+import { LESSONS, getFeaturedLesson } from '../data/lessons/registry.js';
 import { useLesson } from '../context/LessonContext.jsx';
 
 /* Sequential-unlock progression. Act 1 is always available. Each
@@ -10,22 +10,28 @@ import { useLesson } from '../context/LessonContext.jsx';
  * reaches the act's celebration screen). */
 const ACT_ORDER = ['act1', 'act2', 'act3', 'act4'];
 
-function computeUnlocks(progress) {
+function computeUnlocks(progress, lesson) {
   const completed = {};
-  const unlocked  = { act1: true };
+  const unlocked = { act1: true };
   for (let i = 0; i < ACT_ORDER.length; i += 1) {
     const id = ACT_ORDER[i];
     completed[id] = progress?.[id] === 'completed';
-    if (i > 0) unlocked[id] = completed[ACT_ORDER[i - 1]];
+    if (i > 0) {
+      const prevDone = completed[ACT_ORDER[i - 1]];
+      const hasContent = lesson.acts[id] && lesson.acts[id].status !== 'coming-soon';
+      unlocked[id] = prevDone && hasContent;
+    }
   }
   return { completed, unlocked };
 }
 
 export default function HomePage() {
   const { state } = useLesson();
-  const progress = state?.[lesson.id]?.progress;
-  const { completed, unlocked } = computeUnlocks(progress);
-  // Next act the learner can play — used to label the primary hero CTA.
+  const featured = getFeaturedLesson().data;
+  const others = LESSONS.filter((l) => l.data.id !== featured.id).map((l) => l.data);
+
+  const progress = state?.[featured.id]?.progress;
+  const { completed, unlocked } = computeUnlocks(progress, featured);
   const nextActId = ACT_ORDER.find((id) => !completed[id]) || 'act1';
   const nextActIdx = ACT_ORDER.indexOf(nextActId);
 
@@ -33,91 +39,96 @@ export default function HomePage() {
     <div className="relative min-h-screen overflow-hidden">
       <FloatingBubbles />
       <div className="relative mx-auto flex min-h-screen w-full max-w-5xl flex-col px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
-      <header className="flex items-center justify-between">
-        <a href="/" aria-label="Lean Hyphen home" className="inline-flex shrink-0">
-          <img src="/lean-hyphen-logo.svg" alt="Lean Hyphen" className="h-10 w-auto sm:h-12 md:h-14" draggable={false} />
-        </a>
-        <a
-          href="https://lean-hyphen-user-web-4zrf.vercel.app/#home"
-          target="_blank"
-          rel="noreferrer"
-          className="text-xs text-white/60 underline-offset-4 hover:text-white hover:underline"
-        >
-          ← back to leanhyphen.com
-        </a>
-      </header>
+        <header className="flex items-center justify-between">
+          <a href="/" aria-label="Lean Hyphen home" className="inline-flex shrink-0">
+            <img src="/lean-hyphen-logo.svg" alt="Lean Hyphen" className="h-10 w-auto sm:h-12 md:h-14" draggable={false} />
+          </a>
+          <a
+            href="https://lean-hyphen-user-web-4zrf.vercel.app/#home"
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs text-white/60 underline-offset-4 hover:text-white hover:underline"
+          >
+            ← back to leanhyphen.com
+          </a>
+        </header>
 
-      <main className="mt-6 flex flex-col items-start gap-6 sm:mt-8">
-        <span className="chip bg-saffron-500/15 text-saffron-400">
-          <Sparkles className="h-3 w-3" /> Module · {lesson.module}
-        </span>
-        <h1 className="text-3xl font-extrabold leading-tight text-white sm:text-4xl md:text-5xl">
-          {lesson.title}
-        </h1>
-        <p className="max-w-2xl text-base text-white/70 sm:text-lg">
-          {lesson.hero.tagline} Spend ~{lesson.totalMinutes} minutes walking through a
-          short story, then test what you noticed.
-        </p>
-
-        <div className="flex flex-wrap items-center gap-3 text-sm text-white/60">
-          <span className="inline-flex items-center gap-1.5">
-            <Clock className="h-4 w-4" /> ~{lesson.totalMinutes} minutes total
+        <main className="mt-6 flex flex-col items-start gap-6 sm:mt-8">
+          <span className="chip bg-cyan-400/15 text-cyan-300">
+            <Sparkles className="h-3 w-3" /> Module · {featured.module}
           </span>
-        </div>
+          <h1 className="text-3xl font-extrabold leading-tight text-white sm:text-4xl md:text-5xl">
+            {featured.title}
+          </h1>
+          <p className="max-w-2xl text-base text-white/70 sm:text-lg">
+            {featured.hero.tagline} Spend ~{featured.totalMinutes} minutes walking through a
+            short story, then test what you noticed.
+          </p>
 
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <Link to={`/lesson/${lesson.id}/${nextActId}`} className="btn-primary px-7 py-4 text-base">
-            <Play className="h-4 w-4" />
-            {nextActIdx === 0 ? 'Start Act 1' : `Continue · Act ${nextActIdx + 1}`}
-          </Link>
-        </div>
-      </main>
+          <div className="flex flex-wrap items-center gap-3 text-sm text-white/60">
+            <span className="inline-flex items-center gap-1.5">
+              <Clock className="h-4 w-4" /> ~{featured.totalMinutes} minutes total
+            </span>
+          </div>
 
-      <section className="mt-20 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {Object.values(lesson.acts).map((act, i) => (
-          <ActCard
-            key={act.id}
-            act={act}
-            index={i}
-            unlocked={!!unlocked[act.id]}
-            completed={!!completed[act.id]}
-          />
-        ))}
-      </section>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <Link to={`/lesson/${featured.id}/${nextActId}`} className="btn-primary px-7 py-4 text-base">
+              <Play className="h-4 w-4" />
+              {nextActIdx === 0 ? 'Start Act 1' : `Continue · Act ${nextActIdx + 1}`}
+            </Link>
+          </div>
+        </main>
 
-      <footer className="mt-auto pt-16 text-xs text-white/40">
-        © {new Date().getFullYear()} Lean Hyphen · Built for behaviour-first learning.
-      </footer>
+        <section className="mt-16 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {Object.values(featured.acts).map((act, i) => (
+            <ActCard
+              key={act.id}
+              lessonId={featured.id}
+              act={act}
+              index={i}
+              unlocked={!!unlocked[act.id]}
+              completed={!!completed[act.id]}
+            />
+          ))}
+        </section>
+
+        {others.length > 0 && (
+          <section className="mt-12">
+            <h2 className="text-xs font-bold uppercase tracking-widest text-white/50">More lessons</h2>
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {others.map((l) => (
+                <Link key={l.id} to={`/lesson/${l.id}/act1`} className="group">
+                  <div className="flex h-full flex-col rounded-2xl border border-white/10 bg-white/[0.04] p-4 transition hover:border-saffron-500/40 hover:bg-white/[0.06]">
+                    <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/50">
+                      {l.module}
+                    </div>
+                    <div className="mt-2 text-base font-semibold text-white">{l.title}</div>
+                    <div className="mt-auto pt-3 text-xs text-white/55">~{l.totalMinutes} min · 4 acts</div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <footer className="mt-auto pt-16 text-xs text-white/40">
+          © {new Date().getFullYear()} Lean Hyphen · Built for behaviour-first learning.
+        </footer>
       </div>
     </div>
   );
 }
 
-/* =================== Floating colour bubbles ===================
- * Eight blurred, coloured "light orbs" drift around behind the page
- * content. Each bubble:
- *   - has its own colour from the brand palette (saffron / coral /
- *     teal / magenta / sky / violet),
- *   - has its own size (160–360 px) and starting position,
- *   - drifts on a unique 14–28 s loop with subtle scale + opacity
- *     breathing so the screen always feels alive but never busy.
- *
- * 36-px blur + low opacity means the bubbles read as soft coloured
- * light, not as solid disks. Pointer-events-off so they never block
- * clicks. No library, no canvas — pure framer-motion + Tailwind.
- */
+/* =================== Floating colour bubbles =================== */
 function FloatingBubbles() {
-  // Tuned for "soft ambience" not "neon disco". Opacity is roughly half of
-  // what it was before so the screen doesn't sting the eyes, and blur is
-  // dropped 60 px → 36 px so they read as orbs rather than smears.
   const bubbles = [
-    { color: '#FF9F1C', size: 280, x0: -60,  y0: -40,  dx:  140, dy:  120, dur: 22, op: 0.14 },
-    { color: '#FF6B6B', size: 320, x0:  '60%', y0: -80, dx: -160, dy:   80, dur: 26, op: 0.13 },
+    { color: '#22D3EE', size: 280, x0: -60,  y0: -40,  dx:  140, dy:  120, dur: 22, op: 0.14 },
+    { color: '#A78BFA', size: 320, x0:  '60%', y0: -80, dx: -160, dy:   80, dur: 26, op: 0.13 },
     { color: '#14B8A6', size: 240, x0: '20%', y0: '40%', dx:  120, dy:  -90, dur: 20, op: 0.10 },
-    { color: '#9B5DE5', size: 360, x0: '70%', y0: '55%', dx: -100, dy:  110, dur: 28, op: 0.10 },
-    { color: '#F15BB5', size: 200, x0: '10%', y0: '70%', dx:  130, dy:  -70, dur: 18, op: 0.11 },
-    { color: '#06AED5', size: 220, x0: '85%', y0: '30%', dx: -130, dy:  100, dur: 24, op: 0.09 },
-    { color: '#FFD23F', size: 180, x0: '40%', y0: '15%', dx:  -90, dy:   60, dur: 16, op: 0.10 },
+    { color: '#F472B6', size: 360, x0: '70%', y0: '55%', dx: -100, dy:  110, dur: 28, op: 0.10 },
+    { color: '#FB7185', size: 200, x0: '10%', y0: '70%', dx:  130, dy:  -70, dur: 18, op: 0.11 },
+    { color: '#38BDF8', size: 220, x0: '85%', y0: '30%', dx: -130, dy:  100, dur: 24, op: 0.09 },
+    { color: '#FDE047', size: 180, x0: '40%', y0: '15%', dx:  -90, dy:   60, dur: 16, op: 0.10 },
     { color: '#7DDA58', size: 160, x0: '55%', y0: '80%', dx:  100, dy:  -80, dur: 14, op: 0.08 },
   ];
   return (
@@ -154,23 +165,21 @@ function FloatingBubbles() {
   );
 }
 
-/* Locked-card hover tooltip — tells the learner exactly which act they
- * still need to finish before this one unlocks. */
 const LOCK_TIP = {
   act2: 'Finish Act 1 to unlock Act 2',
   act3: 'Finish Act 2 to unlock Act 3',
   act4: 'Finish Act 3 to unlock Act 4',
 };
 
-function ActCard({ act, index, unlocked, completed }) {
-  const tip = !unlocked ? LOCK_TIP[act.id] : null;
+function ActCard({ lessonId, act, index, unlocked, completed }) {
+  const tip = !unlocked ? (act.status === 'coming-soon' ? 'Coming soon' : LOCK_TIP[act.id]) : null;
   const body = (
     <div
       className={`relative flex h-full flex-col rounded-2xl border p-5 transition ${
         completed
           ? 'border-teal-400/40 bg-teal-400/[0.06] group-hover:border-teal-400/60'
           : unlocked
-            ? 'border-white/10 bg-white/[0.04] group-hover:border-saffron-500/40 group-hover:bg-white/[0.06]'
+            ? 'border-white/10 bg-white/[0.04] group-hover:border-cyan-300/50 group-hover:bg-white/[0.06]'
             : 'border-white/5 bg-white/[0.02]'
       }`}
     >
@@ -188,24 +197,22 @@ function ActCard({ act, index, unlocked, completed }) {
         {act.title.replace(/^Act \d+ — /, '')}
       </div>
       <div className="mt-auto pt-4 text-xs text-white/50">
-        {completed ? 'Completed' : unlocked ? 'Ready to play' : 'Locked'}
+        {completed ? 'Completed' : unlocked ? 'Ready to play' : act.status === 'coming-soon' ? 'Coming soon' : 'Locked'}
       </div>
       {tip && (
         <span
           role="tooltip"
-          className="pointer-events-none absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-lg bg-ink-900 px-3 py-1.5 text-[11px] font-semibold text-white opacity-0 shadow-xl ring-1 ring-saffron-500/40 transition group-hover:opacity-100"
+          className="pointer-events-none absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-lg bg-ink-900 px-3 py-1.5 text-[11px] font-semibold text-white opacity-0 shadow-xl ring-1 ring-cyan-300/40 transition group-hover:opacity-100"
         >
           {tip}
-          <span aria-hidden className="absolute left-1/2 top-full h-2 w-2 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-ink-900 ring-1 ring-saffron-500/40" />
+          <span aria-hidden className="absolute left-1/2 top-full h-2 w-2 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-ink-900 ring-1 ring-cyan-300/40" />
         </span>
       )}
     </div>
   );
   return unlocked ? (
-    <Link to={`/lesson/${lesson.id}/${act.id}`} className="group">{body}</Link>
+    <Link to={`/lesson/${lessonId}/${act.id}`} className="group">{body}</Link>
   ) : (
-    // Locked acts stay rendered but un-clickable. Cursor flips to
-    // 'not-allowed' and a hover tooltip explains how to unlock.
     <div className="group cursor-not-allowed opacity-60">{body}</div>
   );
 }

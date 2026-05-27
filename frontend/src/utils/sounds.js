@@ -14,7 +14,12 @@ let musicGain = null;
 let muted = true;
 
 const MASTER_VOLUME = 0.85;
-const MUSIC_VOLUME = 0.55; // louder + more emotionally present per user request
+// QA flagged the background music as too loud across all Acts —
+// dropping from 0.55 → 0.25 puts the music well under the narrator,
+// so it reads as soft ambience rather than a foreground track. (Final
+// gain = mood.busGain × MUSIC_VOLUME × 3, so at 0.25 the busiest mood
+// lands around 0.40 — comfortably "background music" volume.)
+const MUSIC_VOLUME = 0.25;
 
 function ensureCtx() {
   if (ctx) return ctx;

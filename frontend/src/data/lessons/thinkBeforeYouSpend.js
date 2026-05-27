@@ -602,8 +602,12 @@ function act1Scenes() {
           /* Music slows dramatically (the script is explicit: nothing is
            * spoken here). The cart-reveal view shows the full breakdown
            * with the 5 items + total + savings banner. */
+          /* Cart-reveal beat: shortened 4.5 s → 3.2 s. The cart UI
+           * lands instantly with the freeze cue; learners don't need
+           * a long beat to read the breakdown — the next beat keeps
+           * the same items on-screen anyway. */
           id: 's3-cart-reveal',
-          duration: 4500,
+          duration: 3200,
           status: 'Cart updated',
           // Override the scene-level 'unsettled' emotion — at this beat
           // Shanaya is just looking at her cart, not realising anything
@@ -628,7 +632,7 @@ function act1Scenes() {
          * student sees ₹2,796 actually paid before Shanaya wakes up. */
         {
           id: 's3-checkout-tap',
-          duration: 4000,
+          duration: 2800,
           status: 'Tapping Place Order',
           // Override scene-level 'unsettled' — Shanaya is just going
           // through checkout motions here, not having a realisation
@@ -650,7 +654,7 @@ function act1Scenes() {
            * shows the ₹2,796 total in big type. Doubling it up in voice
            * dragged the pace right before the realisation hits. */
           id: 's3-payment',
-          duration: 3200,
+          duration: 2400,
           status: 'Choosing payment method',
           emotion: 'neutral',
           phone: {
@@ -660,7 +664,7 @@ function act1Scenes() {
         },
         {
           id: 's3-payment-tap',
-          duration: 3500,
+          duration: 2400,
           status: 'Tapping Pay',
           emotion: 'neutral',
           phone: {
@@ -672,7 +676,7 @@ function act1Scenes() {
         },
         {
           id: 's3-payment-processing',
-          duration: 3500,
+          duration: 2400,
           status: 'Processing payment',
           emotion: 'neutral',
           phone: {
@@ -683,7 +687,7 @@ function act1Scenes() {
         },
         {
           id: 's3-success',
-          duration: 5500,
+          duration: 4200,
           status: 'Order placed',
           // Neutral face on the confirmation screen — the realisation
           // doesn't hit until s3-final-thought-2 right after this.

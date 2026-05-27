@@ -1,9 +1,34 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Play, Clock, Sparkles } from 'lucide-react';
+import { Play, Clock, Sparkles, Lock, CheckCircle2 } from 'lucide-react';
 import { lesson } from '../data/lessons/thinkBeforeYouSpend.js';
+import { useLesson } from '../context/LessonContext.jsx';
+
+/* Sequential-unlock progression. Act 1 is always available. Each
+ * subsequent act unlocks only after the previous one is marked
+ * 'completed' in the LessonContext (which happens when the learner
+ * reaches the act's celebration screen). */
+const ACT_ORDER = ['act1', 'act2', 'act3', 'act4'];
+
+function computeUnlocks(progress) {
+  const completed = {};
+  const unlocked  = { act1: true };
+  for (let i = 0; i < ACT_ORDER.length; i += 1) {
+    const id = ACT_ORDER[i];
+    completed[id] = progress?.[id] === 'completed';
+    if (i > 0) unlocked[id] = completed[ACT_ORDER[i - 1]];
+  }
+  return { completed, unlocked };
+}
 
 export default function HomePage() {
+  const { state } = useLesson();
+  const progress = state?.[lesson.id]?.progress;
+  const { completed, unlocked } = computeUnlocks(progress);
+  // Next act the learner can play — used to label the primary hero CTA.
+  const nextActId = ACT_ORDER.find((id) => !completed[id]) || 'act1';
+  const nextActIdx = ACT_ORDER.indexOf(nextActId);
+
   return (
     <div className="relative min-h-screen overflow-hidden">
       <FloatingBubbles />
@@ -41,16 +66,22 @@ export default function HomePage() {
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          <Link to={`/lesson/${lesson.id}/act1`} className="btn-primary px-7 py-4 text-base">
+          <Link to={`/lesson/${lesson.id}/${nextActId}`} className="btn-primary px-7 py-4 text-base">
             <Play className="h-4 w-4" />
-            Start Act 1
+            {nextActIdx === 0 ? 'Start Act 1' : `Continue · Act ${nextActIdx + 1}`}
           </Link>
         </div>
       </main>
 
       <section className="mt-20 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {Object.values(lesson.acts).map((act, i) => (
-          <ActCard key={act.id} act={act} index={i} />
+          <ActCard
+            key={act.id}
+            act={act}
+            index={i}
+            unlocked={!!unlocked[act.id]}
+            completed={!!completed[act.id]}
+          />
         ))}
       </section>
 
@@ -123,29 +154,41 @@ function FloatingBubbles() {
   );
 }
 
-/* Prerequisite hover-tooltip text per act. Acts 2/3/4 nudge the
- * learner to finish the previous act before jumping in. Act 1 has
- * no prerequisite. */
-const PREREQ_TIP = {
-  act2: 'Hope you completed Act 1 — now play Act 2',
-  act3: 'Hope you completed Act 2 — now play Act 3',
-  act4: 'Hope you completed Act 3 — now play Act 4',
+/* Locked-card hover tooltip — tells the learner exactly which act they
+ * still need to finish before this one unlocks. */
+const LOCK_TIP = {
+  act2: 'Finish Act 1 to unlock Act 2',
+  act3: 'Finish Act 2 to unlock Act 3',
+  act4: 'Finish Act 3 to unlock Act 4',
 };
 
-function ActCard({ act, index }) {
-  const isPlayable = act.id === 'act1' || act.id === 'act2' || act.id === 'act3' || act.id === 'act4';
-  const tip = PREREQ_TIP[act.id];
+function ActCard({ act, index, unlocked, completed }) {
+  const tip = !unlocked ? LOCK_TIP[act.id] : null;
   const body = (
-    <div className="relative flex h-full flex-col rounded-2xl border border-white/10 bg-white/[0.04] p-5 transition group-hover:border-saffron-500/40 group-hover:bg-white/[0.06]">
+    <div
+      className={`relative flex h-full flex-col rounded-2xl border p-5 transition ${
+        completed
+          ? 'border-teal-400/40 bg-teal-400/[0.06] group-hover:border-teal-400/60'
+          : unlocked
+            ? 'border-white/10 bg-white/[0.04] group-hover:border-saffron-500/40 group-hover:bg-white/[0.06]'
+            : 'border-white/5 bg-white/[0.02]'
+      }`}
+    >
       <div className="flex items-center justify-between">
         <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/50">
           Act {index + 1}
         </span>
-        <span className="text-[11px] text-white/50">{act.minutes} min</span>
+        <span className="flex items-center gap-1.5 text-[11px] text-white/50">
+          {!unlocked && <Lock className="h-3 w-3" aria-hidden />}
+          {completed && <CheckCircle2 className="h-3.5 w-3.5 text-teal-300" aria-hidden />}
+          {act.minutes} min
+        </span>
       </div>
-      <div className="mt-3 text-base font-semibold text-white">{act.title.replace(/^Act \d+ — /, '')}</div>
+      <div className={`mt-3 text-base font-semibold ${unlocked ? 'text-white' : 'text-white/55'}`}>
+        {act.title.replace(/^Act \d+ — /, '')}
+      </div>
       <div className="mt-auto pt-4 text-xs text-white/50">
-        {isPlayable ? 'Ready to play' : 'Coming soon'}
+        {completed ? 'Completed' : unlocked ? 'Ready to play' : 'Locked'}
       </div>
       {tip && (
         <span
@@ -158,9 +201,11 @@ function ActCard({ act, index }) {
       )}
     </div>
   );
-  return isPlayable ? (
+  return unlocked ? (
     <Link to={`/lesson/${lesson.id}/${act.id}`} className="group">{body}</Link>
   ) : (
-    <div className="group opacity-70">{body}</div>
+    // Locked acts stay rendered but un-clickable. Cursor flips to
+    // 'not-allowed' and a hover tooltip explains how to unlock.
+    <div className="group cursor-not-allowed opacity-60">{body}</div>
   );
 }

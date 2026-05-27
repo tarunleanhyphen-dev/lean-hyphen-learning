@@ -7,8 +7,8 @@ import { cancelSpeech } from '../../utils/sounds.js';
  * 3-card flip-card deck used in Act 2 Scene 8 to explain how impulse
  * buying works. Each card has a FRONT (title + subtitle + tap-to-reveal
  * cue) and a BACK (per-card visual + body). Tapping the card flips it
- * 3D-style; the TTS only fires when the card is flipped to its back,
- * so the learner hears the explanation only after they've engaged.
+ * 3D-style; the TTS fires when the card is flipped to its back, so the
+ * learner hears the explanation only after they've engaged.
  *
  *   – Card 1 'countdown'  → ticking timer + "ONLY 2 LEFT" pulsing chip
  *   – Card 2 'triggers'   → three labelled tiles (Recommended / Trending / FREE)
@@ -17,11 +17,13 @@ import { cancelSpeech } from '../../utils/sounds.js';
  * Props mirror FrameworkCard so Act2.jsx can route to it:
  *   data        — the `flashCards` block from act2Activities
  *   onReveal    — fires once per card on first FLIP; pipes title+body to TTS
- *   speakingDone— gates the Finish button (so finish-act doesn't fire
- *                 while the closer line is still being spoken)
- *   onComplete  — called once with `{ activity: 'flash-cards' }`
+ *   onComplete  — called once with `{ activity: 'flash-cards' }`. The
+ *                 Finish button is enabled the moment all three cards
+ *                 have been tapped; we deliberately don't gate on the
+ *                 TTS finishing so a stuck narrator can never trap the
+ *                 learner inside Act 2.
  */
-export default function FlashCardDeck({ data, onReveal, speakingDone = true, onComplete }) {
+export default function FlashCardDeck({ data, onReveal, onComplete }) {
   const [idx, setIdx] = useState(0);
 
   /* TRUE one-by-one model:
@@ -63,7 +65,14 @@ export default function FlashCardDeck({ data, onReveal, speakingDone = true, onC
     // Tap-to-reveal is a one-way action per card visit. A second tap
     // on an already-flipped card does nothing (use Back to revisit).
     if (revealedCurrent) return;
-    cancelSpeech();
+    // NOTE: do NOT cancelSpeech here. The previous card's queue was
+    // already cancelled by the idx-change effect (only relevant route
+    // into here that runs cancelSpeech). Cancelling again right before
+    // queueing the new heading+body was occasionally racing the new
+    // speak() calls — the audio object got nulled in the same tick the
+    // queue tried to start playing it, so the narrator went silent on
+    // the card. Trusting the upstream cancel keeps voice playing every
+    // time.
     setRevealedCurrent(true);
     setSeen((prev) => (prev.has(card.id) ? prev : new Set(prev).add(card.id)));
     onReveal?.(card);
@@ -243,10 +252,15 @@ export default function FlashCardDeck({ data, onReveal, speakingDone = true, onC
             Next card <ChevronRight className="h-3.5 w-3.5" />
           </button>
         ) : (
+          // Finish Act 2 — gated ONLY on "all three cards seen". The
+          // previous `speakingDone` gate left the button stuck disabled
+          // when the narrator was still mid-sentence (or, worse, if the
+          // TTS queue silently hung). Voice can keep playing in the
+          // background; the next phase's cancelSpeech() cleans it up.
           <button
             type="button"
-            onClick={() => speakingDone && allSeen && onComplete?.()}
-            disabled={!speakingDone || !allSeen}
+            onClick={() => allSeen && onComplete?.()}
+            disabled={!allSeen}
             className="inline-flex items-center gap-1.5 rounded-full bg-saffron-500 px-5 py-2 text-[11.5px] font-bold text-ink-900 shadow-lg shadow-saffron-500/30 transition hover:bg-saffron-400 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Sparkles className="h-3.5 w-3.5" /> Finish Act 2

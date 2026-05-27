@@ -14,12 +14,10 @@ let musicGain = null;
 let muted = true;
 
 const MASTER_VOLUME = 0.85;
-// QA flagged the background music as too loud across all Acts —
-// dropping from 0.55 → 0.25 puts the music well under the narrator,
-// so it reads as soft ambience rather than a foreground track. (Final
-// gain = mood.busGain × MUSIC_VOLUME × 3, so at 0.25 the busiest mood
-// lands around 0.40 — comfortably "background music" volume.)
-const MUSIC_VOLUME = 0.25;
+// Round 2 of the music-too-loud QA cycle. 0.25 was still too forward,
+// so dropping again to 0.10 puts the busiest mood at ~0.17 final gain
+// — barely-there ambience that won't fight the narrator.
+const MUSIC_VOLUME = 0.10;
 
 function ensureCtx() {
   if (ctx) return ctx;
@@ -129,7 +127,10 @@ let lowPassFilter = null;
 let activeMood = 'calm';     // mood that the next-scheduled bar will use
 let lastImpactAt = 0;        // ctx.currentTime of last hit-impact, debounces re-entry
 
-const BPM = 64;
+// Slowed from 64 → 52 BPM per QA — chords unfold ~20% slower, which
+// reads as "peaceful, ambient" instead of "walking-pace background
+// track". Every other rhythm value (pluck, hat, kick) inherits this.
+const BPM = 52;
 const BEAT = 60 / BPM;
 const BAR = BEAT * 4;
 

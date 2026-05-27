@@ -42,6 +42,12 @@ const router = Router();
 const VOICES = {
   shanaya:  { neural: 'hi-IN-SwaraNeural',    googleTl: 'en-IN' },
   narrator: { neural: 'te-IN-MohanNeural',    googleTl: 'en-IN', pitch: '+18%', rate: 1.0 },
+  /* Added for the Click-to-Pay lesson on the `lesson-click-to-pay`
+   * branch. Lives here on `main` too so the shared backend can serve
+   * them in prod — additive only, doesn't affect Lesson 1. */
+  ritwik:   { neural: 'en-IN-PrabhatNeural',  googleTl: 'en-IN', pitch: '+22%', rate: 1.05 },
+  system:   { neural: 'en-IN-PrabhatNeural',  googleTl: 'en-IN', pitch: '-8%',  rate: 0.92 },
+  mom:      { neural: 'hi-IN-SwaraNeural',    googleTl: 'en-IN', rate: 0.95 },
 };
 
 router.get('/', async (req, res, next) => {

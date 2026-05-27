@@ -90,6 +90,8 @@ export default function Act1({ onComplete, onGoHome }) {
   // analyser. Drives ShanayaAvatar's mouth open/close so lip-sync actually
   // matches the audio waveform instead of pulsing on every word.
   const mouthRef = useRef(0);
+  // Viseme code (0-4) for accurate timed lip-sync; null means use amplitude fallback.
+  const visemeRef = useRef(null);
   // Distinct insight labels surfaced so far. Still tracked because the
   // end-of-act celebration uses tricksCount as a stat; we just no longer
   // display the live counter chip in the header.
@@ -141,12 +143,16 @@ export default function Act1({ onComplete, onGoHome }) {
   useEffect(() => {
     setSpeechCallbacks({
       onStart: (who) => { setIsSpeaking(true); setSpeaker(who || 'shanaya'); },
-      onEnd:   () => { setIsSpeaking(false); setSpeaker(null); mouthRef.current = 0; },
+      onEnd:   () => { setIsSpeaking(false); setSpeaker(null); mouthRef.current = 0; visemeRef.current = null; },
       onWord:  () => setWordTick((t) => t + 1),
       // Stash amplitude into a ref (not state) so 60-fps updates don't
       // cause Act 1 to re-render every frame. ShanayaAvatar reads from
       // the ref on its own RAF loop.
       onAmplitude: (v) => { mouthRef.current = v; },
+      // Timed lip-sync — when the backend returns word boundaries, this
+      // fires the current 0-4 viseme code; the avatar prefers it over
+      // amplitudeRef when present.
+      onViseme: (code) => { visemeRef.current = code; },
     });
     return () => setSpeechCallbacks(null);
   }, []);
@@ -470,6 +476,7 @@ export default function Act1({ onComplete, onGoHome }) {
                     speaking={isSpeaking && speaker === 'shanaya'}
                     wordTick={wordTick}
                     amplitudeRef={mouthRef}
+                    visemeRef={visemeRef}
                     size="xl"
                   />
                   {/* Static imagination clouds — only render when the

@@ -670,6 +670,7 @@ let speakStartHandler = null;
 let speakEndHandler = null;
 let speakBoundaryHandler = null;
 let speakAmplitudeHandler = null;
+let speakVisemeHandler = null;
 let activeUtterances = 0;
 
 /** Register callbacks so the avatar can mouth-animate while speaking.
@@ -678,13 +679,21 @@ let activeUtterances = 0;
  *  - onWord():        approximate per-word tick (still used for fallback lip-sync)
  *  - onAmplitude(v):  real-time audio amplitude 0–1, sampled ~60 times/sec
  *                     from the audio element via Web Audio AnalyserNode.
- *                     This is what drives the avatar's mouth to actually
- *                     open and close in time with the speech waveform. */
+ *                     Drives the fallback amplitude-only lip-sync when no
+ *                     word boundaries are available for this chunk.
+ *  - onViseme(code):  current viseme integer 0–4 (0 closed → 4 wide-O),
+ *                     emitted ~60 times/sec from the timed playback path
+ *                     using the per-word boundaries returned by the
+ *                     backend's Edge TTS. This is what drives ACCURATE
+ *                     mouth-shape transitions (M/B/P closed, vowels
+ *                     open in the right shape) — visemeRef takes
+ *                     precedence over amplitudeRef in the avatar. */
 export function setSpeechCallbacks(callbacks) {
   speakStartHandler = callbacks?.onStart || null;
   speakEndHandler = callbacks?.onEnd || null;
   speakBoundaryHandler = callbacks?.onWord || null;
   speakAmplitudeHandler = callbacks?.onAmplitude || null;
+  speakVisemeHandler = callbacks?.onViseme || null;
 }
 
 /* ---------------------- Speech amplitude analyser --------------------------
@@ -906,6 +915,7 @@ export function cancelCloudSpeech() {
       audio.load();
     } catch {}
   }
+  stopVisemeLoop();
 }
 
 /* Play one utterance through the cloud TTS pipeline. The queue processor
@@ -934,11 +944,229 @@ export function cloudSpeak(text, opts = {}) {
   speak(text, opts);
 }
 
+/* ============== Viseme scheduler ==============
+ *
+ * The timed `/api/tts?timed=1` endpoint returns the MP3 audio together
+ * with per-word boundaries `{ text, offsetMs, durationMs }`. The
+ * scheduler emits at most a handful of viseme transitions per WORD
+ * (not per character) to keep the mouth from flickering, sticks to
+ * three safe avataaars mouth shapes, and shifts the timeline by a
+ * small offset to compensate for Web-Audio output latency so the
+ * mouth doesn't run ahead of the audio.
+ *
+ * Viseme codes (matched to pre-baked avataaars faces in ShanayaAvatar):
+ *   0  closed       — 'default'   (M/B/P, silence, inter-sentence)
+ *   1  small open   — 'disbelief' (consonants, word transitions)
+ *   2  mid open     — 'eating'    (vowel peak — at the dominant vowel
+ *                                  of each word only, never every char)
+ *
+ * Per-word event schedule:
+ *   - at word start            → 1 (small open)
+ *   - at dominant-vowel centre → 2 (mid open) IFF the word has a vowel
+ *   - after that vowel run     → 1 (small open) for the tail
+ *   - on >200ms inter-word gap → 0 (closed)
+ *   - at the very end          → 0 (closed)
+ *
+ * A minimum 110ms gap between adjacent emissions coalesces transitions
+ * that would otherwise stack up on short words.
+ */
+
+const VOWELS = 'aeiouyAEIOUY';
+// Mouth lags audio.currentTime by this much so the visual catches the
+// Web-Audio output-buffer latency. Tuned by ear on macOS Chrome.
+const VISEME_LATENCY_MS = 90;
+// Words shorter than this stay at small-open through the whole word —
+// no time for a vowel peak without flicker. Pulls short function
+// words ("I", "am", "to") out of the jerky-mouth regime.
+const PEAK_MIN_WORD_MS = 230;
+// Inter-word gaps wider than this close the mouth fully — i.e. clause
+// or sentence breaks. Tighter gaps keep the mouth open at small.
+const CLOSE_GAP_MS = 220;
+
+function dominantVowelRange(text) {
+  // Longest contiguous vowel run; returns [startIdx, length] or null.
+  let bestStart = -1, bestLen = 0;
+  let curStart  = -1, curLen  = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    if (VOWELS.includes(text[i])) {
+      if (curStart < 0) curStart = i;
+      curLen += 1;
+      if (curLen > bestLen) { bestLen = curLen; bestStart = curStart; }
+    } else {
+      curStart = -1;
+      curLen = 0;
+    }
+  }
+  return bestLen > 0 ? [bestStart, bestLen] : null;
+}
+
+function buildVisemeTimeline(words) {
+  const events = [];
+  let prevEnd = -1;
+
+  for (const w of words) {
+    const text = w.text || '';
+    if (!text.length || w.durationMs <= 0) continue;
+    const wordStart = w.offsetMs;
+    const wordEnd   = wordStart + w.durationMs;
+
+    // Long inter-word gap → fully close the mouth at the break.
+    if (prevEnd >= 0 && wordStart - prevEnd > CLOSE_GAP_MS) {
+      events.push({ atMs: prevEnd + 40, code: 0 });
+    }
+
+    // Word starts at small-open.
+    events.push({ atMs: wordStart, code: 1 });
+
+    // Vowel peak — only when the word is long enough to actually see
+    // the transition without flicker.
+    const dom = w.durationMs >= PEAK_MIN_WORD_MS ? dominantVowelRange(text) : null;
+    if (dom) {
+      const [vStart, vLen] = dom;
+      const peakAt  = wordStart + w.durationMs * ((vStart + vLen / 2) / text.length);
+      const afterAt = wordStart + w.durationMs * ((vStart + vLen)     / text.length);
+      events.push({ atMs: peakAt, code: 2 });
+      // Return to small-open after the vowel run so the mouth doesn't
+      // hold the wide shape past the syllable. Skip if the vowel is at
+      // the very end of the word.
+      if (vStart + vLen < text.length) {
+        events.push({ atMs: afterAt + 20, code: 1 });
+      }
+    }
+
+    prevEnd = wordEnd;
+  }
+
+  // Final close at the end of the chunk.
+  if (prevEnd > 0) events.push({ atMs: prevEnd + 40, code: 0 });
+
+  events.sort((a, b) => a.atMs - b.atMs);
+
+  // Drop consecutive duplicates so the avatar's "did the code change?"
+  // check has less to do.
+  const dedup = [];
+  for (const e of events) {
+    const last = dedup[dedup.length - 1];
+    if (!last || last.code !== e.code) dedup.push(e);
+  }
+  return dedup;
+}
+
+let visemeRafId = null;
+
+function startVisemeLoop(audio, timeline) {
+  if (visemeRafId) cancelAnimationFrame(visemeRafId);
+  let lastCode = -1;
+  const tick = () => {
+    if (audio !== currentCloudAudio || audio.paused || audio.ended) {
+      visemeRafId = null;
+      return;
+    }
+    // currentTime is in MEDIA-time seconds (advances at playbackRate),
+    // which matches the offsetMs values from the backend regardless of
+    // the audio's playbackRate.
+    // Shift lookup BACK in time by the Web-Audio output-buffer latency
+    // so the mouth shape matches what the user hears, not what's already
+    // been queued to the speakers.
+    const tMs = audio.currentTime * 1000 - VISEME_LATENCY_MS;
+    // Walk timeline backwards to the latest entry whose atMs <= tMs.
+    let code = 0;
+    for (let i = timeline.length - 1; i >= 0; i -= 1) {
+      if (timeline[i].atMs <= tMs) { code = timeline[i].code; break; }
+    }
+    if (code !== lastCode) {
+      lastCode = code;
+      speakVisemeHandler?.(code);
+    }
+    visemeRafId = requestAnimationFrame(tick);
+  };
+  visemeRafId = requestAnimationFrame(tick);
+}
+
+function stopVisemeLoop() {
+  if (visemeRafId) cancelAnimationFrame(visemeRafId);
+  visemeRafId = null;
+  speakVisemeHandler?.(0);
+}
+
 function playChunkSequence(chunks, i, who, volume, onFinished) {
   if (i >= chunks.length) {
     onFinished?.();
     return;
   }
+  // Try the timed JSON endpoint first — gives us word boundaries we
+  // can use to drive accurate viseme mouth shapes. If it fails or
+  // returns no boundaries, fall through to the legacy MP3-stream path
+  // and rely on amplitude lip-sync.
+  const timedUrl = `${CLOUD_TTS_BASE}/api/tts?voice=${encodeURIComponent(who)}&timed=1&v=11&text=${encodeURIComponent(chunks[i])}`;
+  fetch(timedUrl)
+    .then((r) => (r.ok && r.headers.get('content-type')?.includes('application/json') ? r.json() : null))
+    .then((data) => {
+      if (data?.audio && Array.isArray(data?.words) && data.words.length > 0) {
+        playTimedChunk(chunks, i, who, volume, onFinished, data);
+      } else {
+        playPlainChunk(chunks, i, who, volume, onFinished);
+      }
+    })
+    .catch(() => playPlainChunk(chunks, i, who, volume, onFinished));
+}
+
+function playTimedChunk(chunks, i, who, volume, onFinished, data) {
+  const bytes = Uint8Array.from(atob(data.audio), (c) => c.charCodeAt(0));
+  const blob = new Blob([bytes], { type: data.mime || 'audio/mpeg' });
+  const url = URL.createObjectURL(blob);
+  const audio = new Audio(url);
+  currentCloudAudio = audio;
+  audio.volume = volume;
+  audio.preservesPitch = true;
+  audio.playbackRate = who === 'shanaya' ? 1.0 : 1.3;
+
+  const timeline = buildVisemeTimeline(data.words);
+
+  // Still route through the analyser so amplitude stays available as
+  // a backup signal for the avatar's speaking ring etc.
+  routeAudioToAnalyser(audio);
+
+  if (i === 0 && import.meta.env?.DEV) {
+    // eslint-disable-next-line no-console
+    console.log('[cloudSpeak timed] 🔊', who, 'words=', data.words.length, '→', text(chunks));
+  }
+
+  let lastTick = -1;
+  audio.ontimeupdate = () => {
+    if (audio.currentTime - lastTick >= 0.28) {
+      lastTick = audio.currentTime;
+      speakBoundaryHandler?.();
+    }
+  };
+  audio.onended = () => {
+    URL.revokeObjectURL(url);
+    if (audio !== currentCloudAudio) return;
+    if (i + 1 >= chunks.length) { stopAmplitudeLoop(); stopVisemeLoop(); }
+    playChunkSequence(chunks, i + 1, who, volume, onFinished);
+  };
+  audio.onerror = () => {
+    URL.revokeObjectURL(url);
+    if (audio !== currentCloudAudio) return;
+    if (i + 1 >= chunks.length) { stopAmplitudeLoop(); stopVisemeLoop(); }
+    playChunkSequence(chunks, i + 1, who, volume, onFinished);
+  };
+  audio.play().then(() => {
+    if (audio !== currentCloudAudio) {
+      try { audio.pause(); } catch {}
+      URL.revokeObjectURL(url);
+      return;
+    }
+    startAmplitudeLoop();
+    startVisemeLoop(audio, timeline);
+  }).catch(() => {
+    if (audio !== currentCloudAudio) return;
+    URL.revokeObjectURL(url);
+    playChunkSequence(chunks, i + 1, who, volume, onFinished);
+  });
+}
+
+function playPlainChunk(chunks, i, who, volume, onFinished) {
   // The `v` query param cache-busts when we change voices on the backend.
   // Without it, browsers that cached the old Google Translate MP3 (under
   // Cache-Control: immutable) would keep replaying the old voice for the

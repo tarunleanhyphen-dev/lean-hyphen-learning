@@ -74,23 +74,40 @@ function dataUriFor(emotion, mouthOverride = null) {
  * The mouth animates between these two; the rest of the face stays
  * neutral. When she stops speaking, the avatar swaps back to the
  * emotion's full expression. */
-const SPEAKING_FACE_CLOSED = createAvatar(avataaars, {
-  ...BASE,
-  eyes:     ['default'],
-  eyebrows: ['default'],
-  mouth:    ['default'],
-}).toDataUri();
-const SPEAKING_FACE_PARTED = createAvatar(avataaars, {
-  ...BASE,
-  eyes:     ['default'],
-  eyebrows: ['default'],
-  mouth:    ['disbelief'],
-}).toDataUri();
+function speakingFace(mouth) {
+  return createAvatar(avataaars, {
+    ...BASE,
+    eyes:     ['default'],
+    eyebrows: ['default'],
+    mouth:    [mouth],
+  }).toDataUri();
+}
+
+const SPEAKING_FACE_CLOSED = speakingFace('default');
+const SPEAKING_FACE_PARTED = speakingFace('disbelief');
+
+/* Viseme face bank — one pre-baked URI per viseme code (0–2). Limited
+ * to three safe avataaars mouths after QA flagged grimace/screamOpen
+ * as looking unnatural during speech. The sounds.js scheduler emits
+ * at most a handful of transitions per word (small-open → vowel peak
+ * → small-open → close) so the mouth doesn't chatter.
+ *
+ *   0  closed       'default'     (M/B/P, silence, sentence breaks)
+ *   1  small open   'disbelief'   (consonants, word transitions)
+ *   2  mid open     'eating'      (dominant vowel of each word)
+ *
+ * Eyes/brows stay 'default' across all three so ONLY the lips move
+ * during speech — matches the "neutral talking face" rule. */
+const VISEME_FACES = [
+  SPEAKING_FACE_CLOSED,
+  SPEAKING_FACE_PARTED,
+  speakingFace('eating'),
+];
 
 // `wordTick` prop is no longer destructured — the word-tick eyebrow
 // pulse was removed (it caused visible face flicker on every syllable).
 // Callers passing wordTick={...} are silently ignored.
-export default function ShanayaAvatar({ emotion = 'neutral', speaking = false, amplitudeRef, size = 'xl', showPhone = true }) {
+export default function ShanayaAvatar({ emotion = 'neutral', speaking = false, amplitudeRef, visemeRef, size = 'xl', showPhone = true }) {
   const face = EMOTIONS[emotion] || EMOTIONS.neutral;
 
   /* ===== Real-time lip-sync (research-driven rewrite v3) =====
@@ -177,21 +194,42 @@ export default function ShanayaAvatar({ emotion = 'neutral', speaking = false, a
   const CLOSE_THRESHOLD = 0.12;
   const MIN_HOLD_MS     = 130; // ~7 swaps/sec cap — relaxed speech
 
-  const [mouthOpen, setMouthOpen] = useState(false);
+  // Mouth-state: a single integer that maps to VISEME_FACES.
+  //   0 closed, 1 parted, 2 grimace, 3 eating, 4 screamOpen
+  // When visemeRef is supplied (timed lip-sync path) we just mirror its
+  // current value. Otherwise we fall back to the legacy amplitude
+  // hysteresis which produces a 0/1 closed/parted swap.
+  const [visemeCode, setVisemeCode] = useState(0);
   useEffect(() => {
     if (!speaking) {
-      setMouthOpen(false);
+      setVisemeCode(0);
       return undefined;
     }
     let raf = 0;
     let smoothed = 0;
     let isOpen = false;
     let lastSwitchAt = 0;
+    let lastCode = -1;
+    // Minimum wall-clock gap between rendered viseme changes — prevents
+    // back-to-back swaps on short words ("I am to") from reading as a
+    // mouth flicker.
+    const MIN_VISEME_HOLD_MS = 110;
     const tick = (now) => {
+      // Timed-path: visemeRef populated by the per-word boundary
+      // scheduler in sounds.js. Code is 0-2 from the timeline.
+      const v = visemeRef?.current;
+      if (typeof v === 'number') {
+        if (v !== lastCode && now - lastSwitchAt >= MIN_VISEME_HOLD_MS) {
+          lastCode = v;
+          lastSwitchAt = now;
+          setVisemeCode(v);
+        }
+        raf = requestAnimationFrame(tick);
+        return;
+      }
+      // Fallback: amplitude hysteresis (legacy 2-state behaviour).
       const raw = amplitudeRef?.current ?? 0;
       const boosted = Math.min(1, Math.max(0, (raw - 0.04) * 2.2));
-      // Asymmetric smoothing — rise fast, decay slow so the mouth
-      // doesn't snap shut between consonants.
       const alpha = boosted > smoothed ? 0.5 : 0.18;
       smoothed = smoothed * (1 - alpha) + boosted * alpha;
       const want = isOpen
@@ -200,23 +238,26 @@ export default function ShanayaAvatar({ emotion = 'neutral', speaking = false, a
       if (want !== isOpen && now - lastSwitchAt >= MIN_HOLD_MS) {
         isOpen = want;
         lastSwitchAt = now;
-        setMouthOpen(want);
+        const code = want ? 1 : 0;
+        if (code !== lastCode) {
+          lastCode = code;
+          setVisemeCode(code);
+        }
       }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [speaking, amplitudeRef]);
+  }, [speaking, amplitudeRef, visemeRef]);
 
   /* Pick exactly one URI:
-   *   - silent  → emotion's full face (idleUri)
-   *   - speaking + amplitude below open threshold → neutral closed mouth
-   *   - speaking + amplitude above open threshold → neutral parted mouth
-   * The neutral speaking face keeps eyes/brows static so the only
-   * thing the viewer sees moving is the lips. */
+   *   - silent → emotion's full face (idleUri)
+   *   - speaking → one of the 5 pre-baked viseme faces (neutral eyes/
+   *     brows, mouth-only difference) indexed by visemeCode
+   * Eyes/brows stay still during speech so only the lips move. */
   const activeUri = !speaking
     ? idleUri
-    : (mouthOpen ? SPEAKING_FACE_PARTED : SPEAKING_FACE_CLOSED);
+    : VISEME_FACES[Math.max(0, Math.min(VISEME_FACES.length - 1, visemeCode))];
 
   // Idle blink — every 9–14 s while NOT speaking. Was 4–7 s but QA
   // flagged the eyes as "blinking every time"; slowing the loop +

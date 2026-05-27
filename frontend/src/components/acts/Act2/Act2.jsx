@@ -37,6 +37,8 @@ export default function Act2({ onComplete, onGoHome }) {
   const [wordTick, setWordTick] = useState(0);
   // Real-time speech amplitude (0–1) — drives ShanayaAvatar's mouth.
   const mouthRef = useRef(0);
+  // Viseme code (0-4) for accurate timed lip-sync; null means fall back to amplitude.
+  const visemeRef = useRef(null);
 
   const seq = useSequencer(phases, { holdWhile: isSpeaking });
   const sceneIdx = phaseToScene[seq.index] ?? 0;
@@ -59,11 +61,12 @@ export default function Act2({ onComplete, onGoHome }) {
   useEffect(() => {
     setSpeechCallbacks({
       onStart: (who) => { setIsSpeaking(true); setSpeaker(who || 'shanaya'); },
-      onEnd:   () => { setIsSpeaking(false); setSpeaker(null); mouthRef.current = 0; },
+      onEnd:   () => { setIsSpeaking(false); setSpeaker(null); mouthRef.current = 0; visemeRef.current = null; },
       onWord:  () => setWordTick((t) => t + 1),
       // Real-time amplitude into a ref so the 60-fps updates don't
       // re-render Act 2 every frame; the avatar reads it directly.
       onAmplitude: (v) => { mouthRef.current = v; },
+      onViseme: (code) => { visemeRef.current = code; },
     });
     return () => setSpeechCallbacks(null);
   }, []);
@@ -279,6 +282,7 @@ export default function Act2({ onComplete, onGoHome }) {
                     speaking={isSpeaking && speaker === 'shanaya'}
                     wordTick={wordTick}
                     amplitudeRef={mouthRef}
+                    visemeRef={visemeRef}
                     showPhone={false}
                   />
                 </div>

@@ -48,6 +48,7 @@ router.get('/', async (req, res, next) => {
   try {
     const text = (req.query.text || '').toString().slice(0, 400);
     const voiceKey = (req.query.voice || 'shanaya').toString();
+    const wantsTimed = req.query.timed === '1';
     if (!text) {
       const err = new Error('text query param required');
       err.status = 400;
@@ -55,6 +56,29 @@ router.get('/', async (req, res, next) => {
     }
 
     const voice = VOICES[voiceKey] || VOICES.shanaya;
+
+    /* Timed JSON path — Edge Neural TTS returns per-word boundaries
+     * which the frontend uses to drive accurate viseme/lip-shape
+     * transitions. Falls back to the plain MP3 path if Edge fails or
+     * returns no boundaries, so the caller can always rely on getting
+     * audio back even if timings are unavailable. */
+    if (wantsTimed) {
+      try {
+        const timed = await synthEdgeTimed(voice.neural, text, { pitch: voice.pitch, rate: voice.rate });
+        if (timed.words.length > 0) {
+          res.set('Cache-Control', 'public, max-age=86400, immutable');
+          res.json({
+            audio: timed.audio.toString('base64'),
+            words: timed.words,
+            mime: 'audio/mpeg',
+          });
+          return;
+        }
+      } catch (timedErr) {
+        // eslint-disable-next-line no-console
+        console.warn('[tts] timed path failed, falling back to plain audio:', timedErr?.message);
+      }
+    }
 
     let buf;
     // ElevenLabs override — if the API key is set, use ElevenLabs first
@@ -125,6 +149,76 @@ async function synthEdge(voiceName, text, prosody = {}) {
   const buf = Buffer.concat(chunks);
   if (buf.length < 200) throw new Error(`edge tts returned ${buf.length} bytes`);
   return buf;
+}
+
+/* ------------------------------------------------------------------ */
+/* Edge Neural TTS with word boundaries (timed path)                  */
+/*                                                                    */
+/* Same Edge engine as `synthEdge`, but with `wordBoundaryEnabled`    */
+/* turned on so the secondary `metadataStream` emits per-word         */
+/* timing markers. Each marker is `{ Offset, Duration, text }` where  */
+/* `Offset`/`Duration` are in 100-nanosecond units (HNS) — divide     */
+/* by 10_000 to convert to milliseconds.                              */
+/*                                                                    */
+/* The frontend uses these to schedule mouth-shape transitions tied   */
+/* to actual word boundaries instead of guessing from raw amplitude.  */
+/* ------------------------------------------------------------------ */
+async function synthEdgeTimed(voiceName, text, prosody = {}) {
+  const tts = new MsEdgeTTS();
+  await tts.setMetadata(voiceName, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3, {
+    wordBoundaryEnabled: true,
+  });
+  const options = {};
+  if (prosody.pitch) options.pitch = prosody.pitch;
+  if (typeof prosody.rate === 'number' || typeof prosody.rate === 'string') options.rate = prosody.rate;
+  const { audioStream, metadataStream } = tts.toStream(text, options);
+
+  const audioChunks = [];
+  const words = [];
+
+  // msedge-tts only signals stream end on the audio stream (via
+  // `push(null)` at TURN_END or socket close); the metadata stream is
+  // never explicitly closed. So we resolve when audio ends and use
+  // whatever metadata arrived by then — boundaries always precede
+  // their audio so this is safe.
+  if (metadataStream) {
+    metadataStream.on('data', (chunk) => {
+      try {
+        const obj = JSON.parse(chunk.toString('utf8'));
+        const items = obj?.Metadata || [];
+        for (const m of items) {
+          if (m?.Type === 'WordBoundary' && m?.Data) {
+            const offsetMs   = Math.round((m.Data.Offset   || 0) / 10000);
+            const durationMs = Math.round((m.Data.Duration || 0) / 10000);
+            const wordText   = m.Data.text?.Text || '';
+            if (wordText) words.push({ text: wordText, offsetMs, durationMs });
+          }
+        }
+      } catch {
+        // Skip malformed metadata — falls back to plain MP3 path
+        // upstream if no boundaries get collected.
+      }
+    });
+    metadataStream.on('error', () => { /* swallow; audio still resolves */ });
+  }
+
+  await new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      try { tts.close(); } catch {}
+      reject(new Error('edge timed timeout'));
+    }, 10000);
+
+    audioStream.on('data',   (c) => audioChunks.push(c));
+    audioStream.on('end',    () => { clearTimeout(timeout); resolve(); });
+    audioStream.on('closed', () => { clearTimeout(timeout); resolve(); });
+    audioStream.on('error',  (e) => { clearTimeout(timeout); reject(e); });
+  });
+
+  try { tts.close(); } catch {}
+
+  const audio = Buffer.concat(audioChunks);
+  if (audio.length < 200) throw new Error(`edge timed returned ${audio.length} bytes`);
+  return { audio, words };
 }
 
 /* ------------------------------------------------------------------ */

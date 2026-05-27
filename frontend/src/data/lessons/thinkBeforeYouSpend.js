@@ -137,23 +137,28 @@ function act1Scenes() {
           vignette: 'group-chat',
         },
         {
+          /* No narrator here — the thought bubble carries the same idea
+           * in Shanaya's own voice. Trimmed from 8s → 5s; the vignette
+           * has time to bloom without a long voice-over pulling weight. */
           id: 's0-vision',
-          duration: 8000,
+          duration: 5000,
           status: 'Imagining the day',
           emotion: 'happy',
           bubbles: [
             { side: 'right', type: 'thought', text: 'I already know the vibe — confident outfit, great photos, perfect day.' },
           ],
-          narration: 'Shanaya already knows the kind of birthday she wants — fun photos, matching vibes, good food, and an outfit that makes her feel confident.',
           phone: { view: 'feed' },
           vignette: 'vision',
         },
         {
+          /* Shorter narration — kills the long descriptive tail
+           * ("complete her birthday look and log off"). The visual
+           * already shows her reaching for the app. */
           id: 's0-app-open',
-          duration: 7500,
+          duration: 6000,
           status: 'Reaching for the shopping app',
           emotion: 'curious',
-          narration: 'Shanaya is scrolling through a shopping app, planning to quickly buy one new pair of shoes to complete her birthday look and log off.',
+          narration: 'She opens the shopping app to grab one pair of shoes and log off.',
           phone: { view: 'feed' },
           vignette: 'app-open',
         },
@@ -170,14 +175,14 @@ function act1Scenes() {
       emotion: 'neutral',
       phases: [
         {
+          /* No narrator — Scene 0's closing beat already established
+           * "she opens the app". The next phase's bubble (s1-intent) is
+           * her clear plan in her own voice; introducing it twice felt
+           * draggy. Vignette + status carry the visual. */
           id: 's1-open',
-          duration: 6000,
+          duration: 3500,
           status: 'Browsing on the app',
-          narration: 'It is a quiet afternoon. Shanaya is in her room. She has a clear plan.',
           phone: { view: 'feed' },
-          /* Re-use the meet-shanaya vignette so phase 6's right column
-           * isn't empty — the same bedroom + Shanaya + friends imagery
-           * matches the "she is in her room" narration. */
           vignette: 'meet-shanaya',
         },
         /* Combined intent beat — both lines now live inside a SINGLE
@@ -277,10 +282,12 @@ function act1Scenes() {
          *   13b — Complete-the-Look banner + socks rec card slide in,
          *         tap pulse on the socks card, auto-advance to PDP. */
         {
+          /* No narrator — the previous beat just showed her adding the
+           * shoes; "she keeps scrolling" is obvious from the visual.
+           * Trimmed 4s → 2.4s so the next suggestion lands faster. */
           id: 's2-scroll',
-          duration: 4000,
+          duration: 2400,
           status: 'Scrolling more on the home page',
-          narration: 'After adding the sneakers, Shanaya keeps scrolling.',
           phone: after(['shoes'], { scrollHint: true }),
         },
         {
@@ -465,29 +472,18 @@ function act1Scenes() {
             { side: 'right', type: 'thought', text: 'And it’s FREE if I add one more thing? Okay let me just see what counts.' },
           ],
         },
-        /* Bridge beats — she scrolls more on the feed, then taps the
-         * Electronics category at the top so the next page lands on a
-         * shelf of electronics-y items (Selfie Light hightlighted). */
-        {
-          id: 's2-w3-browse',
-          duration: 4000,
-          status: 'Scrolling a little more',
-          narration: 'Shanaya scrolls a little more.',
-          phone: after(['shoes', 'socks', 'hoodie'], {
-            scrollHint: true,
-            unlockOffer: {
-              headline: 'NEW OFFER UNLOCKED',
-              message: 'Add 1 more item and get a Phone Case FREE',
-              gift: 'phone-case',
-              emoji: '🎀',
-            },
-          }),
-        },
+        /* Bridge beat — she taps the Electronics category at the top so
+         * the next page lands on a shelf of electronics-y items (Selfie
+         * Light highlighted). Previously this was TWO phases (scroll
+         * more → tap Electronics) with back-to-back narrators that read
+         * as repetitive after the "scrolls a little more — and a new
+         * offer slides in" beat just above. Collapsed into one tap
+         * action without voice-over; the pulsing tapTarget tells the
+         * student exactly where Shanaya's finger is going. */
         {
           id: 's2-w3-tap-electronics',
-          duration: 4000,
+          duration: 3500,
           status: 'Tapping Electronics',
-          narration: 'And taps on Electronics.',
           phone: after(['shoes', 'socks', 'hoodie'], {
             scrollToTop: true,
             tapTarget: 'cat-electronics',
@@ -649,15 +645,18 @@ function act1Scenes() {
           cue: 'tap',
         },
         {
+          /* No narrator — the cart-reveal beat just above already said
+           * "she is now proceeding to checkout", and the payment screen
+           * shows the ₹2,796 total in big type. Doubling it up in voice
+           * dragged the pace right before the realisation hits. */
           id: 's3-payment',
-          duration: 5000,
+          duration: 3200,
           status: 'Choosing payment method',
           emotion: 'neutral',
           phone: {
             cart: FULL_CART,
             view: 'payment',
           },
-          narration: 'She moves to checkout — ₹2,796 to pay.',
         },
         {
           id: 's3-payment-tap',

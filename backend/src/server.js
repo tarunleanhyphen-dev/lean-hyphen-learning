@@ -2,8 +2,10 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { hasDb } from './db/index.js';
+import { hasSupabase } from './db/supabase.js';
 import reflectionsRouter from './routes/reflections.js';
 import progressRouter from './routes/progress.js';
+import lessonsRouter from './routes/lessons.js';
 import ttsRouter from './routes/tts.js';
 import { notFound, errorHandler } from './middleware/error.js';
 
@@ -24,6 +26,7 @@ app.get('/api/health', (_req, res) => {
   res.json({
     ok: true,
     storage: hasDb() ? 'postgres' : 'file',
+    supabaseSdk: hasSupabase(),
     version: '0.1.0',
     time: new Date().toISOString(),
   });
@@ -31,6 +34,7 @@ app.get('/api/health', (_req, res) => {
 
 app.use('/api/reflections', reflectionsRouter);
 app.use('/api/progress', progressRouter);
+app.use('/api/lessons', lessonsRouter);
 app.use('/api/tts', ttsRouter);
 
 app.use(notFound);

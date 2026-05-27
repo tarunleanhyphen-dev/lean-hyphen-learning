@@ -61,7 +61,7 @@ export default function HomePage() {
 
         <div className="flex flex-wrap items-center gap-3 text-sm text-white/60">
           <span className="inline-flex items-center gap-1.5">
-            <Clock className="h-4 w-4" /> {lesson.totalMinutes} min total
+            <Clock className="h-4 w-4" /> ~{lesson.totalMinutes} minutes total
           </span>
         </div>
 

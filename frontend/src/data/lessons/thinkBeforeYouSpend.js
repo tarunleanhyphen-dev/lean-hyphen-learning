@@ -20,7 +20,7 @@ export const lesson = {
   id: 'think-before-you-spend',
   module: 'Smart Spending & Money Choices',
   title: 'Think Before You Spend',
-  totalMinutes: 18,
+  totalMinutes: 12,
   hero: {
     tagline: 'A short story-driven simulation about impulse buying.',
     character: {
@@ -34,21 +34,21 @@ export const lesson = {
     act1: {
       id: 'act1',
       title: 'Act 1 — Temptation',
-      minutes: 3,
+      minutes: 4,
       kind: 'cinematic',
       scenes: act1Scenes(),
     },
     act2: {
       id: 'act2',
       title: 'Act 2 — Understanding Impulse Buying',
-      minutes: 5,
+      minutes: 3,
       kind: 'interactive-cards',
       scenes: act2Scenes(),
     },
     act3: {
       id: 'act3',
       title: 'Act 3 — Real-life Simulation',
-      minutes: 4,
+      minutes: 2,
       kind: 'scenarios',
       /* scenes are assigned below after act3Scenarios (which act3Scenes
        * needs) is initialised — assigning inline here would hit the
@@ -58,7 +58,7 @@ export const lesson = {
     act4: {
       id: 'act4',
       title: 'Act 4 — Reflect & Realise',
-      minutes: 3,
+      minutes: 2,
       kind: 'impulse-meter',
       /* scenes are assigned below after act4Activities is initialised
        * — same late-bind trick as act3 to dodge the const TDZ. */

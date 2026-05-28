@@ -236,6 +236,37 @@ const MOODS = {
     pluckGain: 0.045, kickGain: 0.14,
     busGain: 0.52, lpfHz: 1500,
   },
+  /* Click-to-Pay Lesson 2 moods — distinct tonal palette so it sounds
+   * unmistakably different from Lesson 1's warm pop/lofi. */
+
+  /* cyber-pulse — used for the digital-world scenes (3, 4, 5). Tense
+   * but futuristic — a high-tempo low-pass-filtered sub bass, sparse
+   * 8th-note shaker, no melody on top. Reads as "AI/system speaking". */
+  'cyber-pulse': {
+    progression: ['Em', 'Am', 'Dm', 'Em'],
+    hasPad: true, hasBass: true, hasShaker: true, hasBell: true, hasPluck: true, hasKick: true,
+    padGain: 0.075, bassGain: 0.22, bellGain: 0.06, pluckGain: 0.055, kickGain: 0.16,
+    busGain: 0.5, lpfHz: 1600,
+  },
+  /* glitch-tense — for the payment-failing reaction event in scene 2.
+   * Dissonant + uneven — Bb root, minor 6th interval that doesn't
+   * resolve. Bright LPF + shaker for a glitchy chase feel. */
+  'glitch-tense': {
+    progression: ['Bb', 'Em', 'Bb', 'A'],
+    hasPad: true, hasBass: true, hasShaker: true, hasBell: false, hasKick: true,
+    padGain: 0.06, bassGain: 0.24, kickGain: 0.17,
+    busGain: 0.56, lpfHz: 2400,
+  },
+  /* wonder — used the moment Ritwik transforms into the ₹500 token.
+   * Major rising arpeggio with strong bell sparkle — gives the "magical
+   * reveal" feel. Only ever plays for a few bars before mood swaps to
+   * cyber-pulse for the long digital reflection. */
+  wonder: {
+    progression: ['C', 'G', 'F', 'C'],
+    hasPad: true, hasBass: true, hasShaker: false, hasBell: true, hasPluck: true,
+    padGain: 0.095, bassGain: 0.16, bellGain: 0.14, pluckGain: 0.06,
+    busGain: 0.55, lpfHz: 2000,
+  },
 };
 
 function schedulePad(freq, start, dur, peak) {

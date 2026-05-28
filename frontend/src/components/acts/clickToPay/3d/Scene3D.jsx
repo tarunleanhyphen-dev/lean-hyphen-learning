@@ -1,8 +1,8 @@
-import { Suspense, useRef, useMemo, useEffect, useState } from 'react';
+import { Suspense, useRef, useMemo, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Html, ContactShadows, Environment, Float } from '@react-three/drei';
+import { Html, ContactShadows, Float } from '@react-three/drei';
 import * as THREE from 'three';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import Character3D from './Character3D.jsx';
 
 /**
@@ -105,26 +105,37 @@ export default function Scene3D({
           {/* Ground shadow */}
           <ContactShadows position={[0, -0.001, 0]} opacity={0.35} scale={8} blur={2.4} far={4} />
 
-          {/* Characters */}
-          {characters.map((who) => (
-            <Float
-              key={who}
-              speed={1.2}
-              rotationIntensity={0.05}
-              floatIntensity={who === 'system' ? 0.6 : 0.15}
-            >
-              <Character3D
-                who={who}
-                position={layout[who].position}
-                facing={layout[who].facing}
-                scale={layout[who].scale ?? 1}
-                speaking={speaking && speaker === who}
-                amplitudeRef={amplitudeRef}
-                emotion={speaker === who ? emotion : 'neutral'}
-                headRef={heads[who]}
-              />
-            </Float>
-          ))}
+          {/* Characters — each one's pupils look at the active speaker
+             (unless they ARE the speaker, in which case they look at
+             whoever else is in the scene). */}
+          {characters.map((who) => {
+            const isSpeaker = speaker === who;
+            // Find a different character to look at
+            const others = characters.filter((c) => c !== who);
+            const lookTarget = isSpeaker
+              ? (others[0] ? layout[others[0]].position : null)
+              : (speaker && layout[speaker] ? layout[speaker].position : null);
+            return (
+              <Float
+                key={who}
+                speed={1.2}
+                rotationIntensity={0.04}
+                floatIntensity={who === 'system' ? 0.6 : 0.12}
+              >
+                <Character3D
+                  who={who}
+                  position={layout[who].position}
+                  facing={layout[who].facing}
+                  scale={layout[who].scale ?? 1}
+                  speaking={speaking && isSpeaker}
+                  amplitudeRef={amplitudeRef}
+                  emotion={isSpeaker ? emotion : 'neutral'}
+                  headRef={heads[who]}
+                  lookAt={lookTarget}
+                />
+              </Float>
+            );
+          })}
 
           {/* Camera dolly toward the speaker */}
           <CameraDolly speaker={speaker} layout={layout} />

@@ -118,28 +118,11 @@ function act1Scenes() {
           ],
         },
         {
-          id: 's1-task-intro',
-          duration: 3000,
-          status: 'Your turn',
+          id: 's1-handover',
+          duration: 3600,
+          status: 'Ritwik starts the payment',
           speaker: 'narrator',
-          narration: 'Your turn — walk through the payment.',
-        },
-        {
-          id: 's1-task',
-          hold: true,
-          status: 'Tap each step to send the payment',
-          speaker: null,
-          paymentStep: 'open',
-          task: {
-            kind: 'payment-flow',
-            steps: [
-              { id: 'open',     label: 'Open payment app' },
-              { id: 'scan-cta', label: 'Tap Scan & Pay' },
-              { id: 'scanning', label: 'Scan QR code' },
-              { id: 'amount',   label: 'Enter ₹500' },
-              { id: 'pay',      label: 'Press PAY' },
-            ],
-          },
+          narration: 'Ritwik opens the app and starts the payment, the way he always does.',
         },
       ],
     },
@@ -294,18 +277,46 @@ function act1Scenes() {
      * ============================================================ */
     {
       id: 'scene-5',
-      title: 'Your First Prediction',
+      title: 'Your Turn',
       scenePhase: 'digital',
       ambience: 'reflective',
       emotion: 'curious',
       phases: [
         {
           id: 's5-system',
-          duration: 4400,
+          duration: 4200,
           status: 'System speaks',
           speaker: 'system',
           bubbles: [
-            { side: 'left', speaker: 'system', type: 'system', text: 'Every online payment follows a route. Pick the one you believe — make your prediction.' },
+            { side: 'left', speaker: 'system', type: 'system', text: 'You saw what happened. Now you try it — send the same five hundred rupees.' },
+          ],
+        },
+        /* INTERACTIVE — the actual payment task, moved out of Scene 1
+         * so scenes 1-4 stay purely cinematic. The phone shows up in the
+         * right column for Scene 5 only. */
+        {
+          id: 's5-task',
+          hold: true,
+          status: 'Send ₹500 on the phone',
+          speaker: null,
+          task: {
+            kind: 'payment-flow',
+            steps: [
+              { id: 'open',     label: 'Open payment app' },
+              { id: 'scan-cta', label: 'Tap Scan & Pay' },
+              { id: 'scanning', label: 'Scan QR code' },
+              { id: 'amount',   label: 'Enter ₹500' },
+              { id: 'pay',      label: 'Press PAY' },
+            ],
+          },
+        },
+        {
+          id: 's5-system-2',
+          duration: 4000,
+          status: 'Same tap, same path?',
+          speaker: 'system',
+          bubbles: [
+            { side: 'left', speaker: 'system', type: 'system', text: 'You pressed PAY. Predict — which path does the money take now?' },
           ],
         },
         {

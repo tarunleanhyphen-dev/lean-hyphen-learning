@@ -3,14 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PauseCircle, PlayCircle, RotateCcw, ChevronRight, ChevronLeft } from 'lucide-react';
 
 import AudioToggle from '../../../shared/AudioToggle.jsx';
-import AudioConsentBanner from '../../../shared/AudioConsentBanner.jsx';
 import SceneProgress from '../../../shared/SceneProgress.jsx';
 import EndOfActCelebration from '../../../shared/EndOfActCelebration.jsx';
 
-import Scene3D from '../3d/Scene3D.jsx';
+import Stage2D from '../2d/Stage2D.jsx';
 import PaymentPhone from '../scenes/PaymentPhone.jsx';
 import SignalCatcher from '../scenes/SignalCatcher.jsx';
 import PredictionChallenge from '../scenes/PredictionChallenge.jsx';
+import { Volume2, VolumeX, Mic } from 'lucide-react';
 
 import { lesson, characters } from '../../../../data/lessons/clickToPay.js';
 import { useSequencer } from '../../../../hooks/useSequencer.js';
@@ -209,11 +209,13 @@ export default function Act1({ onComplete, onGoHome }) {
 
   /* ===== Right-column content selection =====
    *
-   * Layout is locked at 60/40 (stage : side panel). The side panel always
-   * has something useful: payment phone for the task, signal catcher for
-   * the reaction event, and a Scene Companion (cast + transcript) for
-   * narrative beats so the user is never staring at empty space. */
-  const showPaymentPhone = scenePhase === 'home' && (phase?.id === 's1-task' || phase?.id === 's1-task-intro');
+   * Per UX brief: scenes 1-4 are pure cinematic — only the left stage
+   * shows. The right column appears ONLY in Scene 5, where the learner
+   * does the actual payment task and locks in their prediction. The
+   * signal-catcher in scene 2 is overlaid on the stage (not a column)
+   * so the left-only rule still holds. */
+  const isScene5 = sceneIdx === 4;
+  const showPaymentPhone = isScene5 && phase?.task?.kind === 'payment-flow';
   const showSignals = phase?.reaction?.kind === 'tap-signals' && !completedHolds.has(phase.id);
 
   return (
@@ -245,21 +247,28 @@ export default function Act1({ onComplete, onGoHome }) {
         </div>
       </header>
 
+      {/* Prominent audio prompt — full-width, hard to miss. Stays above
+         the stage until the user clicks "Enable Voice". The lesson is
+         designed to talk to you; without audio it's just text. */}
       <AnimatePresence>
         {!audioEnabled && (
-          <AudioConsentBanner onEnable={enableAudio} onDismiss={dismissAudio} />
+          <BigAudioPrompt onEnable={enableAudio} onDismiss={dismissAudio} />
         )}
       </AnimatePresence>
 
       <SceneProgress current={seq.index} total={phases.length} label={scene?.title} />
 
-      {/* MAIN STAGE — locked 60/40 split (stage : side panel) on md+ */}
+      {/* MAIN STAGE — 60/40 only on scene 5 (when the prediction phone
+         and prediction UI need a side column). Scenes 1-4 are full-width
+         stage so the characters get full breathing room. */}
       <div
-        className="grid items-stretch gap-4 grid-cols-1 md:grid-cols-[3fr_2fr] md:gap-5 lg:gap-6"
+        className={`grid items-stretch gap-4 grid-cols-1 ${
+          isScene5 ? 'md:grid-cols-[3fr_2fr] md:gap-5 lg:gap-6' : ''
+        }`}
       >
-        {/* 3D STAGE */}
+        {/* STAGE */}
         <div className="relative h-[440px] sm:h-[520px] md:h-[580px] lg:h-[640px]">
-          <Scene3D
+          <Stage2D
             scenePhase={scenePhase}
             speaker={isSpeaking ? speakerKey : null}
             speaking={isSpeaking}
@@ -268,20 +277,19 @@ export default function Act1({ onComplete, onGoHome }) {
             bubbles={bubblesForScene}
           />
           {/* Scene tag */}
-          <div className="pointer-events-none absolute left-3 top-3 z-20 rounded-full bg-black/40 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-white/85 backdrop-blur">
+          <div className="pointer-events-none absolute left-3 top-3 z-20 rounded-full bg-black/45 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-white/90 backdrop-blur">
             Scene {sceneIdx + 1} · {scene?.title}
           </div>
-          {/* Status pill */}
-          {phase?.status && (
-            <motion.div
-              key={phase.id + '-status'}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="pointer-events-none absolute right-3 top-3 z-20 rounded-full bg-cyan-400/20 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-cyan-100 ring-1 ring-cyan-300/40 backdrop-blur"
-            >
-              {phase.status}
-            </motion.div>
+          {/* Voice-on chip — confirms audio is live and pulses while speaking */}
+          {audioEnabled && (
+            <div className="pointer-events-none absolute right-3 top-3 z-20 flex items-center gap-1.5 rounded-full bg-emerald-400/20 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-emerald-200 ring-1 ring-emerald-300/50 backdrop-blur">
+              <motion.span
+                animate={isSpeaking ? { opacity: [0.4, 1, 0.4] } : { opacity: 0.7 }}
+                transition={{ duration: 1, repeat: isSpeaking ? Infinity : 0 }}
+                className="h-1.5 w-1.5 rounded-full bg-emerald-300"
+              />
+              {isSpeaking ? `${characters[speakerKey]?.name || 'Speaking'}` : 'Voice on'}
+            </div>
           )}
           {/* Narration ribbon */}
           <AnimatePresence mode="wait">
@@ -292,57 +300,59 @@ export default function Act1({ onComplete, onGoHome }) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.4 }}
-                className="absolute inset-x-3 bottom-3 z-20 rounded-2xl bg-black/55 px-4 py-3 text-[13px] leading-snug text-white/95 ring-1 ring-white/10 backdrop-blur sm:text-[14px]"
+                className="absolute inset-x-3 bottom-3 z-20 rounded-2xl bg-black/65 px-4 py-3 text-[13px] leading-snug text-white/95 ring-1 ring-white/10 backdrop-blur sm:text-[14px]"
               >
                 <span className="mr-1 text-cyan-300">🎙️</span>{phase.narration}
               </motion.div>
             )}
           </AnimatePresence>
-          {/* Floating labels for Scene 4 (anchored to stage, not 3D — easier to read) */}
+          {/* Floating labels for Scene 4 */}
           {phase?.showLabels && (
             <FloatingLabels labels={phase.showLabels} />
           )}
+          {/* Signal catcher (scene 2) — overlays the stage instead of using
+             a side column so the left side stays full-width like the user
+             asked. */}
+          <AnimatePresence>
+            {showSignals && (
+              <motion.div
+                key="signal"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-x-3 bottom-16 z-30"
+              >
+                <SignalCatcher
+                  seconds={phase.reaction.seconds || 5}
+                  target={phase.reaction.count || 6}
+                  onDone={() => {
+                    markHoldDone(phase.id);
+                    advanceOrFinish();
+                  }}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
-        {/* RIGHT COLUMN — always populated */}
-        <div className="relative flex flex-col items-stretch gap-3">
-          {showPaymentPhone ? (
-            <PaymentPhone
-              active={phase?.id === 's1-task' && !completedHolds.has('s1-task')}
-              glitch={0}
-              onComplete={() => {
-                markHoldDone('s1-task');
-                advanceOrFinish();
-              }}
-              hint={phase?.id === 's1-task' ? 'Tap the highlighted button to continue' : 'Watch what Ritwik is about to do…'}
-            />
-          ) : showSignals ? (
-            <motion.div
-              key="signal"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <SignalCatcher
-                seconds={phase.reaction.seconds || 5}
-                target={phase.reaction.count || 6}
-                onDone={() => {
+        {/* RIGHT COLUMN — Scene 5 ONLY */}
+        {isScene5 && (
+          <div className="relative flex flex-col items-stretch gap-3">
+            {showPaymentPhone ? (
+              <PaymentPhone
+                active={!completedHolds.has(phase?.id)}
+                glitch={0}
+                onComplete={() => {
                   markHoldDone(phase.id);
                   advanceOrFinish();
                 }}
+                hint="Try the actual payment Ritwik did — tap the highlighted button"
               />
-            </motion.div>
-          ) : (
-            <SceneCompanion
-              sceneIdx={sceneIdx}
-              totalScenes={act.scenes.length}
-              scene={scene}
-              phase={phase}
-              speakerKey={speakerKey}
-              isSpeaking={isSpeaking}
-              audioEnabled={audioEnabled}
-            />
-          )}
-        </div>
+            ) : (
+              <PredictionSidePanel phase={phase} characters={characters} />
+            )}
+          </div>
+        )}
       </div>
 
       {/* Prediction overlay */}
@@ -430,91 +440,80 @@ function deriveEmotion(phase, scene) {
   return scene?.emotion || 'neutral';
 }
 
-/* SceneCompanion — what fills the right column when no interactive UI
- * is on. Shows scene meta, the active speaker with avatar/name/voice,
- * a running transcript of recent lines, and an audio status hint. */
-function SceneCompanion({ sceneIdx, totalScenes, scene, phase, speakerKey, isSpeaking, audioEnabled }) {
-  const speaker = speakerKey ? characters[speakerKey] : null;
-  const activeBubble = phase?.bubbles?.[0];
-  const cast = useMemo(() => {
-    const set = new Set();
-    if (phase?.speaker && phase.speaker !== 'narrator') set.add(phase.speaker);
-    (phase?.bubbles || []).forEach((b) => { if (b.speaker && b.speaker !== 'narrator') set.add(b.speaker); });
-    // Always show ritwik on home; system on digital
-    if (scene?.scenePhase === 'home') { set.add('ritwik'); set.add('mom'); }
-    if (scene?.scenePhase === 'digital' || scene?.scenePhase === 'transform') { set.add('ritwik'); set.add('system'); }
-    return [...set];
-  }, [phase, scene]);
-
+/* Prominent audio prompt — full-width pill at the top of the lesson
+ * with a big "Enable Voice" CTA. Replaces the small AudioConsentBanner
+ * because users were missing it and reporting "no voice". */
+function BigAudioPrompt({ onEnable, onDismiss }) {
   return (
-    <div className="relative flex h-full min-h-[440px] flex-col gap-3 overflow-hidden rounded-2xl bg-gradient-to-br from-[#0F1830] to-[#1A1240] p-4 ring-1 ring-white/10 sm:p-5">
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ duration: 0.4 }}
+      className="flex flex-wrap items-center gap-3 rounded-2xl border border-cyan-300/40 bg-gradient-to-r from-cyan-500/15 via-violet-500/15 to-fuchsia-500/15 px-4 py-3 text-sm text-white ring-1 ring-cyan-300/20 sm:px-5 sm:py-4"
+      role="region"
+      aria-label="Enable voice prompt"
+    >
+      <span className="grid h-10 w-10 place-items-center rounded-full bg-cyan-400/30 ring-1 ring-cyan-300/50">
+        <Mic className="h-5 w-5 text-cyan-100" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="text-base font-bold leading-tight">Turn on voice for the full experience</div>
+        <div className="mt-0.5 text-xs text-white/70">
+          Ritwik, Mom, the System and a narrator each speak with their own voice. Music sets the mood.
+        </div>
+      </div>
+      <button
+        onClick={onEnable}
+        className="whitespace-nowrap rounded-full bg-cyan-400 px-5 py-2.5 text-sm font-bold text-cyan-950 shadow-lg shadow-cyan-500/30 hover:bg-cyan-300 active:scale-95"
+      >
+        <Volume2 className="mr-1.5 inline h-4 w-4" /> Enable voice
+      </button>
+      <button
+        onClick={onDismiss}
+        className="whitespace-nowrap rounded-full border border-white/20 px-3.5 py-2 text-xs font-semibold text-white/75 hover:bg-white/10"
+      >
+        <VolumeX className="mr-1 inline h-3.5 w-3.5" /> Read in silence
+      </button>
+    </motion.div>
+  );
+}
+
+/* PredictionSidePanel — Scene-5 side card that explains the upcoming
+ * prediction so the right column isn't empty between the payment task
+ * and the prediction overlay popping in. */
+function PredictionSidePanel({ phase }) {
+  return (
+    <div className="relative flex h-full min-h-[440px] flex-col gap-3 overflow-hidden rounded-2xl bg-gradient-to-br from-[#0F1830] to-[#1A1240] p-4 ring-1 ring-cyan-300/20 sm:p-5">
       <div className="flex items-center justify-between">
-        <div className="text-[11px] font-bold uppercase tracking-widest text-cyan-200">
-          Scene {sceneIdx + 1} of {totalScenes}
-        </div>
-        <div className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-bold text-white/75">
-          {audioEnabled ? 'Voice on' : 'Voice off'}
-        </div>
+        <div className="text-[11px] font-bold uppercase tracking-widest text-cyan-200">Final beat</div>
+        <div className="rounded-full bg-cyan-400/20 px-2 py-0.5 text-[10px] font-bold text-cyan-100">Scene 5</div>
       </div>
       <div className="text-base font-extrabold text-white sm:text-lg">
-        {scene?.title}
+        You’ve been the money. Now predict the path.
       </div>
-
-      {/* Active speaker card */}
-      <div className="rounded-xl bg-white/[0.05] p-3 ring-1 ring-white/10">
-        <div className="text-[10px] font-bold uppercase tracking-widest text-white/55">
-          {speaker ? (isSpeaking ? 'Now speaking' : 'Just spoke') : 'Listening…'}
+      <p className="text-[13px] leading-snug text-white/75">
+        Ritwik tapped PAY. ₹500 has to travel from his phone to his brother. Pick the route you
+        think it actually takes — Act 2 unpacks the truth.
+      </p>
+      <div className="mt-2 grid grid-cols-2 gap-2 text-[11px]">
+        <div className="rounded-lg bg-white/[0.05] px-3 py-2 ring-1 ring-white/10">
+          <div className="text-white/55">📱 Payment App</div>
         </div>
-        <div className="mt-1 flex items-center gap-3">
-          <SpeakerAvatar who={speakerKey || phase?.speaker || 'narrator'} pulsing={isSpeaking} />
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-bold text-white">
-              {speaker?.name || characters[phase?.speaker || 'narrator']?.name || 'Narrator'}
-            </div>
-            <div className="text-[11px] text-white/55">
-              voice · {speaker?.voice || characters[phase?.speaker || 'narrator']?.voice || 'narrator'}
-            </div>
-          </div>
+        <div className="rounded-lg bg-white/[0.05] px-3 py-2 ring-1 ring-white/10">
+          <div className="text-white/55">🏦 Bank Server</div>
         </div>
-        {activeBubble?.text && (
-          <motion.div
-            key={activeBubble.text}
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-3 rounded-lg bg-black/30 p-3 text-[13px] leading-snug text-white/95"
-          >
-            “{activeBubble.text}”
-          </motion.div>
-        )}
-        {!activeBubble?.text && phase?.narration && (
-          <div className="mt-3 rounded-lg bg-black/30 p-3 text-[13px] leading-snug text-white/85">
-            {phase.narration}
-          </div>
-        )}
-      </div>
-
-      {/* Cast strip */}
-      <div className="rounded-xl bg-white/[0.04] p-3 ring-1 ring-white/10">
-        <div className="text-[10px] font-bold uppercase tracking-widest text-white/55">Cast on stage</div>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          {cast.map((c) => (
-            <div key={c} className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ${
-              speakerKey === c
-                ? 'bg-cyan-400/20 text-cyan-100 ring-cyan-300/50'
-                : 'bg-white/[0.06] text-white/70 ring-white/15'
-            }`}>
-              <SpeakerAvatar who={c} small />
-              {characters[c]?.name || c}
-            </div>
-          ))}
+        <div className="rounded-lg bg-white/[0.05] px-3 py-2 ring-1 ring-white/10">
+          <div className="text-white/55">☁️ Internet</div>
+        </div>
+        <div className="rounded-lg bg-white/[0.05] px-3 py-2 ring-1 ring-white/10">
+          <div className="text-white/55">🔳 QR Code</div>
         </div>
       </div>
-
-      {/* Tip footer */}
-      <div className="mt-auto text-[11px] text-white/55">
-        {audioEnabled
-          ? 'Tip — each character speaks with their own voice and their lips move with the audio.'
-          : 'Tap “Enable Audio” to hear voices and music.'}
+      <div className="mt-auto rounded-xl bg-cyan-400/10 px-3 py-2.5 text-[12px] text-cyan-100 ring-1 ring-cyan-300/30">
+        {phase?.id === 's5-prediction'
+          ? 'A prediction window will pop up — choose what feels right.'
+          : 'Hang on — the system is about to ask you to choose.'}
       </div>
     </div>
   );

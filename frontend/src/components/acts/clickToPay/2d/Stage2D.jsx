@@ -30,14 +30,18 @@ const STAGE_LAYOUTS = {
   home: {
     cast: ['ritwik', 'mom'],
     positions: {
-      ritwik: { x: '32%', y: 'bottom-0', size: 'h-[78%]' },
-      mom:    { x: '68%', y: 'bottom-0', size: 'h-[82%]' },
+      // Sitting on the sofa — the SVG now has a sitting pose with
+      // lap stubs + shins. Height tuned so the lap rests on the
+      // cushion (which sits at bottom-[18%]) and the shins hang in
+      // front of the seat.
+      ritwik: { x: '32%', y: 'bottom-[6%]', size: 'h-[68%]' },
+      mom:    { x: '68%', y: 'bottom-[6%]', size: 'h-[68%]' },
     },
   },
   'phone-task': {
     cast: ['ritwik'],
     positions: {
-      ritwik: { x: '22%', y: 'bottom-0', size: 'h-[70%]' },
+      ritwik: { x: '22%', y: 'bottom-[6%]', size: 'h-[68%]' },
     },
   },
   glitch: {
@@ -145,12 +149,21 @@ export default function Stage2D({
           lookAt: lookFor(who),
           className: slot.size,
         };
-        const yClass = slot.y === 'center' ? 'top-1/2 -translate-y-1/2' : 'bottom-0';
+        // y supports:
+        //   'center'        → top-1/2 -translate-y-1/2 (vertically centred)
+        //   'bottom-[N%]'   → bottom: N% via inline style (e.g. for sitting on the sofa)
+        //   anything else / 'bottom-0' → bottom: 0 (floor)
+        const isCenter = slot.y === 'center';
+        const bottomMatch = typeof slot.y === 'string' && slot.y.match(/^bottom-\[(\d+(?:\.\d+)?)%\]$/);
+        const bottomValue = bottomMatch ? `${bottomMatch[1]}%` : '0';
+        const positionStyle = isCenter
+          ? { left: slot.x, top: '50%', transform: 'translate(-50%, -50%)' }
+          : { left: slot.x, bottom: bottomValue, transform: 'translateX(-50%)' };
         return (
           <div
             key={who}
-            className={`absolute -translate-x-1/2 ${yClass}`}
-            style={{ left: slot.x }}
+            className="absolute"
+            style={positionStyle}
           >
             {who === 'ritwik' && <ResolvedAvatar who="ritwik" charProps={charProps} slotSize={slot.size} svg={<Ritwik {...charProps} />} />}
             {who === 'mom'    && <ResolvedAvatar who="mom"    charProps={charProps} slotSize={slot.size} svg={<Mom {...charProps} />} />}

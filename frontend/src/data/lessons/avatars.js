@@ -27,13 +27,13 @@
 export const AVATARS = {
   ritwik: {
     // Tier 1: drop a Lottie JSON path in here (highest quality)
-    lottie: '/lottie/ritwik.json',
+    lottie: '',          // e.g. '/lottie/ritwik.json'
     // Tier 2: drop an RPM .glb URL here
     rpm:    '',          // e.g. 'https://models.readyplayer.me/abc.glb'
     // Tier 3: always-on SVG fallback (no config needed)
   },
   mom: {
-    lottie: '/lottie/mom.json',
+    lottie: '',
     rpm:    '',
   },
 };

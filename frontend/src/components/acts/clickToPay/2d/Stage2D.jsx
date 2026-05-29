@@ -5,6 +5,8 @@ import Mom from './Mom.jsx';
 import SystemAvatar from './SystemAvatar.jsx';
 import Money500 from './Money500.jsx';
 import UPIFlow from './UPIFlow.jsx';
+import RPMAvatar from '../3d/RPMAvatar.jsx';
+import { RPM_AVATARS } from '../../../../data/lessons/avatars.js';
 
 /**
  * Stage2D — full-bleed cinematic stage. Renders the right background +
@@ -149,8 +151,16 @@ export default function Stage2D({
             className={`absolute -translate-x-1/2 ${yClass}`}
             style={{ left: slot.x }}
           >
-            {who === 'ritwik' && <Ritwik {...charProps} />}
-            {who === 'mom'    && <Mom {...charProps} />}
+            {who === 'ritwik' && (
+              RPM_AVATARS.ritwik
+                ? <RPMAvatar url={RPM_AVATARS.ritwik} {...charProps} className={slot.size} />
+                : <Ritwik {...charProps} />
+            )}
+            {who === 'mom' && (
+              RPM_AVATARS.mom
+                ? <RPMAvatar url={RPM_AVATARS.mom} {...charProps} className={slot.size} />
+                : <Mom {...charProps} />
+            )}
             {who === 'system' && <SystemAvatar speaking={charProps.speaking} amplitudeRef={amplitudeRef} className={slot.size} />}
             {who === 'money'  && <Money500 pose="wave" speaking={isSpeaking} amplitudeRef={amplitudeRef} className={slot.size} />}
           </div>

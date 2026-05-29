@@ -33,9 +33,13 @@ const PHONEPE = {
   bgGray: '#F3F4F6',
 };
 
+/* The lesson script ALWAYS ends in a failed payment — that's the hook
+ * for Scene 2. Default `outcome` is therefore 'fail'. Caller can
+ * override with 'success' if used elsewhere. */
 export default function PaymentPhone({
   active = true,
   glitch = 0,
+  outcome = 'fail',
   onStep,
   onComplete,
   hint = 'Tap the highlighted button to continue',
@@ -76,22 +80,24 @@ export default function PaymentPhone({
     return () => ids.forEach(clearTimeout);
   }, [step]);
 
-  // Processing → done (longer hold during glitch + emit the right cue
-  // when we land on the final screen)
+  // Processing → done. Per script the lesson ALWAYS ends in failure
+  // (that's how Scene 2 triggers). `outcome` carries that decision so
+  // the same component can be reused elsewhere with a success ending.
+  const failing = outcome === 'fail' || glitch >= 2;
   useEffect(() => {
     if (step !== 'processing') return;
     const id = setTimeout(() => {
       advance('done');
-      // PhonePe-style cue based on outcome
-      if (glitch >= 2) {
+      // PhonePe-style audible failure cue
+      if (failing) {
         sounds.upiDistorted?.();
         setTimeout(() => sounds.upiError?.(), 350);
       } else {
         sounds.upiSuccess?.();
       }
-    }, glitch >= 2 ? 2400 : 1800);
+    }, failing ? 2400 : 1800);
     return () => clearTimeout(id);
-  }, [step, glitch]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [step, failing]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // The phone itself shakes/glitches — the character behind stays
   // stable. Shake intensifies with glitch level.
@@ -126,8 +132,8 @@ export default function PaymentPhone({
                     active={active}
                   />
                 )}
-                {step === 'processing' && <ProcessingScreen glitch={glitch} />}
-                {step === 'done'       && <DoneScreen glitch={glitch} />}
+                {step === 'processing' && <ProcessingScreen failing={failing} />}
+                {step === 'done'       && <DoneScreen failing={failing} />}
                 {glitch >= 1 && <GlitchOverlay level={glitch} />}
               </div>
             </div>
@@ -599,9 +605,9 @@ function AmountScreen({ amount, onPay, ready, active }) {
 /* ============================================================
  * Processing — PhonePe-style loader with status flips
  * ============================================================ */
-function ProcessingScreen({ glitch }) {
+function ProcessingScreen({ failing }) {
   const [msg, setMsg] = useState(0);
-  const messages = glitch >= 2
+  const messages = failing
     ? ['Connecting to bank…', 'Checking balance…', 'Network unstable…']
     : ['Connecting to bank…', 'Verifying VPA…', 'Almost there…'];
   useEffect(() => {
@@ -642,8 +648,8 @@ function ProcessingScreen({ glitch }) {
 /* ============================================================
  * Done — success card or failed card depending on glitch level
  * ============================================================ */
-function DoneScreen({ glitch }) {
-  const failed = glitch >= 2;
+function DoneScreen({ failing }) {
+  const failed = failing;
   return (
     <div className="flex h-full flex-col bg-white">
       <PhoneStatusBar dark />

@@ -209,51 +209,225 @@ function PointerBubble({ text, variant = 'speech', style }) {
 function HomeBackground() {
   return (
     <div aria-hidden className="absolute inset-0">
-      <div className="absolute inset-0 bg-gradient-to-b from-[#2A1B3D] via-[#1F1430] to-[#0F0820]" />
-      {/* Window with evening sky */}
-      <div className="absolute left-[4%] top-[6%] h-[36%] w-[24%] overflow-hidden rounded-md border-4 border-[#3E2818] bg-gradient-to-b from-[#FB923C] via-[#A78BFA] to-[#312E81]">
-        <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 gap-0">
-          <div className="border-r-2 border-b-2 border-[#3E2818]" />
-          <div className="border-b-2 border-[#3E2818]" />
-          <div className="border-r-2 border-[#3E2818]" />
-          <div />
-        </div>
+      {/* Wall with subtle vertical wallpaper stripes */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#3A2348] via-[#2A1B3D] to-[#1A0F2A]" />
+      <div
+        className="absolute inset-0 opacity-15"
+        style={{
+          backgroundImage:
+            'repeating-linear-gradient(90deg, rgba(255,255,255,0.08) 0 1px, transparent 1px 22px)',
+        }}
+      />
+
+      {/* Window — top left — with evening city skyline silhouette */}
+      <div className="absolute left-[4%] top-[6%] h-[36%] w-[22%] overflow-hidden rounded-md border-4 border-[#3E2818] shadow-2xl">
+        <div className="absolute inset-0 bg-gradient-to-b from-[#FB923C] via-[#A78BFA] to-[#312E81]" />
+        {/* Skyline silhouette */}
+        <svg className="absolute bottom-0 w-full" viewBox="0 0 100 30" preserveAspectRatio="none">
+          <path d="M 0 30 L 0 22 L 10 22 L 12 14 L 18 14 L 20 22 L 28 22 L 30 8 L 36 8 L 38 16 L 46 16 L 48 10 L 56 10 L 58 18 L 66 18 L 68 6 L 76 6 L 78 14 L 86 14 L 88 20 L 96 20 L 100 18 L 100 30 Z" fill="#0F0820" opacity="0.85" />
+        </svg>
+        {/* Window cross divider */}
+        <div className="absolute inset-x-0 top-1/2 h-[2px] bg-[#3E2818]" />
+        <div className="absolute inset-y-0 left-1/2 w-[2px] bg-[#3E2818]" />
+        {/* Moon */}
         <motion.div
-          className="absolute right-3 top-2 h-3 w-3 rounded-full bg-yellow-300 shadow-[0_0_12px_rgba(253,224,71,0.8)]"
+          className="absolute right-3 top-2 h-3 w-3 rounded-full bg-yellow-300 shadow-[0_0_12px_rgba(253,224,71,0.85)]"
           animate={{ opacity: [0.8, 1, 0.8] }}
           transition={{ duration: 3, repeat: Infinity }}
         />
       </div>
-      {/* Wall art */}
-      <div className="absolute right-[8%] top-[10%] h-[20%] w-[22%] rounded-md border-4 border-[#3E2818] bg-gradient-to-br from-pink-300 to-purple-400">
-        <div className="absolute inset-2 flex items-center justify-center text-4xl">🌅</div>
+
+      {/* === THREE NATURE WALL PAINTINGS — replace the empty frames === */}
+      {/* Frame 1 — mountain landscape */}
+      <div className="absolute left-[32%] top-[8%] h-[20%] w-[12%] overflow-hidden rounded-md border-[4px] border-[#3E2818] shadow-xl">
+        <svg viewBox="0 0 100 80" preserveAspectRatio="none" className="h-full w-full">
+          <defs>
+            <linearGradient id="mt-sky" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"   stopColor="#FED7AA" />
+              <stop offset="100%" stopColor="#7DD3FC" />
+            </linearGradient>
+          </defs>
+          <rect width="100" height="80" fill="url(#mt-sky)" />
+          {/* Sun */}
+          <circle cx="72" cy="22" r="8" fill="#FCD34D" />
+          {/* Back mountains */}
+          <polygon points="0,55 20,30 40,50 60,28 80,48 100,32 100,80 0,80" fill="#8B5A6B" />
+          {/* Front mountains */}
+          <polygon points="0,68 18,46 35,62 50,42 70,60 90,46 100,58 100,80 0,80" fill="#4A3548" />
+          {/* Snow caps */}
+          <polygon points="46,46 50,42 54,48" fill="#FFFFFF" />
+          <polygon points="86,50 90,46 94,52" fill="#FFFFFF" />
+        </svg>
       </div>
-      {/* TV mounted on wall — playing softly */}
-      <div className="absolute left-[34%] top-[14%] h-[20%] w-[32%] rounded-md border-4 border-[#1A1426] bg-gradient-to-br from-blue-900 to-blue-700">
-        <div className="absolute inset-1 grid grid-cols-3 gap-0.5">
-          <div className="bg-yellow-300/40" />
-          <div className="bg-pink-300/40" />
-          <div className="bg-emerald-300/40" />
+
+      {/* Frame 2 — beach sunset (centre) */}
+      <div className="absolute left-[45%] top-[8%] h-[20%] w-[12%] overflow-hidden rounded-md border-[4px] border-[#3E2818] shadow-xl">
+        <svg viewBox="0 0 100 80" preserveAspectRatio="none" className="h-full w-full">
+          <defs>
+            <linearGradient id="bch-sky" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"   stopColor="#FCA5A5" />
+              <stop offset="50%"  stopColor="#F97316" />
+              <stop offset="100%" stopColor="#FDE047" />
+            </linearGradient>
+            <linearGradient id="bch-sea" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#7C3AED" />
+              <stop offset="100%" stopColor="#1E40AF" />
+            </linearGradient>
+          </defs>
+          <rect width="100" height="50" fill="url(#bch-sky)" />
+          <rect y="50" width="100" height="22" fill="url(#bch-sea)" />
+          <rect y="72" width="100" height="8" fill="#FDE68A" />
+          {/* Sun on horizon */}
+          <circle cx="50" cy="50" r="12" fill="#FEF3C7" />
+          {/* Sun reflection on water */}
+          <rect x="44" y="52" width="12" height="20" fill="#FCD34D" opacity="0.55" />
+          {/* Palm tree silhouette */}
+          <path d="M 78 72 L 80 50" stroke="#1F2937" strokeWidth="1.5" fill="none" />
+          <path d="M 80 50 Q 70 42 64 48 M 80 50 Q 90 42 96 48 M 80 50 Q 78 38 74 36 M 80 50 Q 84 38 88 36" stroke="#065F46" strokeWidth="1.5" fill="none" />
+        </svg>
+      </div>
+
+      {/* Frame 3 — tropical valley */}
+      <div className="absolute left-[58%] top-[8%] h-[20%] w-[12%] overflow-hidden rounded-md border-[4px] border-[#3E2818] shadow-xl">
+        <svg viewBox="0 0 100 80" preserveAspectRatio="none" className="h-full w-full">
+          <defs>
+            <linearGradient id="vl-sky" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"   stopColor="#A5F3FC" />
+              <stop offset="100%" stopColor="#67E8F9" />
+            </linearGradient>
+          </defs>
+          <rect width="100" height="40" fill="url(#vl-sky)" />
+          {/* Far hills */}
+          <ellipse cx="20" cy="50" rx="32" ry="14" fill="#10B981" />
+          <ellipse cx="60" cy="48" rx="38" ry="16" fill="#059669" />
+          <ellipse cx="92" cy="52" rx="22" ry="12" fill="#10B981" />
+          {/* Foreground meadow */}
+          <rect y="60" width="100" height="20" fill="#34D399" />
+          {/* River winding through */}
+          <path d="M 30 80 Q 40 72 35 64 Q 30 56 45 50 Q 60 44 55 36" stroke="#3B82F6" strokeWidth="3" fill="none" />
+          {/* Clouds */}
+          <ellipse cx="20" cy="15" rx="9" ry="3" fill="#FFFFFF" opacity="0.85" />
+          <ellipse cx="72" cy="20" rx="11" ry="4" fill="#FFFFFF" opacity="0.85" />
+        </svg>
+      </div>
+
+      {/* Wall art on the right — Krishna-inspired peacock motif */}
+      <div className="absolute right-[6%] top-[10%] h-[20%] w-[18%] overflow-hidden rounded-md border-[4px] border-[#3E2818] shadow-xl">
+        <svg viewBox="0 0 100 80" preserveAspectRatio="none" className="h-full w-full">
+          <defs>
+            <linearGradient id="pk-bg" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%"   stopColor="#F472B6" />
+              <stop offset="100%" stopColor="#A78BFA" />
+            </linearGradient>
+          </defs>
+          <rect width="100" height="80" fill="url(#pk-bg)" />
+          {/* Sun behind */}
+          <circle cx="80" cy="20" r="10" fill="#FCD34D" opacity="0.7" />
+          {/* Peacock body */}
+          <ellipse cx="40" cy="55" rx="10" ry="14" fill="#0E7490" />
+          {/* Peacock feathers fanning out */}
+          {[-50, -30, -10, 10, 30, 50].map((deg) => (
+            <g key={deg} transform={`rotate(${deg} 40 55)`}>
+              <ellipse cx="40" cy="22" rx="3" ry="14" fill="#0891B2" opacity="0.85" />
+              <circle cx="40" cy="14" r="3" fill="#FDE047" />
+              <circle cx="40" cy="14" r="1.2" fill="#065F46" />
+            </g>
+          ))}
+          {/* Peacock head */}
+          <circle cx="42" cy="40" r="4" fill="#0E7490" />
+          <circle cx="44" cy="38" r="1" fill="#FDE047" />
+        </svg>
+      </div>
+
+      {/* === FLOOR — proper wooden plank floor === */}
+      <div className="absolute inset-x-0 bottom-0 h-[16%] bg-gradient-to-t from-[#5A4030] via-[#6B4923] to-[#3E2818]" />
+      {/* Floor planks */}
+      <div className="absolute inset-x-0 bottom-0 h-[16%] opacity-40"
+           style={{
+             backgroundImage:
+               'repeating-linear-gradient(90deg, transparent 0 60px, rgba(0,0,0,0.25) 60px 62px)',
+           }} />
+
+      {/* === FLOOR LAMP === */}
+      <div className="absolute left-[2%] bottom-[16%] h-[42%] w-[3%]">
+        <div className="absolute inset-x-0 top-0 h-12 rounded-t-full bg-amber-200 shadow-[0_0_50px_rgba(254,215,170,0.85)]" />
+        <div className="absolute inset-x-[40%] top-12 bottom-0 bg-[#7A5A3E]" />
+        <div className="absolute inset-x-[-20%] bottom-0 h-2 rounded-md bg-[#7A5A3E]" />
+      </div>
+
+      {/* === INDIAN-STYLE SOFA === */}
+      <IndianSofa />
+
+      {/* Coffee table in front of sofa */}
+      <div className="absolute left-[42%] right-[42%] bottom-[15%] h-[3%] rounded-md bg-[#7A5A3E] shadow-xl" />
+      <div className="absolute left-[42%] right-[42%] bottom-[10%] h-[5%]">
+        <div className="absolute left-0 bottom-0 h-full w-[6%] bg-[#5A4030]" />
+        <div className="absolute right-0 bottom-0 h-full w-[6%] bg-[#5A4030]" />
+      </div>
+      {/* Cup on the table */}
+      <div className="absolute left-[48%] bottom-[18.5%] h-[2.5%] w-[3%] rounded-b bg-white shadow" />
+      <div className="absolute left-[48%] bottom-[20.5%] h-[1%] w-[3%] rounded-t bg-[#F3F4F6]" />
+
+      {/* === POTTED PLANT in corner === */}
+      <div className="absolute right-[3%] bottom-[16%] h-[26%] w-[7%]">
+        <div className="absolute inset-x-0 bottom-0 h-[35%] rounded-b-lg bg-[#A85F3A] shadow-lg" />
+        <div className="absolute inset-x-0 bottom-[31%] h-[3%] rounded-sm bg-[#8B4F2E]" />
+        {/* Plant leaves — layered */}
+        <div className="absolute bottom-[34%] left-[10%] right-[10%] h-[60%] rounded-full bg-[#10B981]" />
+        <div className="absolute bottom-[42%] left-[-10%] right-[60%] h-[40%] rounded-full bg-[#059669] -rotate-12" />
+        <div className="absolute bottom-[42%] left-[60%] right-[-10%] h-[40%] rounded-full bg-[#34D399] rotate-12" />
+        <div className="absolute bottom-[60%] left-[20%] right-[20%] h-[35%] rounded-full bg-[#10B981]" />
+      </div>
+
+      {/* Dust motes (warm evening light) */}
+      <Motes color="#FFE08A" count={5} />
+    </div>
+  );
+}
+
+/* Proper Indian-style sofa — wooden carved arms + plush teal cushions
+ * + embroidered throw pillows. Sits behind the characters. */
+function IndianSofa() {
+  return (
+    <div className="absolute left-[16%] right-[16%] bottom-[14%] h-[26%]">
+      {/* Wooden frame back */}
+      <div className="absolute inset-x-0 top-0 h-[60%] rounded-t-3xl bg-gradient-to-b from-[#5A3818] to-[#3E2818] shadow-xl" />
+      {/* Cushioned backrest (3 sections) */}
+      <div className="absolute inset-x-[4%] top-[8%] h-[50%] rounded-2xl bg-gradient-to-b from-[#5DA9C8] to-[#2A6A86] shadow-inner" />
+      <div className="absolute left-[6%] top-[10%] h-[44%] w-[30%] rounded-xl bg-[#6BB3D1] shadow-md" />
+      <div className="absolute left-[37%] top-[10%] h-[44%] w-[26%] rounded-xl bg-[#6BB3D1] shadow-md" />
+      <div className="absolute right-[6%] top-[10%] h-[44%] w-[30%] rounded-xl bg-[#6BB3D1] shadow-md" />
+      {/* Embroidery accent line */}
+      <div className="absolute inset-x-[6%] top-[50%] h-[3px] bg-amber-300/60" />
+
+      {/* Seat cushion */}
+      <div className="absolute inset-x-0 top-[55%] h-[35%] rounded-b-2xl bg-gradient-to-b from-[#4A8FA9] to-[#1E5070] shadow-xl" />
+      <div className="absolute inset-x-[3%] top-[58%] h-[28%] rounded-xl bg-[#5DA9C8]" />
+
+      {/* Wooden arms (curved Indian style) */}
+      <div className="absolute left-[-2%] top-[10%] h-[85%] w-[6%]">
+        <div className="h-full rounded-l-3xl bg-gradient-to-r from-[#5A3818] to-[#7A5A3E] shadow-lg" />
+        {/* Carved accent */}
+        <div className="absolute top-[15%] left-1/2 h-3 w-3 -translate-x-1/2 rounded-full bg-amber-300/60" />
+      </div>
+      <div className="absolute right-[-2%] top-[10%] h-[85%] w-[6%]">
+        <div className="h-full rounded-r-3xl bg-gradient-to-l from-[#5A3818] to-[#7A5A3E] shadow-lg" />
+        <div className="absolute top-[15%] left-1/2 h-3 w-3 -translate-x-1/2 rounded-full bg-amber-300/60" />
+      </div>
+
+      {/* Throw pillow with embroidery pattern */}
+      <div className="absolute left-[7%] top-[20%] h-[28%] w-[16%] rotate-[-8deg] rounded-lg bg-gradient-to-br from-[#F59E0B] to-[#B45309] shadow-lg ring-2 ring-amber-200/40">
+        <div className="absolute inset-1 grid grid-cols-3 grid-rows-3 gap-0.5">
+          {Array.from({ length: 9 }).map((_, i) => (
+            <div key={i} className={i % 2 ? 'rounded-sm bg-amber-200/60' : 'rounded-sm bg-amber-700/40'} />
+          ))}
         </div>
       </div>
-      {/* Floor lamp */}
-      <div className="absolute left-[2%] bottom-[14%] h-[40%] w-[3%]">
-        <div className="absolute inset-x-0 top-0 h-10 rounded-t-full bg-amber-200 shadow-[0_0_40px_rgba(254,215,170,0.7)]" />
-        <div className="absolute inset-x-[40%] top-10 bottom-0 bg-[#7A5A3E]" />
+      <div className="absolute right-[7%] top-[20%] h-[28%] w-[16%] rotate-[8deg] rounded-lg bg-gradient-to-br from-rose-500 to-rose-800 shadow-lg ring-2 ring-rose-200/40">
+        <div className="absolute inset-1 flex items-center justify-center">
+          <div className="text-2xl">✿</div>
+        </div>
       </div>
-      {/* Sofa silhouette behind characters */}
-      <div className="absolute left-[18%] right-[18%] bottom-[10%] h-[24%] rounded-3xl bg-[#3A5366] opacity-70" />
-      <div className="absolute left-[20%] right-[20%] bottom-[8%] h-[20%] rounded-2xl bg-[#4A6B82]" />
-      {/* Floor */}
-      <div className="absolute inset-x-0 bottom-0 h-[12%] bg-gradient-to-t from-[#5A4030] to-transparent" />
-      {/* Plant in corner */}
-      <div className="absolute right-[3%] bottom-[8%] h-[24%] w-[6%]">
-        <div className="absolute inset-x-0 bottom-0 h-[35%] bg-[#A85F3A] rounded-b" />
-        <div className="absolute -top-2 left-1/2 h-[70%] w-[140%] -translate-x-1/2 rounded-full bg-emerald-600" />
-        <div className="absolute top-2 left-1/2 h-[50%] w-[100%] -translate-x-1/2 rounded-full bg-emerald-500" />
-      </div>
-      {/* Dust motes */}
-      <Motes color="#FFE08A" count={6} />
     </div>
   );
 }

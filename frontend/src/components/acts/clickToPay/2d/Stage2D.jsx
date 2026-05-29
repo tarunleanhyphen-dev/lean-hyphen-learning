@@ -30,18 +30,18 @@ const STAGE_LAYOUTS = {
   home: {
     cast: ['ritwik', 'mom'],
     positions: {
-      // Characters render BEHIND the sofa (which is now in foreground).
-      // Sofa back covers their hip/legs, so they appear to be sitting.
-      // Positioned at bottom-[10%] so their feet would land roughly
-      // at the floor under the sofa.
-      ritwik: { x: '32%', y: 'bottom-[10%]', size: 'h-[72%]' },
-      mom:    { x: '68%', y: 'bottom-[10%]', size: 'h-[74%]' },
+      // Sitting on the sofa — the SVG now has a sitting pose with
+      // lap stubs + shins. Height tuned so the lap rests on the
+      // cushion (which sits at bottom-[18%]) and the shins hang in
+      // front of the seat.
+      ritwik: { x: '32%', y: 'bottom-[6%]', size: 'h-[68%]' },
+      mom:    { x: '68%', y: 'bottom-[6%]', size: 'h-[68%]' },
     },
   },
   'phone-task': {
     cast: ['ritwik'],
     positions: {
-      ritwik: { x: '22%', y: 'bottom-[10%]', size: 'h-[72%]' },
+      ritwik: { x: '22%', y: 'bottom-[6%]', size: 'h-[68%]' },
     },
   },
   glitch: {
@@ -173,11 +173,6 @@ export default function Stage2D({
         );
       })}
 
-      {/* SOFA in FOREGROUND — renders ON TOP of characters so the
-         cushion + back naturally hide the hip/legs, making them look
-         seated. Home + phone-task stages only. */}
-      {(stage === 'home' || stage === 'phone-task') && <IndianSofa />}
-
       {/* Pointer speech bubbles */}
       <div className="pointer-events-none absolute inset-0 z-30">
         <AnimatePresence>
@@ -255,39 +250,133 @@ function PointerBubble({ text, variant = 'speech', style }) {
 function HomeBackground() {
   return (
     <div aria-hidden className="absolute inset-0">
-      {/* Light purple wall */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#DDD6FE] via-[#C4B5FD] to-[#A78BFA]" />
+      {/* Wall with subtle vertical wallpaper stripes */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#3A2348] via-[#2A1B3D] to-[#1A0F2A]" />
+      <div
+        className="absolute inset-0 opacity-15"
+        style={{
+          backgroundImage:
+            'repeating-linear-gradient(90deg, rgba(255,255,255,0.08) 0 1px, transparent 1px 22px)',
+        }}
+      />
 
-      {/* Window — one corner accent (top left) with evening city skyline */}
-      <div className="absolute left-[5%] top-[8%] h-[32%] w-[20%] overflow-hidden rounded-md border-4 border-[#7A5A3E] shadow-xl">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#FB923C] via-[#A78BFA] to-[#4C1D95]" />
+      {/* Window — top left — with evening city skyline silhouette */}
+      <div className="absolute left-[4%] top-[6%] h-[36%] w-[22%] overflow-hidden rounded-md border-4 border-[#3E2818] shadow-2xl">
+        <div className="absolute inset-0 bg-gradient-to-b from-[#FB923C] via-[#A78BFA] to-[#312E81]" />
+        {/* Skyline silhouette */}
         <svg className="absolute bottom-0 w-full" viewBox="0 0 100 30" preserveAspectRatio="none">
-          <path d="M 0 30 L 0 22 L 10 22 L 12 14 L 18 14 L 20 22 L 28 22 L 30 8 L 36 8 L 38 16 L 46 16 L 48 10 L 56 10 L 58 18 L 66 18 L 68 6 L 76 6 L 78 14 L 86 14 L 88 20 L 96 20 L 100 18 L 100 30 Z" fill="#1E1B4B" opacity="0.85" />
+          <path d="M 0 30 L 0 22 L 10 22 L 12 14 L 18 14 L 20 22 L 28 22 L 30 8 L 36 8 L 38 16 L 46 16 L 48 10 L 56 10 L 58 18 L 66 18 L 68 6 L 76 6 L 78 14 L 86 14 L 88 20 L 96 20 L 100 18 L 100 30 Z" fill="#0F0820" opacity="0.85" />
         </svg>
-        <div className="absolute inset-x-0 top-1/2 h-[2px] bg-[#7A5A3E]" />
-        <div className="absolute inset-y-0 left-1/2 w-[2px] bg-[#7A5A3E]" />
+        {/* Window cross divider */}
+        <div className="absolute inset-x-0 top-1/2 h-[2px] bg-[#3E2818]" />
+        <div className="absolute inset-y-0 left-1/2 w-[2px] bg-[#3E2818]" />
+        {/* Moon */}
         <motion.div
-          className="absolute right-3 top-2 h-3 w-3 rounded-full bg-yellow-200 shadow-[0_0_12px_rgba(253,224,71,0.85)]"
+          className="absolute right-3 top-2 h-3 w-3 rounded-full bg-yellow-300 shadow-[0_0_12px_rgba(253,224,71,0.85)]"
           animate={{ opacity: [0.8, 1, 0.8] }}
           transition={{ duration: 3, repeat: Infinity }}
         />
       </div>
 
-      {/* === ONE nature painting on the right wall — was 4 frames before, way too busy === */}
-      <div className="absolute right-[8%] top-[10%] h-[22%] w-[18%] overflow-hidden rounded-md border-[4px] border-[#7A5A3E] shadow-xl">
+      {/* === THREE NATURE WALL PAINTINGS — replace the empty frames === */}
+      {/* Frame 1 — mountain landscape */}
+      <div className="absolute left-[32%] top-[8%] h-[20%] w-[12%] overflow-hidden rounded-md border-[4px] border-[#3E2818] shadow-xl">
         <svg viewBox="0 0 100 80" preserveAspectRatio="none" className="h-full w-full">
           <defs>
-            <linearGradient id="mt-sky2" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id="mt-sky" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%"   stopColor="#FED7AA" />
               <stop offset="100%" stopColor="#7DD3FC" />
             </linearGradient>
           </defs>
-          <rect width="100" height="80" fill="url(#mt-sky2)" />
+          <rect width="100" height="80" fill="url(#mt-sky)" />
+          {/* Sun */}
           <circle cx="72" cy="22" r="8" fill="#FCD34D" />
+          {/* Back mountains */}
           <polygon points="0,55 20,30 40,50 60,28 80,48 100,32 100,80 0,80" fill="#8B5A6B" />
+          {/* Front mountains */}
           <polygon points="0,68 18,46 35,62 50,42 70,60 90,46 100,58 100,80 0,80" fill="#4A3548" />
+          {/* Snow caps */}
           <polygon points="46,46 50,42 54,48" fill="#FFFFFF" />
           <polygon points="86,50 90,46 94,52" fill="#FFFFFF" />
+        </svg>
+      </div>
+
+      {/* Frame 2 — beach sunset (centre) */}
+      <div className="absolute left-[45%] top-[8%] h-[20%] w-[12%] overflow-hidden rounded-md border-[4px] border-[#3E2818] shadow-xl">
+        <svg viewBox="0 0 100 80" preserveAspectRatio="none" className="h-full w-full">
+          <defs>
+            <linearGradient id="bch-sky" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"   stopColor="#FCA5A5" />
+              <stop offset="50%"  stopColor="#F97316" />
+              <stop offset="100%" stopColor="#FDE047" />
+            </linearGradient>
+            <linearGradient id="bch-sea" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#7C3AED" />
+              <stop offset="100%" stopColor="#1E40AF" />
+            </linearGradient>
+          </defs>
+          <rect width="100" height="50" fill="url(#bch-sky)" />
+          <rect y="50" width="100" height="22" fill="url(#bch-sea)" />
+          <rect y="72" width="100" height="8" fill="#FDE68A" />
+          {/* Sun on horizon */}
+          <circle cx="50" cy="50" r="12" fill="#FEF3C7" />
+          {/* Sun reflection on water */}
+          <rect x="44" y="52" width="12" height="20" fill="#FCD34D" opacity="0.55" />
+          {/* Palm tree silhouette */}
+          <path d="M 78 72 L 80 50" stroke="#1F2937" strokeWidth="1.5" fill="none" />
+          <path d="M 80 50 Q 70 42 64 48 M 80 50 Q 90 42 96 48 M 80 50 Q 78 38 74 36 M 80 50 Q 84 38 88 36" stroke="#065F46" strokeWidth="1.5" fill="none" />
+        </svg>
+      </div>
+
+      {/* Frame 3 — tropical valley */}
+      <div className="absolute left-[58%] top-[8%] h-[20%] w-[12%] overflow-hidden rounded-md border-[4px] border-[#3E2818] shadow-xl">
+        <svg viewBox="0 0 100 80" preserveAspectRatio="none" className="h-full w-full">
+          <defs>
+            <linearGradient id="vl-sky" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"   stopColor="#A5F3FC" />
+              <stop offset="100%" stopColor="#67E8F9" />
+            </linearGradient>
+          </defs>
+          <rect width="100" height="40" fill="url(#vl-sky)" />
+          {/* Far hills */}
+          <ellipse cx="20" cy="50" rx="32" ry="14" fill="#10B981" />
+          <ellipse cx="60" cy="48" rx="38" ry="16" fill="#059669" />
+          <ellipse cx="92" cy="52" rx="22" ry="12" fill="#10B981" />
+          {/* Foreground meadow */}
+          <rect y="60" width="100" height="20" fill="#34D399" />
+          {/* River winding through */}
+          <path d="M 30 80 Q 40 72 35 64 Q 30 56 45 50 Q 60 44 55 36" stroke="#3B82F6" strokeWidth="3" fill="none" />
+          {/* Clouds */}
+          <ellipse cx="20" cy="15" rx="9" ry="3" fill="#FFFFFF" opacity="0.85" />
+          <ellipse cx="72" cy="20" rx="11" ry="4" fill="#FFFFFF" opacity="0.85" />
+        </svg>
+      </div>
+
+      {/* Wall art on the right — Krishna-inspired peacock motif */}
+      <div className="absolute right-[6%] top-[10%] h-[20%] w-[18%] overflow-hidden rounded-md border-[4px] border-[#3E2818] shadow-xl">
+        <svg viewBox="0 0 100 80" preserveAspectRatio="none" className="h-full w-full">
+          <defs>
+            <linearGradient id="pk-bg" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%"   stopColor="#F472B6" />
+              <stop offset="100%" stopColor="#A78BFA" />
+            </linearGradient>
+          </defs>
+          <rect width="100" height="80" fill="url(#pk-bg)" />
+          {/* Sun behind */}
+          <circle cx="80" cy="20" r="10" fill="#FCD34D" opacity="0.7" />
+          {/* Peacock body */}
+          <ellipse cx="40" cy="55" rx="10" ry="14" fill="#0E7490" />
+          {/* Peacock feathers fanning out */}
+          {[-50, -30, -10, 10, 30, 50].map((deg) => (
+            <g key={deg} transform={`rotate(${deg} 40 55)`}>
+              <ellipse cx="40" cy="22" rx="3" ry="14" fill="#0891B2" opacity="0.85" />
+              <circle cx="40" cy="14" r="3" fill="#FDE047" />
+              <circle cx="40" cy="14" r="1.2" fill="#065F46" />
+            </g>
+          ))}
+          {/* Peacock head */}
+          <circle cx="42" cy="40" r="4" fill="#0E7490" />
+          <circle cx="44" cy="38" r="1" fill="#FDE047" />
         </svg>
       </div>
 
@@ -307,9 +396,8 @@ function HomeBackground() {
         <div className="absolute inset-x-[-20%] bottom-0 h-2 rounded-md bg-[#7A5A3E]" />
       </div>
 
-      {/* === SOFA moved to FOREGROUND (rendered after characters) so
-         the back + cushion naturally hide the character's hip and
-         legs, making them look properly seated. === */}
+      {/* === INDIAN-STYLE SOFA === */}
+      <IndianSofa />
 
       {/* Coffee table in front of sofa */}
       <div className="absolute left-[42%] right-[42%] bottom-[15%] h-[3%] rounded-md bg-[#7A5A3E] shadow-xl" />
@@ -368,15 +456,15 @@ function IndianSofa() {
         <div className="absolute top-[15%] left-1/2 h-3 w-3 -translate-x-1/2 rounded-full bg-amber-300/60" />
       </div>
 
-      {/* Throw pillow — light brown */}
-      <div className="absolute left-[7%] top-[20%] h-[28%] w-[16%] rotate-[-8deg] rounded-lg bg-gradient-to-br from-[#D2B48C] to-[#A0826D] shadow-lg ring-2 ring-amber-100/40">
+      {/* Throw pillow with embroidery pattern */}
+      <div className="absolute left-[7%] top-[20%] h-[28%] w-[16%] rotate-[-8deg] rounded-lg bg-gradient-to-br from-[#F59E0B] to-[#B45309] shadow-lg ring-2 ring-amber-200/40">
         <div className="absolute inset-1 grid grid-cols-3 grid-rows-3 gap-0.5">
           {Array.from({ length: 9 }).map((_, i) => (
-            <div key={i} className={i % 2 ? 'rounded-sm bg-amber-100/60' : 'rounded-sm bg-amber-800/30'} />
+            <div key={i} className={i % 2 ? 'rounded-sm bg-amber-200/60' : 'rounded-sm bg-amber-700/40'} />
           ))}
         </div>
       </div>
-      <div className="absolute right-[7%] top-[20%] h-[28%] w-[16%] rotate-[8deg] rounded-lg bg-gradient-to-br from-[#D2B48C] to-[#8B6F47] shadow-lg ring-2 ring-amber-100/40">
+      <div className="absolute right-[7%] top-[20%] h-[28%] w-[16%] rotate-[8deg] rounded-lg bg-gradient-to-br from-rose-500 to-rose-800 shadow-lg ring-2 ring-rose-200/40">
         <div className="absolute inset-1 flex items-center justify-center">
           <div className="text-2xl">✿</div>
         </div>

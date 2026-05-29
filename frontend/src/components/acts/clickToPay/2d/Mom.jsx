@@ -2,16 +2,11 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 
 /**
- * Mom v8 — SIMPLE minimal woman.
+ * Mom v7 — SIMPLE minimal woman, ACTUALLY sitting.
  *
- * Pose is standing — the sofa renders OVER her in the home stages so
- * the cushion + back hide her hip/legs, making her look seated.
- *
- * Changes per user (2026-05-29):
- *  - Bindi removed.
- *  - Hair shortened to chin-length curly bob (was waist-length).
- *    Bumpy "scallop" curls along the bottom edge.
- *  - Kurta colour: warm orange/coral (was crimson).
+ * Same restructuring as Ritwik v7 — diagonal thighs going out from
+ * the hip to the knees, shins dropping straight down from there.
+ * Reads as seated immediately, not standing.
  */
 export default function Mom({
   speaking = false,
@@ -59,96 +54,82 @@ export default function Mom({
 
   const SKIN  = '#ECC09A';
   const HAIR  = '#1A0E08';
-  const KURTA = '#F97316';        // warm orange (new)
+  const KURTA = '#E11D48';
   const PANTS = '#3D1A0E';
   const GOLD  = '#FBBF24';
+  const BINDI = '#DC2626';
 
   return (
     <motion.div
-      animate={{ y: [0, -2.5, 0] }}
+      animate={{ y: [0, -2, 0] }}
       transition={{ duration: 4.6, repeat: Infinity, ease: 'easeInOut' }}
       className={`relative ${className}`}
     >
-      <svg viewBox="0 0 200 360" className="h-full w-full" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax meet">
-        {/* LEGS */}
-        <rect x="80"  y="232" width="16" height="108" rx="6" fill={PANTS} />
-        <rect x="104" y="232" width="16" height="108" rx="6" fill={PANTS} />
-        <ellipse cx="88"  cy="340" rx="10" ry="4" fill="#3A2310" />
-        <ellipse cx="112" cy="340" rx="10" ry="4" fill="#3A2310" />
+      <svg viewBox="0 0 240 320" className="h-full w-full" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax meet">
+        {/* === BENT LEGS — thighs out, shins down === */}
+        <polygon points="98,215 80,215 38,235 60,252" fill={PANTS} />
+        <rect x="38" y="250" width="22" height="48" rx="4" fill={PANTS} />
+        <ellipse cx="49" cy="300" rx="14" ry="5" fill="#3A2310" />
 
-        {/* === CURLY CHIN-LENGTH HAIR — back layer with scalloped curls === */}
-        {/* Back panel that sits just behind the head, ending around the shoulders */}
-        <path d="M 56 100 Q 50 60 76 48 Q 100 38 124 48 Q 150 60 144 100
-                 Q 148 124 144 134 Q 138 128 134 134 Q 128 124 122 134
-                 Q 114 126 108 134 Q 100 124 92 134 Q 86 126 78 134
-                 Q 72 124 66 134 Q 60 128 56 134 Z"
+        <polygon points="142,215 160,215 202,235 180,252" fill={PANTS} />
+        <rect x="180" y="250" width="22" height="48" rx="4" fill={PANTS} />
+        <ellipse cx="191" cy="300" rx="14" ry="5" fill="#3A2310" />
+
+        {/* LONG HAIR — back panel just past shoulders */}
+        <path d="M 76 80 Q 70 40 96 28 Q 120 18 144 28 Q 170 40 164 80 L 168 200 Q 168 212 156 212 L 84 212 Q 72 212 72 200 Z"
               fill={HAIR} />
 
-        {/* KURTA — warm orange, flared hem */}
-        <path d="M 62 138 Q 62 124 76 120 L 124 120 Q 138 124 138 138 L 148 240 Q 148 244 144 244 L 56 244 Q 52 244 52 240 Z"
+        {/* KURTA — flat with flared hem covering lap */}
+        <path d="M 82 128 Q 82 116 96 110 L 144 110 Q 158 116 158 128 L 168 220 Q 168 225 164 225 L 76 225 Q 72 225 72 220 Z"
               fill={KURTA} />
         {/* Gold V-neck */}
-        <path d="M 80 124 Q 100 146 120 124 L 124 134 Q 100 154 76 134 Z" fill={GOLD} />
-        <rect x="52" y="240" width="96" height="3" fill={GOLD} />
+        <path d="M 100 114 Q 120 136 140 114 L 144 124 Q 120 144 96 124 Z" fill={GOLD} />
+        {/* Gold hem */}
+        <rect x="72" y="221" width="96" height="3" fill={GOLD} />
 
-        {/* ARMS */}
-        <path d="M 62 138 L 48 222 Q 48 228 54 230 L 64 230 L 66 180 Z" fill={KURTA} />
-        <path d="M 138 138 L 152 222 Q 152 228 146 230 L 136 230 L 134 180 Z" fill={KURTA} />
-        <circle cx="57" cy="230" r="7" fill={SKIN} />
-        <circle cx="143" cy="230" r="7" fill={SKIN} />
-        <line x1="50" y1="220" x2="64" y2="220" stroke={GOLD} strokeWidth="2" />
-        <line x1="136" y1="220" x2="150" y2="220" stroke={GOLD} strokeWidth="2" />
+        {/* ARMS — resting on lap */}
+        <path d="M 82 128 L 66 200 Q 62 208 70 212 L 84 214 L 86 170 Z" fill={KURTA} />
+        <path d="M 158 128 L 174 200 Q 178 208 170 212 L 156 214 L 154 170 Z" fill={KURTA} />
+        <circle cx="76"  cy="214" r="8" fill={SKIN} />
+        <circle cx="164" cy="214" r="8" fill={SKIN} />
+        <line x1="66" y1="204" x2="84" y2="204" stroke={GOLD} strokeWidth="2" />
+        <line x1="156" y1="204" x2="174" y2="204" stroke={GOLD} strokeWidth="2" />
 
         {/* NECK */}
-        <rect x="92" y="110" width="16" height="14" fill={SKIN} />
+        <rect x="112" y="100" width="16" height="14" fill={SKIN} />
 
         {/* HEAD */}
-        <ellipse cx="100" cy="76" rx="38" ry="40" fill={SKIN} />
+        <ellipse cx="120" cy="66" rx="38" ry="40" fill={SKIN} />
 
-        {/* === CURLY HAIR TOP — fluffy with visible curl loops === */}
-        {/* Main hair cap on top of head */}
-        <path d="M 60 74 Q 54 32 100 30 Q 146 32 140 74
-                 Q 138 64 130 56 Q 124 64 118 56 Q 110 64 104 56 Q 96 64 90 56 Q 84 64 78 56 Q 72 64 64 56 Z"
-              fill={HAIR} />
-        {/* Side curls framing the face — bumpy loops */}
-        <path d="M 60 70 Q 56 86 62 100 Q 56 110 66 116 L 76 116 Q 72 100 72 76 Z" fill={HAIR} />
-        <path d="M 140 70 Q 144 86 138 100 Q 144 110 134 116 L 124 116 Q 128 100 128 76 Z" fill={HAIR} />
-        {/* Visible curl loops (small circles along the edges for texture) */}
-        <circle cx="64"  cy="46" r="5" fill={HAIR} />
-        <circle cx="78"  cy="38" r="5" fill={HAIR} />
-        <circle cx="100" cy="34" r="5" fill={HAIR} />
-        <circle cx="122" cy="38" r="5" fill={HAIR} />
-        <circle cx="136" cy="46" r="5" fill={HAIR} />
-        <circle cx="60"  cy="108" r="4" fill={HAIR} />
-        <circle cx="140" cy="108" r="4" fill={HAIR} />
+        {/* HAIR top */}
+        <path d="M 82 64 Q 78 30 120 26 Q 162 30 158 64 L 158 40 Q 144 34 120 34 Q 96 34 82 40 Z" fill={HAIR} />
+        <path d="M 82 60 Q 80 80 84 100 L 90 100 Q 92 80 92 60 Z" fill={HAIR} />
+        <path d="M 158 60 Q 160 80 156 100 L 150 100 Q 148 80 148 60 Z" fill={HAIR} />
 
         {/* EARS + studs */}
-        <ellipse cx="62" cy="84" rx="4" ry="6" fill={SKIN} />
-        <ellipse cx="138" cy="84" rx="4" ry="6" fill={SKIN} />
-        <circle cx="62" cy="90" r="2" fill={GOLD} />
-        <circle cx="138" cy="90" r="2" fill={GOLD} />
+        <ellipse cx="82" cy="70" rx="4" ry="6" fill={SKIN} />
+        <ellipse cx="158" cy="70" rx="4" ry="6" fill={SKIN} />
+        <circle cx="82" cy="76" r="2" fill={GOLD} />
+        <circle cx="158" cy="76" r="2" fill={GOLD} />
 
-        {/* EYES — same kind almond style as Ritwik */}
+        {/* BINDI */}
+        <circle cx="120" cy="46" r="3" fill={BINDI} />
+
+        {/* EYES */}
         {blink ? (
           <>
-            <path d="M 82 78 Q 90 80 98 78" stroke="#1A1426" strokeWidth="2" fill="none" strokeLinecap="round" />
-            <path d="M 102 78 Q 110 80 118 78" stroke="#1A1426" strokeWidth="2" fill="none" strokeLinecap="round" />
+            <path d="M 104 68 Q 110 70 116 68" stroke="#1A1426" strokeWidth="2" fill="none" strokeLinecap="round" />
+            <path d="M 124 68 Q 130 70 136 68" stroke="#1A1426" strokeWidth="2" fill="none" strokeLinecap="round" />
           </>
         ) : (
           <>
-            <ellipse cx="90"  cy="78" rx="6.5" ry="4.5" fill="#FFFFFF" stroke="#1A1426" strokeWidth="1.2" />
-            <circle  cx={90 + eyeOffset}  cy="78" r="3" fill="#2C1A0F" />
-            <circle  cx={90 + eyeOffset}  cy="78" r="1.6" fill="#0A0604" />
-            <circle  cx={91 + eyeOffset}  cy="77" r="0.9" fill="#FFFFFF" />
-            <ellipse cx="110" cy="78" rx="6.5" ry="4.5" fill="#FFFFFF" stroke="#1A1426" strokeWidth="1.2" />
-            <circle  cx={110 + eyeOffset} cy="78" r="3" fill="#2C1A0F" />
-            <circle  cx={110 + eyeOffset} cy="78" r="1.6" fill="#0A0604" />
-            <circle  cx={111 + eyeOffset} cy="77" r="0.9" fill="#FFFFFF" />
+            <circle cx={110 + eyeOffset} cy="68" r="3" fill="#1A1426" />
+            <circle cx={130 + eyeOffset} cy="68" r="3" fill="#1A1426" />
           </>
         )}
-        {/* EYEBROWS — soft arched */}
-        <path d="M 82 68 Q 90 65 98 68" stroke={HAIR} strokeWidth="2" fill="none" strokeLinecap="round" />
-        <path d="M 102 68 Q 110 65 118 68" stroke={HAIR} strokeWidth="2" fill="none" strokeLinecap="round" />
+        {/* EYEBROWS */}
+        <rect x="102" y="58" width="14" height="2" rx="1" fill={HAIR} />
+        <rect x="124" y="58" width="14" height="2" rx="1" fill={HAIR} />
 
         {/* LIPS */}
         <motion.path
@@ -167,16 +148,16 @@ export default function Mom({
 
 function mouthShape(emotion, level) {
   if (emotion === 'shocked' || level >= 3) {
-    return { d: 'M 92 94 Q 100 106 108 94 Q 100 104 92 94 Z', fill: '#5C1A2A' };
+    return { d: 'M 112 84 Q 120 96 128 84 Q 120 94 112 84 Z', fill: '#5C1A2A' };
   }
   if (level === 2) {
-    return { d: 'M 94 95 Q 100 103 106 95 Q 100 102 94 95 Z', fill: '#5C1A2A' };
+    return { d: 'M 114 85 Q 120 93 126 85 Q 120 92 114 85 Z', fill: '#5C1A2A' };
   }
   if (level === 1) {
-    return { d: 'M 95 96 Q 100 100 105 96 Q 100 99 95 96 Z', fill: '#A53E45' };
+    return { d: 'M 115 86 Q 120 90 125 86 Q 120 89 115 86 Z', fill: '#A53E45' };
   }
   if (emotion === 'happy' || emotion === 'confident') {
-    return { d: 'M 92 94 Q 100 102 108 94', fill: 'transparent' };
+    return { d: 'M 112 84 Q 120 92 128 84', fill: 'transparent' };
   }
-  return { d: 'M 94 96 Q 100 98 106 96 Q 100 97 94 96 Z', fill: '#A53E45' };
+  return { d: 'M 114 86 Q 120 88 126 86 Q 120 87 114 86 Z', fill: '#A53E45' };
 }

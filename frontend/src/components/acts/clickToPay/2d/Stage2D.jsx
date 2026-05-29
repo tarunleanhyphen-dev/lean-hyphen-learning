@@ -330,12 +330,14 @@ function TransformBackground() {
 function DigitalBackground() {
   return (
     <div aria-hidden className="absolute inset-0">
-      <div className="absolute inset-0 bg-gradient-to-b from-[#06091F] via-[#0B1739] to-[#1A1240]" />
+      {/* Deep cyber gradient */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#040618] via-[#0B1739] to-[#1A1240]" />
+      {/* Perspective grid floor (3D-feel) */}
       <div
-        className="absolute inset-x-0 bottom-0 h-1/2 opacity-60"
+        className="absolute inset-x-0 bottom-0 h-1/2 opacity-70"
         style={{
           backgroundImage:
-            'linear-gradient(to top, rgba(34,211,238,0.45) 1px, transparent 1px), linear-gradient(to right, rgba(34,211,238,0.45) 1px, transparent 1px)',
+            'linear-gradient(to top, rgba(34,211,238,0.55) 1px, transparent 1px), linear-gradient(to right, rgba(34,211,238,0.55) 1px, transparent 1px)',
           backgroundSize: '40px 40px',
           maskImage:
             'linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.3) 70%, transparent 100%)',
@@ -343,13 +345,53 @@ function DigitalBackground() {
           transformOrigin: 'bottom',
         }}
       />
+      {/* Ceiling grid (mirrors floor for full immersion) */}
       <div
-        className="absolute inset-0 opacity-20"
+        className="absolute inset-x-0 top-0 h-1/3 opacity-30"
+        style={{
+          backgroundImage:
+            'linear-gradient(to bottom, rgba(167,139,250,0.45) 1px, transparent 1px), linear-gradient(to right, rgba(167,139,250,0.45) 1px, transparent 1px)',
+          backgroundSize: '50px 50px',
+          maskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 0%, transparent 100%)',
+          transform: 'perspective(420px) rotateX(-50deg)',
+          transformOrigin: 'top',
+        }}
+      />
+      {/* Scanlines */}
+      <div
+        className="absolute inset-0 opacity-15"
         style={{
           backgroundImage:
             'repeating-linear-gradient(0deg, rgba(34,211,238,0.25) 0 1px, transparent 1px 4px)',
         }}
       />
+      {/* Holographic concentric circles in the centre — gives a "hub" feel */}
+      <svg className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-25" width="600" height="600" viewBox="0 0 600 600">
+        <defs>
+          <linearGradient id="dg-ring" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#22D3EE" />
+            <stop offset="100%" stopColor="#A78BFA" />
+          </linearGradient>
+        </defs>
+        {[80, 140, 200, 260, 320].map((r, i) => (
+          <motion.circle
+            key={r}
+            cx="300" cy="300" r={r}
+            fill="none" stroke="url(#dg-ring)" strokeWidth="0.8"
+            strokeDasharray="6 6"
+            animate={{ rotate: i % 2 === 0 ? 360 : -360 }}
+            transition={{ duration: 30 + i * 10, repeat: Infinity, ease: 'linear' }}
+            style={{ transformOrigin: '300px 300px' }}
+          />
+        ))}
+      </svg>
+
+      {/* Floating currency symbols + binary code drifting */}
+      <FloatingDigitalSymbols />
+
+      {/* Data streams flowing diagonally */}
+      <DataStreams />
+
       <Motes color="#22D3EE" count={14} />
       <motion.div
         className="absolute right-[-15%] top-[-10%] h-72 w-72 rounded-full bg-cyan-400/30 blur-[100px]"
@@ -368,8 +410,88 @@ function DigitalBackground() {
 function FlowBackground() {
   return (
     <div aria-hidden className="absolute inset-0">
-      <div className="absolute inset-0 bg-gradient-to-b from-[#06091F] via-[#0B1739] to-[#1A1240]" />
+      <div className="absolute inset-0 bg-gradient-to-b from-[#040618] via-[#0B1739] to-[#1A1240]" />
+      <FloatingDigitalSymbols sparse />
+      <DataStreams subtle />
     </div>
+  );
+}
+
+/* Floating ₹ / $ / € / # / binary digits drifting upward through the
+ * scene — sells the "you're inside a digital currency simulation" feel. */
+function FloatingDigitalSymbols({ sparse = false }) {
+  const symbols = ['₹', '₹', '$', '€', '0', '1', '0', '1', '₹', '#', '0', '1'];
+  const items = useRef(
+    Array.from({ length: sparse ? 8 : 14 }, (_, i) => ({
+      id: i,
+      x: 4 + (i * 41) % 92,
+      delay: (i * 0.4) % 5,
+      dur: 8 + (i % 5),
+      size: 14 + (i % 3) * 6,
+      sym: symbols[i % symbols.length],
+      color: ['#22D3EE', '#A78BFA', '#FDE047', '#F472B6'][i % 4],
+    }))
+  ).current;
+  return (
+    <>
+      {items.map((it) => (
+        <motion.span
+          key={it.id}
+          initial={{ y: 0, opacity: 0 }}
+          animate={{ y: -480, opacity: [0, 0.7, 0] }}
+          transition={{ duration: it.dur, delay: it.delay, repeat: Infinity, ease: 'linear' }}
+          style={{
+            left: `${it.x}%`,
+            fontSize: it.size,
+            color: it.color,
+            bottom: 0,
+            textShadow: `0 0 8px ${it.color}`,
+          }}
+          className="pointer-events-none absolute font-mono font-bold"
+        >
+          {it.sym}
+        </motion.span>
+      ))}
+    </>
+  );
+}
+
+/* Data streams — diagonal glowing lines that "stream" across the
+ * stage every few seconds. Bezier-ish trails. */
+function DataStreams({ subtle = false }) {
+  const streams = useRef(
+    Array.from({ length: subtle ? 3 : 5 }, (_, i) => ({
+      id: i,
+      y: 15 + i * 18,
+      delay: i * 0.8,
+      dur: 3 + (i % 2),
+      color: ['#22D3EE', '#A78BFA', '#F472B6'][i % 3],
+    }))
+  ).current;
+  return (
+    <>
+      {streams.map((s) => (
+        <motion.div
+          key={s.id}
+          aria-hidden
+          className="pointer-events-none absolute h-[1px] w-32"
+          style={{
+            top: `${s.y}%`,
+            background: `linear-gradient(to right, transparent, ${s.color}, transparent)`,
+            boxShadow: `0 0 10px ${s.color}`,
+          }}
+          initial={{ left: '-15%', opacity: 0 }}
+          animate={{ left: ['-15%', '115%'], opacity: [0, 1, 1, 0] }}
+          transition={{
+            duration: s.dur,
+            delay: s.delay,
+            repeat: Infinity,
+            repeatDelay: 1.5,
+            ease: 'linear',
+          }}
+        />
+      ))}
+    </>
   );
 }
 

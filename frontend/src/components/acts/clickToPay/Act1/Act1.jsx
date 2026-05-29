@@ -18,17 +18,20 @@ import {
   speak, cancelSpeech, pauseSpeech, resumeSpeech, setSpeechCallbacks,
 } from '../../../../utils/sounds.js';
 
-/* Music mood per stage. */
+/* Music mood per stage. v3 uses the new light/calm "ambient-*" moods
+ * added to sounds.js so the soundtrack stays out of the way of the
+ * voice. The drama is carried by the SFX cues (upiError /
+ * upiDistorted / vibrate), not the music. */
 function pickMood(stage) {
   switch (stage) {
     case 'home':
-    case 'phone-task': return 'lofi';
-    case 'glitch':     return 'glitch-tense';
-    case 'transform':  return 'wonder';
+    case 'phone-task': return 'ambient-warm';
+    case 'glitch':     return 'ambient-glitch';
+    case 'transform':
     case 'digital':
-    case 'flow':       return 'cyber-pulse';
-    case 'prediction': return 'reflective';
-    default:           return 'calm';
+    case 'flow':
+    case 'prediction': return 'ambient-air';
+    default:           return 'ambient-warm';
   }
 }
 

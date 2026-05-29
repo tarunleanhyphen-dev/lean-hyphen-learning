@@ -4,6 +4,7 @@ import {
   ScanLine, Send, Smartphone, IndianRupee, Wifi, Bluetooth, Battery, Signal,
   Search, Bell, ChevronRight, Check, X, AlertTriangle, Camera, History, Wallet,
 } from 'lucide-react';
+import { sounds } from '../../../../utils/sounds.js';
 
 /**
  * PaymentPhone — fully redesigned. Stages:
@@ -46,6 +47,11 @@ export default function PaymentPhone({
   const advance = (next) => {
     setStep(next);
     onStep?.(next);
+    // Fire realistic UPI cues per screen
+    if (next === 'pe-home')    sounds.tap?.();
+    if (next === 'scanning')   sounds.scan?.();
+    if (next === 'amount')     sounds.ding?.();
+    if (next === 'processing') sounds.vibrate?.();
     if (next === 'done' && !completedRef.current) {
       completedRef.current = true;
       setTimeout(() => onComplete?.(), 1400);
@@ -70,20 +76,36 @@ export default function PaymentPhone({
     return () => ids.forEach(clearTimeout);
   }, [step]);
 
-  // Processing → done
+  // Processing → done (longer hold during glitch + emit the right cue
+  // when we land on the final screen)
   useEffect(() => {
     if (step !== 'processing') return;
-    const id = setTimeout(() => advance('done'), 1800);
+    const id = setTimeout(() => {
+      advance('done');
+      // PhonePe-style cue based on outcome
+      if (glitch >= 2) {
+        sounds.upiDistorted?.();
+        setTimeout(() => sounds.upiError?.(), 350);
+      } else {
+        sounds.upiSuccess?.();
+      }
+    }, glitch >= 2 ? 2400 : 1800);
     return () => clearTimeout(id);
-  }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [step, glitch]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const shake = glitch >= 2 ? { x: [-2, 2, -3, 3, 0], y: [1, -1, 2, -2, 0] } : { x: 0, y: 0 };
+  // The phone itself shakes/glitches — the character behind stays
+  // stable. Shake intensifies with glitch level.
+  const shake = glitch >= 3
+    ? { x: [-3, 3, -4, 4, 0], y: [1, -1, 2, -2, 0], rotate: [-0.6, 0.6, -0.6, 0.6, 0] }
+    : glitch >= 1
+      ? { x: [-1.5, 1.5, -1, 1, 0], y: [0.5, -0.5, 0, 0, 0] }
+      : { x: 0, y: 0, rotate: 0 };
 
   return (
     <div className="relative mx-auto flex flex-col items-center gap-3">
       <motion.div
         animate={shake}
-        transition={{ duration: 0.18, repeat: glitch >= 2 ? Infinity : 0 }}
+        transition={{ duration: glitch >= 3 ? 0.13 : 0.22, repeat: glitch >= 1 ? Infinity : 0 }}
         className="relative mx-auto w-[290px] sm:w-[320px] md:w-[340px]"
       >
         {/* iPhone-like outer shell */}
@@ -134,7 +156,7 @@ export default function PaymentPhone({
  * ============================================================ */
 function HomeScreen({ onOpen, active }) {
   const apps = [
-    { id: 'phonepe', label: 'PhonePe',   bg: 'bg-gradient-to-br from-[#5F259F] to-[#7C3AED]', icon: <PhonePeIcon /> },
+    { id: 'phonepe', label: 'PhonePay',  bg: 'bg-gradient-to-br from-[#5F259F] to-[#7C3AED]', icon: <PhonePeIcon /> },
     { id: 'wa',      label: 'WhatsApp',  bg: 'bg-gradient-to-br from-emerald-500 to-emerald-700', icon: '💬' },
     { id: 'ig',      label: 'Instagram', bg: 'bg-gradient-to-br from-pink-500 via-rose-500 to-amber-400', icon: '📷' },
     { id: 'yt',      label: 'YouTube',   bg: 'bg-red-600', icon: '▶' },
@@ -371,20 +393,33 @@ function BottomNav({ icon, label, active = false }) {
 
 /* ============================================================
  * QR SCAN screen — camera viewfinder + animated scan line
+ *
+ * Behind the QR box we now render a generated "scene the camera is
+ * looking at" — a wooden table with a printed payment-sticker, a
+ * coffee cup edge, and warm overhead light. This is far better than
+ * the previous bare black background because it actually looks like
+ * a phone camera pointed at a QR poster.
  * ============================================================ */
 function ScanScreen() {
   return (
     <div className="flex h-full flex-col">
       <PhoneStatusBar dark />
-      <div className="relative flex flex-1 items-center justify-center bg-black">
-        {/* Camera "viewfinder" overlay */}
-        <div className="absolute left-3 right-3 top-3 flex items-center justify-between text-white">
+      <div className="relative flex flex-1 items-center justify-center overflow-hidden bg-black">
+        {/* === Generated camera-view scene behind the QR === */}
+        <ScannerSceneBackground />
+
+        {/* Dark gradient overlay — focuses attention on viewfinder */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-transparent to-black/80" />
+
+        {/* Camera HUD overlay */}
+        <div className="absolute left-3 right-3 top-3 z-10 flex items-center justify-between text-white">
           <Camera className="h-5 w-5" />
-          <span className="rounded-full bg-white/15 px-2 py-0.5 text-[10px]">Scan QR</span>
+          <span className="rounded-full bg-white/15 px-2 py-0.5 text-[10px] backdrop-blur">Scan any QR</span>
           <X className="h-4 w-4" />
         </div>
+
         {/* QR viewfinder box */}
-        <div className="relative h-52 w-52 rounded-2xl border-2 border-white/40">
+        <div className="relative z-10 h-48 w-48 rounded-2xl border-2 border-white/40">
           {[
             'top-0 left-0 border-l-4 border-t-4 rounded-tl-xl',
             'top-0 right-0 border-r-4 border-t-4 rounded-tr-xl',
@@ -393,12 +428,14 @@ function ScanScreen() {
           ].map((c, i) => (
             <span key={i} className={`absolute h-8 w-8 border-emerald-400 ${c}`} />
           ))}
-          {/* Fake QR pattern */}
-          <div className="absolute inset-4 grid grid-cols-12 grid-rows-12 gap-[1px] bg-white p-2">
+          {/* Fake QR pattern — slightly tilted to look like a real photo of paper */}
+          <div
+            className="absolute inset-4 grid grid-cols-12 grid-rows-12 gap-[1px] bg-white p-2 shadow-2xl"
+            style={{ transform: 'rotate(-2deg)' }}
+          >
             {Array.from({ length: 144 }).map((_, i) => (
               <div key={i} className={pseudoRandom(i) ? 'bg-black' : 'bg-white'} />
             ))}
-            {/* finder corners */}
             <div className="absolute left-2 top-2 h-7 w-7 border-[3px] border-black" />
             <div className="absolute right-2 top-2 h-7 w-7 border-[3px] border-black" />
             <div className="absolute bottom-2 left-2 h-7 w-7 border-[3px] border-black" />
@@ -408,17 +445,81 @@ function ScanScreen() {
             aria-hidden
             className="absolute left-3 right-3 h-0.5 bg-emerald-400 shadow-[0_0_12px_#34D399]"
             initial={{ top: 8 }}
-            animate={{ top: [8, 200, 8] }}
+            animate={{ top: [8, 184, 8] }}
             transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
           />
         </div>
-        <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-2 text-white">
-          <div className="rounded-full bg-white/15 px-3 py-1.5 text-[11px]">
+
+        {/* Status pill at bottom */}
+        <div className="absolute bottom-6 left-0 right-0 z-10 flex justify-center gap-2 text-white">
+          <motion.div
+            animate={{ opacity: [0.6, 1, 0.6] }}
+            transition={{ duration: 1.2, repeat: Infinity }}
+            className="rounded-full bg-emerald-500/30 px-3 py-1.5 text-[11px] font-semibold ring-1 ring-emerald-300/40 backdrop-blur"
+          >
+            <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-emerald-300" />
             Detecting QR…
-          </div>
+          </motion.div>
         </div>
       </div>
     </div>
+  );
+}
+
+/* The "world behind the camera" — generated SVG scene of what the
+ * phone camera is pointed at. A wooden cafe table with a payment QR
+ * sticker, a coffee cup edge, warm overhead light. Slightly out of
+ * focus everywhere except the centre (the QR sits in front of this). */
+function ScannerSceneBackground() {
+  return (
+    <svg viewBox="0 0 320 480" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 h-full w-full">
+      <defs>
+        <linearGradient id="sc-wood" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor="#8B5A2B" />
+          <stop offset="100%" stopColor="#5A3A1B" />
+        </linearGradient>
+        <radialGradient id="sc-light" cx="50%" cy="50%" r="50%">
+          <stop offset="0%"   stopColor="#FDE68A" stopOpacity="0.45" />
+          <stop offset="100%" stopColor="#FDE68A" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      {/* Wooden table */}
+      <rect width="320" height="480" fill="url(#sc-wood)" />
+      {/* Wood grain stripes — slightly out of focus */}
+      <g stroke="#6B4423" strokeWidth="0.5" opacity="0.5">
+        <line x1="0" y1="60"  x2="320" y2="65" />
+        <line x1="0" y1="130" x2="320" y2="125" />
+        <line x1="0" y1="210" x2="320" y2="215" />
+        <line x1="0" y1="290" x2="320" y2="285" />
+        <line x1="0" y1="380" x2="320" y2="385" />
+        <line x1="0" y1="450" x2="320" y2="445" />
+      </g>
+      {/* Overhead warm light spot */}
+      <ellipse cx="160" cy="200" rx="220" ry="180" fill="url(#sc-light)" />
+      {/* Coffee cup edge in the corner */}
+      <ellipse cx="40" cy="430" rx="42" ry="14" fill="#3A2316" />
+      <ellipse cx="40" cy="424" rx="38" ry="10" fill="#6B3F1F" />
+      <ellipse cx="40" cy="424" rx="34" ry="8" fill="#2A1810" />
+      {/* Brown coffee top */}
+      <ellipse cx="40" cy="424" rx="30" ry="6" fill="#4A2718" />
+      <ellipse cx="34" cy="421" rx="6" ry="2" fill="#7A4A2A" opacity="0.7" />
+      {/* QR Sticker paper behind the viewfinder (slightly larger so it shows around the QR) */}
+      <rect x="60" y="160" width="200" height="200" rx="6" fill="#F5F1E8" transform="rotate(-2 160 260)" />
+      {/* Sticker text top */}
+      <text x="160" y="200" textAnchor="middle" fontSize="12" fontWeight="700" fill="#3E2A1A" transform="rotate(-2 160 200)">SCAN &amp; PAY</text>
+      {/* Sticker shop name */}
+      <text x="160" y="350" textAnchor="middle" fontSize="9" fontWeight="600" fill="#6B4423" transform="rotate(-2 160 350)">Brother · brother@ybl</text>
+      {/* Cinnamon stick / pencil casually laying on table */}
+      <rect x="220" y="430" width="60" height="6" rx="2" fill="#5A3A1B" transform="rotate(-15 250 433)" />
+      <circle cx="282" cy="430" r="3" fill="#FF6B6B" />
+      {/* Crumbs / dust for realism */}
+      <g fill="#3E2A1A" opacity="0.6">
+        <circle cx="50"  cy="200" r="1" />
+        <circle cx="280" cy="120" r="1" />
+        <circle cx="290" cy="380" r="1.2" />
+        <circle cx="20"  cy="300" r="1" />
+      </g>
+    </svg>
   );
 }
 

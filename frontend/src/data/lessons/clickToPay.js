@@ -164,7 +164,7 @@ function act1Scenes() {
           status: 'The payment doesn’t go through',
           speaker: 'narrator',
           narration: 'But then something strange happens. The payment doesn’t go through. The screen freezes.',
-          cue: 'freeze',
+          cue: 'upiError',
           glitch: { level: 2 },
         },
         {
@@ -173,6 +173,7 @@ function act1Scenes() {
           status: 'The app starts to glitch',
           speaker: 'narrator',
           narration: 'And then... the entire app begins to glitch.',
+          cue: 'upiDistorted',
           glitch: { level: 3 },
         },
         /* INTERACTIVE — falling signals reaction event */

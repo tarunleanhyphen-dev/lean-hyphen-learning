@@ -99,6 +99,93 @@ export const sounds = {
     tone({ freq: 988,  type: 'triangle', attack: 0.003, decay: 0.32, peak: 0.22 });
     setTimeout(() => tone({ freq: 1318, type: 'triangle', attack: 0.003, decay: 0.45, peak: 0.18 }), 80);
   },
+  /* === PhonePe / UPI-style cues ===
+   * Recognisable to anyone who uses a UPI app. All built from the
+   * existing `tone` synth so no asset files are needed. */
+
+  // UPI success — bright two-note "ting!" (G6 → C7). Plays when the
+  // payment completes successfully (we never actually reach it because
+  // the lesson scripts the glitch, but it's wired and ready).
+  upiSuccess() {
+    tone({ freq: 1568, type: 'triangle', attack: 0.003, decay: 0.18, peak: 0.40 });
+    setTimeout(() => tone({ freq: 2093, type: 'triangle', attack: 0.003, decay: 0.32, peak: 0.30 }), 90);
+  },
+
+  // QR detected — soft beep, like the camera focuses on a QR. Used
+  // when the scan screen opens.
+  scan() {
+    tone({ freq: 1760, type: 'sine', attack: 0.002, decay: 0.12, peak: 0.22 });
+    setTimeout(() => tone({ freq: 1320, type: 'sine', attack: 0.002, decay: 0.18, peak: 0.16 }), 70);
+  },
+
+  // Payment-pending pulse — a short single tick. Used to give the
+  // processing screen audible heartbeat (loop it client-side).
+  pendingTick() {
+    tone({ freq: 660, type: 'sine', attack: 0.002, decay: 0.10, peak: 0.14 });
+  },
+
+  // UPI ERROR — descending two-note "ding-dong" (E5 → A4) that
+  // immediately signals failure. Matches the PhonePe error UX feel.
+  upiError() {
+    tone({ freq: 660, type: 'sawtooth', attack: 0.003, decay: 0.30, peak: 0.30 });
+    setTimeout(() => tone({ freq: 440, type: 'sawtooth', attack: 0.003, decay: 0.55, peak: 0.28 }), 160);
+  },
+
+  // DISTORTED payment sound — same error shape but pitch-bent + a
+  // gritty square wave on top. Used the moment the glitch escalates.
+  upiDistorted() {
+    if (muted || !ensureCtx()) return;
+    const t = ctx.currentTime;
+    // Bend a sawtooth from 660 down to 110 over 0.6s
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(660, t);
+    o.frequency.exponentialRampToValueAtTime(110, t + 0.6);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.35, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
+    // Distortion via WaveShaper
+    const ws = ctx.createWaveShaper();
+    const curve = new Float32Array(256);
+    for (let i = 0; i < 256; i += 1) {
+      const x = (i / 128) - 1;
+      curve[i] = Math.tanh(x * 5);
+    }
+    ws.curve = curve;
+    o.connect(g).connect(ws).connect(master);
+    o.start(t);
+    o.stop(t + 0.75);
+    // Layer a grit square wave on top
+    const o2 = ctx.createOscillator();
+    const g2 = ctx.createGain();
+    o2.type = 'square';
+    o2.frequency.setValueAtTime(220, t);
+    o2.frequency.linearRampToValueAtTime(80, t + 0.6);
+    g2.gain.setValueAtTime(0, t);
+    g2.gain.linearRampToValueAtTime(0.18, t + 0.04);
+    g2.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+    o2.connect(g2).connect(master);
+    o2.start(t);
+    o2.stop(t + 0.65);
+  },
+
+  // Phone vibrate — short low rumble. Cue when the learner taps PAY.
+  vibrate() {
+    if (muted || !ensureCtx()) return;
+    const t = ctx.currentTime;
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(85, t);
+    o.frequency.linearRampToValueAtTime(60, t + 0.18);
+    g.gain.setValueAtTime(0.0, t);
+    g.gain.linearRampToValueAtTime(0.32, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+    o.connect(g).connect(master);
+    o.start(t);
+    o.stop(t + 0.2);
+  },
 };
 
 /* ============== Music sequencer (mood-aware) ==============
@@ -266,6 +353,45 @@ const MOODS = {
     hasPad: true, hasBass: true, hasShaker: false, hasBell: true, hasPluck: true,
     padGain: 0.095, bassGain: 0.16, bellGain: 0.14, pluckGain: 0.06,
     busGain: 0.55, lpfHz: 2000,
+  },
+
+  /* ===== NEW v3 — light/cool/calm moods replacing the lofi/heavy
+   * Lesson-2 moods per user feedback (May 2026). All three are
+   * deliberately airy: very low bus gain, dark-ish low-pass so the
+   * music sits behind the voice without competing for attention. */
+
+  /* ambient-warm — used for Scene 1 (cosy home with mom + Ritwik).
+   * Soft pad on a major-7 / minor-9 progression, slow bell, no kick,
+   * no shaker. Reads as "peaceful Sunday evening". */
+  'ambient-warm': {
+    progression: ['Cmaj9', 'Am9', 'Fmaj9', 'G13'],
+    hasPad: true, hasBass: true, hasShaker: false, hasBell: true, hasPluck: false,
+    isLofi: true,                    // engages the Rhodes pad voice
+    padGain: 0.055, bassGain: 0.08, bellGain: 0.045,
+    busGain: 0.30, lpfHz: 1100,
+  },
+
+  /* ambient-air — used during the digital scenes (3, 4, 5).
+   * Floating major pad in I → V → vi → IV with only a sparse bell.
+   * Replaces the previous cyber-pulse / wonder for a much calmer feel
+   * during the long Money500-on-tour beats. */
+  'ambient-air': {
+    progression: ['C', 'G', 'Am', 'F'],
+    hasPad: true, hasBass: true, hasShaker: false, hasBell: true, hasPluck: true,
+    padGain: 0.060, bassGain: 0.09, bellGain: 0.060, pluckGain: 0.025,
+    busGain: 0.32, lpfHz: 1500,
+  },
+
+  /* ambient-glitch — for the payment-glitch scene 2. Same calm pad
+   * but the chord progression is unsettled (Dm → Bb → A → A) and the
+   * shaker comes in to add tension WITHOUT making the music loud. The
+   * actual fear is carried by SFX (upiError/upiDistorted), not the
+   * music — much closer to a real product UX. */
+  'ambient-glitch': {
+    progression: ['Dm', 'Bb', 'A', 'A'],
+    hasPad: true, hasBass: true, hasShaker: true, hasBell: false, hasPluck: false,
+    padGain: 0.055, bassGain: 0.14,
+    busGain: 0.34, lpfHz: 1300,
   },
 };
 

@@ -3,90 +3,142 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Ritwik from './Ritwik.jsx';
 import Mom from './Mom.jsx';
 import SystemAvatar from './SystemAvatar.jsx';
+import Money500 from './Money500.jsx';
+import UPIFlow from './UPIFlow.jsx';
 
 /**
- * Stage2D — the new (2D, polished) replacement for the 3D scene. Renders
- * a cinematic per-scenePhase background, places the right characters on
- * stage, and floats speech bubbles with pointer tails above the speaker.
+ * Stage2D — full-bleed cinematic stage. Renders the right background +
+ * the right cast based on `stage`:
  *
- * Props:
- *   scenePhase   'home' | 'glitch' | 'transform' | 'digital'
- *   speaker      currently-speaking character key ('ritwik' | 'mom' | 'system' | null)
- *   speaking     bool
- *   amplitudeRef ref → 0..1 amplitude
- *   emotion      drives facial expression for the active speaker
- *   bubbles      [{ speaker, text, type }] anchored above each speaker's head
+ *   home        cosy living-room with Ritwik on the sofa + Mom standing
+ *   phone-task  same living-room — the phone interactive is rendered by
+ *               the parent (Act1) overlaid on top of this stage
+ *   glitch      dark glitch backdrop (scene 2)
+ *   transform   particle/energy explosion as Ritwik becomes Money500
+ *   digital     cyber world with floating system labels (scene 4 intro)
+ *   flow        UPIFlow visualization with Money500 travelling
+ *   prediction  cyber world background (scene 5)
+ *
+ * Pointer speech bubbles render above each speaker character with a
+ * downward arrow pointing at their head.
  */
 
-const LAYOUTS = {
+const STAGE_LAYOUTS = {
   home: {
-    ritwik: { x: '28%', y: 'bottom-0', size: 'h-[80%]' },
-    mom:    { x: '70%', y: 'bottom-0', size: 'h-[80%]' },
+    cast: ['ritwik', 'mom'],
+    positions: {
+      ritwik: { x: '32%', y: 'bottom-0', size: 'h-[78%]' },
+      mom:    { x: '68%', y: 'bottom-0', size: 'h-[82%]' },
+    },
+  },
+  'phone-task': {
+    cast: ['ritwik'],
+    positions: {
+      ritwik: { x: '22%', y: 'bottom-0', size: 'h-[70%]' },
+    },
   },
   glitch: {
-    ritwik: { x: '50%', y: 'bottom-0', size: 'h-[80%]' },
+    cast: ['ritwik'],
+    positions: { ritwik: { x: '50%', y: 'bottom-0', size: 'h-[68%]' } },
   },
   transform: {
-    ritwik: { x: '50%', y: 'bottom-0', size: 'h-[78%]' },
+    cast: ['money'],
+    positions: { money: { x: '50%', y: 'center', size: 'h-[78%]' } },
   },
   digital: {
-    ritwik: { x: '30%', y: 'bottom-0', size: 'h-[78%]' },
-    system: { x: '70%', y: 'center', size: 'h-[70%]' },
+    cast: ['money', 'system'],
+    positions: {
+      money:  { x: '32%', y: 'center', size: 'h-[64%]' },
+      system: { x: '72%', y: 'center', size: 'h-[60%]' },
+    },
+  },
+  flow: {
+    cast: [],
+    positions: {},
+  },
+  prediction: {
+    cast: ['system'],
+    positions: { system: { x: '50%', y: 'center', size: 'h-[64%]' } },
   },
 };
 
-const BUBBLE_POS = {
-  ritwik: { left: '28%', top: '8%' },
-  mom:    { left: '70%', top: '8%' },
-  system: { left: '70%', top: '12%' },
+const BUBBLE_POSITIONS = {
+  home: {
+    ritwik: { left: '32%', top: '8%' },
+    mom:    { left: '68%', top: '6%' },
+  },
+  'phone-task': {
+    ritwik: { left: '22%', top: '12%' },
+  },
+  glitch: {
+    ritwik: { left: '50%', top: '8%' },
+  },
+  transform: {
+    ritwik: { left: '50%', top: '6%' },
+    money:  { left: '50%', top: '6%' },
+  },
+  digital: {
+    money:  { left: '32%', top: '8%' },
+    system: { left: '72%', top: '6%' },
+    ritwik: { left: '32%', top: '8%' },
+  },
+  prediction: {
+    system: { left: '50%', top: '6%' },
+  },
 };
 
 export default function Stage2D({
-  scenePhase = 'home',
+  stage = 'home',
   speaker,
   speaking,
   amplitudeRef,
   emotion = 'neutral',
   bubbles = [],
+  activeNode = -1,
+  visibleLabels = 'all',
 }) {
-  const layout = LAYOUTS[scenePhase] || LAYOUTS.home;
-  const cast = Object.keys(layout);
+  const layout = STAGE_LAYOUTS[stage] || STAGE_LAYOUTS.home;
+  const bubblePos = BUBBLE_POSITIONS[stage] || {};
+  const cast = layout.cast;
 
-  // Determine who's looking at whom — characters who aren't speaking look
-  // toward the speaker; the speaker looks at the other character.
   const lookFor = (who) => {
     if (cast.length < 2) return 'forward';
     if (speaker && speaker !== who) {
+      const myIdx = cast.indexOf(who);
       const speakerIdx = cast.indexOf(speaker);
-      const myIdx = cast.indexOf(who);
       return speakerIdx > myIdx ? 'right' : 'left';
-    }
-    if (speaker === who) {
-      const other = cast.find((c) => c !== who);
-      if (!other) return 'forward';
-      const myIdx = cast.indexOf(who);
-      const otherIdx = cast.indexOf(other);
-      return otherIdx > myIdx ? 'right' : 'left';
     }
     return 'forward';
   };
 
   return (
     <div className="relative h-full w-full overflow-hidden rounded-2xl ring-1 ring-white/10">
-      {/* Background per scenePhase */}
-      {scenePhase === 'home'      && <HomeBackground />}
-      {scenePhase === 'glitch'    && <GlitchBackground />}
-      {scenePhase === 'transform' && <TransformBackground />}
-      {scenePhase === 'digital'   && <DigitalBackground />}
+      {/* Per-stage backgrounds */}
+      {stage === 'home'        && <HomeBackground />}
+      {stage === 'phone-task'  && <HomeBackground />}
+      {stage === 'glitch'      && <GlitchBackground />}
+      {stage === 'transform'   && <TransformBackground />}
+      {(stage === 'digital' || stage === 'prediction') && <DigitalBackground />}
+      {stage === 'flow'        && <FlowBackground />}
+
+      {/* UPI flow — only on flow stage */}
+      {stage === 'flow' && (
+        <UPIFlow
+          activeNodeIndex={activeNode}
+          visibleLabels={visibleLabels}
+          money={<Money500 pose={activeNode >= 0 ? 'walk' : 'wave'} speaking={speaking && speaker === 'money'} amplitudeRef={amplitudeRef} className="h-full w-full" />}
+        />
+      )}
 
       {/* Characters */}
       {cast.map((who) => {
-        const slot = layout[who];
-        const isSpeaking = speaker === who && speaking;
+        const slot = layout.positions[who];
+        if (!slot) return null;
+        const isSpeaking = (speaker === who || (who === 'money' && speaker === 'ritwik')) && speaking;
         const charProps = {
           speaking: isSpeaking,
           amplitudeRef,
-          emotion: speaker === who ? emotion : 'neutral',
+          emotion,
           lookAt: lookFor(who),
           className: slot.size,
         };
@@ -99,16 +151,17 @@ export default function Stage2D({
           >
             {who === 'ritwik' && <Ritwik {...charProps} />}
             {who === 'mom'    && <Mom {...charProps} />}
-            {who === 'system' && <SystemAvatar {...charProps} />}
+            {who === 'system' && <SystemAvatar speaking={charProps.speaking} amplitudeRef={amplitudeRef} className={slot.size} />}
+            {who === 'money'  && <Money500 pose="wave" speaking={isSpeaking} amplitudeRef={amplitudeRef} className={slot.size} />}
           </div>
         );
       })}
 
-      {/* Pointer speech bubbles — anchored above each character */}
+      {/* Pointer speech bubbles */}
       <div className="pointer-events-none absolute inset-0 z-30">
         <AnimatePresence>
           {bubbles.map((b, i) => {
-            const pos = BUBBLE_POS[b.speaker];
+            const pos = bubblePos[b.speaker];
             if (!pos) return null;
             return (
               <PointerBubble
@@ -140,7 +193,7 @@ function PointerBubble({ text, variant = 'speech', style }) {
       className="absolute -translate-x-1/2"
       style={style}
     >
-      <div className={`relative max-w-[16rem] rounded-2xl px-4 py-2.5 text-[13px] font-semibold leading-snug ring-1 shadow-xl sm:max-w-[18rem] sm:text-sm ${palette.bg}`}>
+      <div className={`relative max-w-[16rem] rounded-2xl px-4 py-2.5 text-[13px] font-semibold leading-snug ring-1 shadow-xl sm:max-w-[20rem] sm:text-sm ${palette.bg}`}>
         <span className="mr-1 opacity-70">{palette.icon}</span>
         {text}
       </div>
@@ -149,14 +202,16 @@ function PointerBubble({ text, variant = 'speech', style }) {
   );
 }
 
-/* ===== Backgrounds ===== */
+/* ============================================================
+ * Backgrounds
+ * ============================================================ */
 
 function HomeBackground() {
   return (
     <div aria-hidden className="absolute inset-0">
       <div className="absolute inset-0 bg-gradient-to-b from-[#2A1B3D] via-[#1F1430] to-[#0F0820]" />
       {/* Window with evening sky */}
-      <div className="absolute left-[5%] top-[8%] h-[34%] w-[22%] overflow-hidden rounded-md border-4 border-[#3E2818] bg-gradient-to-b from-[#FB923C] via-[#A78BFA] to-[#312E81]">
+      <div className="absolute left-[4%] top-[6%] h-[36%] w-[24%] overflow-hidden rounded-md border-4 border-[#3E2818] bg-gradient-to-b from-[#FB923C] via-[#A78BFA] to-[#312E81]">
         <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 gap-0">
           <div className="border-r-2 border-b-2 border-[#3E2818]" />
           <div className="border-b-2 border-[#3E2818]" />
@@ -170,19 +225,35 @@ function HomeBackground() {
         />
       </div>
       {/* Wall art */}
-      <div className="absolute right-[10%] top-[10%] h-[18%] w-[20%] rounded-md border-4 border-[#3E2818] bg-gradient-to-br from-pink-300 to-purple-400" />
-      {/* Floor lamp */}
-      <div className="absolute left-[2%] bottom-[8%] h-[55%] w-[3%]">
-        <div className="absolute inset-x-0 top-0 h-12 rounded-t-full bg-amber-200 shadow-[0_0_40px_rgba(254,215,170,0.7)]" />
-        <div className="absolute inset-x-[40%] top-12 bottom-0 bg-[#7A5A3E]" />
+      <div className="absolute right-[8%] top-[10%] h-[20%] w-[22%] rounded-md border-4 border-[#3E2818] bg-gradient-to-br from-pink-300 to-purple-400">
+        <div className="absolute inset-2 flex items-center justify-center text-4xl">🌅</div>
       </div>
-      {/* Sofa hint behind characters */}
-      <div className="absolute left-0 right-0 bottom-0 h-[28%] bg-gradient-to-t from-[#1A0F2A] to-transparent" />
-      <div className="absolute left-[14%] right-[14%] bottom-[8%] h-[14%] rounded-2xl bg-[#4A6B82] opacity-70" />
-      {/* Floor tile */}
-      <div className="absolute inset-x-0 bottom-0 h-[14%] bg-gradient-to-t from-[#5A4030] to-transparent" />
-      {/* Subtle dust motes */}
-      <Motes color="#FFE08A" count={8} />
+      {/* TV mounted on wall — playing softly */}
+      <div className="absolute left-[34%] top-[14%] h-[20%] w-[32%] rounded-md border-4 border-[#1A1426] bg-gradient-to-br from-blue-900 to-blue-700">
+        <div className="absolute inset-1 grid grid-cols-3 gap-0.5">
+          <div className="bg-yellow-300/40" />
+          <div className="bg-pink-300/40" />
+          <div className="bg-emerald-300/40" />
+        </div>
+      </div>
+      {/* Floor lamp */}
+      <div className="absolute left-[2%] bottom-[14%] h-[40%] w-[3%]">
+        <div className="absolute inset-x-0 top-0 h-10 rounded-t-full bg-amber-200 shadow-[0_0_40px_rgba(254,215,170,0.7)]" />
+        <div className="absolute inset-x-[40%] top-10 bottom-0 bg-[#7A5A3E]" />
+      </div>
+      {/* Sofa silhouette behind characters */}
+      <div className="absolute left-[18%] right-[18%] bottom-[10%] h-[24%] rounded-3xl bg-[#3A5366] opacity-70" />
+      <div className="absolute left-[20%] right-[20%] bottom-[8%] h-[20%] rounded-2xl bg-[#4A6B82]" />
+      {/* Floor */}
+      <div className="absolute inset-x-0 bottom-0 h-[12%] bg-gradient-to-t from-[#5A4030] to-transparent" />
+      {/* Plant in corner */}
+      <div className="absolute right-[3%] bottom-[8%] h-[24%] w-[6%]">
+        <div className="absolute inset-x-0 bottom-0 h-[35%] bg-[#A85F3A] rounded-b" />
+        <div className="absolute -top-2 left-1/2 h-[70%] w-[140%] -translate-x-1/2 rounded-full bg-emerald-600" />
+        <div className="absolute top-2 left-1/2 h-[50%] w-[100%] -translate-x-1/2 rounded-full bg-emerald-500" />
+      </div>
+      {/* Dust motes */}
+      <Motes color="#FFE08A" count={6} />
     </div>
   );
 }
@@ -191,7 +262,6 @@ function GlitchBackground() {
   return (
     <div aria-hidden className="absolute inset-0">
       <div className="absolute inset-0 bg-gradient-to-b from-[#2D1B47] to-[#0F0820]" />
-      {/* Glitch bars */}
       <motion.div
         className="absolute inset-x-0 h-12 bg-fuchsia-500/30 mix-blend-screen"
         initial={{ top: '-10%' }}
@@ -204,7 +274,6 @@ function GlitchBackground() {
         animate={{ top: ['40%', '-20%', '120%', '40%'] }}
         transition={{ duration: 2.5, repeat: Infinity, ease: 'linear' }}
       />
-      {/* Scanlines */}
       <div
         className="absolute inset-0 opacity-40"
         style={{
@@ -212,7 +281,6 @@ function GlitchBackground() {
             'repeating-linear-gradient(0deg, rgba(244,114,182,0.2) 0 2px, transparent 2px 5px)',
         }}
       />
-      {/* RGB split overlay */}
       <motion.div
         className="absolute inset-0 bg-cyan-500/10 mix-blend-screen"
         animate={{ x: [-3, 3, -3] }}
@@ -231,19 +299,30 @@ function TransformBackground() {
   return (
     <div aria-hidden className="absolute inset-0">
       <div className="absolute inset-0 bg-gradient-to-b from-[#1A1240] via-[#0B1739] to-[#06091F]" />
-      {/* Radial energy burst */}
+      {/* Big radial energy burst */}
       <motion.div
-        className="absolute left-1/2 top-1/2 h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full"
+        className="absolute left-1/2 top-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full"
         style={{
           background:
-            'radial-gradient(circle, rgba(253,224,71,0.5) 0%, rgba(168,139,250,0.3) 40%, transparent 70%)',
+            'radial-gradient(circle, rgba(253,224,71,0.55) 0%, rgba(168,139,250,0.35) 30%, transparent 65%)',
         }}
-        animate={{ scale: [0.8, 1.2, 0.8], opacity: [0.5, 0.9, 0.5] }}
+        animate={{ scale: [0.8, 1.25, 0.8], opacity: [0.6, 1, 0.6] }}
         transition={{ duration: 3, repeat: Infinity }}
       />
-      {/* Particles streaming upward */}
-      <Motes color="#FDE047" count={16} fast />
+      {/* Particles streaming */}
+      <Motes color="#FDE047" count={18} fast />
       <Motes color="#22D3EE" count={12} fast />
+      <Motes color="#F472B6" count={10} fast />
+      {/* Energy rings expanding outward */}
+      {[0, 1, 2].map((i) => (
+        <motion.div
+          key={i}
+          className="absolute left-1/2 top-1/2 rounded-full border-2 border-yellow-300/40"
+          initial={{ width: 0, height: 0, opacity: 0.8 }}
+          animate={{ width: [0, 600], height: [0, 600], opacity: [0.8, 0], x: ['-50%', '-50%'], y: ['-50%', '-50%'] }}
+          transition={{ duration: 3, repeat: Infinity, delay: i * 1 }}
+        />
+      ))}
     </div>
   );
 }
@@ -252,7 +331,6 @@ function DigitalBackground() {
   return (
     <div aria-hidden className="absolute inset-0">
       <div className="absolute inset-0 bg-gradient-to-b from-[#06091F] via-[#0B1739] to-[#1A1240]" />
-      {/* Cyber grid floor — perspective */}
       <div
         className="absolute inset-x-0 bottom-0 h-1/2 opacity-60"
         style={{
@@ -265,7 +343,6 @@ function DigitalBackground() {
           transformOrigin: 'bottom',
         }}
       />
-      {/* Scanlines */}
       <div
         className="absolute inset-0 opacity-20"
         style={{
@@ -273,9 +350,7 @@ function DigitalBackground() {
             'repeating-linear-gradient(0deg, rgba(34,211,238,0.25) 0 1px, transparent 1px 4px)',
         }}
       />
-      {/* Floating data points */}
       <Motes color="#22D3EE" count={14} />
-      {/* Glow blobs */}
       <motion.div
         className="absolute right-[-15%] top-[-10%] h-72 w-72 rounded-full bg-cyan-400/30 blur-[100px]"
         animate={{ scale: [1, 1.08, 1] }}
@@ -286,6 +361,14 @@ function DigitalBackground() {
         animate={{ scale: [1, 1.05, 1] }}
         transition={{ duration: 7, repeat: Infinity, delay: 0.5 }}
       />
+    </div>
+  );
+}
+
+function FlowBackground() {
+  return (
+    <div aria-hidden className="absolute inset-0">
+      <div className="absolute inset-0 bg-gradient-to-b from-[#06091F] via-[#0B1739] to-[#1A1240]" />
     </div>
   );
 }
@@ -306,7 +389,7 @@ function Motes({ color = '#FFE08A', count = 10, fast = false }) {
         <motion.span
           key={m.id}
           initial={{ y: 0, opacity: 0 }}
-          animate={{ y: -200, opacity: [0, 0.85, 0] }}
+          animate={{ y: -240, opacity: [0, 0.85, 0] }}
           transition={{ duration: m.dur, delay: m.delay, repeat: Infinity, ease: 'easeInOut' }}
           style={{
             left: `${m.x}%`,

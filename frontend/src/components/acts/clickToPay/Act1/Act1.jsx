@@ -1,16 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PauseCircle, PlayCircle, RotateCcw, ChevronRight, ChevronLeft } from 'lucide-react';
+import { PauseCircle, PlayCircle, RotateCcw, ChevronRight, ChevronLeft, Volume2, VolumeX, Mic } from 'lucide-react';
 
-import AudioToggle from '../../../shared/AudioToggle.jsx';
 import SceneProgress from '../../../shared/SceneProgress.jsx';
 import EndOfActCelebration from '../../../shared/EndOfActCelebration.jsx';
 
 import Stage2D from '../2d/Stage2D.jsx';
-import PaymentPhone from '../scenes/PaymentPhone.jsx';
+import PaymentPhone from '../2d/PaymentPhone.jsx';
 import SignalCatcher from '../scenes/SignalCatcher.jsx';
 import PredictionChallenge from '../scenes/PredictionChallenge.jsx';
-import { Volume2, VolumeX, Mic } from 'lucide-react';
 
 import { lesson, characters } from '../../../../data/lessons/clickToPay.js';
 import { useSequencer } from '../../../../hooks/useSequencer.js';
@@ -20,16 +18,18 @@ import {
   speak, cancelSpeech, pauseSpeech, resumeSpeech, setSpeechCallbacks,
 } from '../../../../utils/sounds.js';
 
-/* Music mood per scenePhase — uses the Lesson 2 moods added to sounds.js
- * (`cyber-pulse`, `glitch-tense`, `wonder`) so the soundtrack is
- * audibly different from Lesson 1's lofi/calm palette. */
-function pickMood(scenePhase, emotion) {
-  if (scenePhase === 'home')      return 'lofi';
-  if (scenePhase === 'glitch')    return 'glitch-tense';
-  if (scenePhase === 'transform') return 'wonder';
-  if (scenePhase === 'digital')   return 'cyber-pulse';
-  if (emotion === 'shocked')      return 'hit';
-  return 'calm';
+/* Music mood per stage. */
+function pickMood(stage) {
+  switch (stage) {
+    case 'home':
+    case 'phone-task': return 'lofi';
+    case 'glitch':     return 'glitch-tense';
+    case 'transform':  return 'wonder';
+    case 'digital':
+    case 'flow':       return 'cyber-pulse';
+    case 'prediction': return 'reflective';
+    default:           return 'calm';
+  }
 }
 
 export default function Act1({ onComplete, onGoHome }) {
@@ -60,7 +60,9 @@ export default function Act1({ onComplete, onGoHome }) {
   const sceneIdx = phaseToScene[seq.index] ?? 0;
   const scene = act.scenes[sceneIdx];
   const phase = seq.phase;
-  const scenePhase = phase?.scenePhase || scene?.scenePhase || 'home';
+  const stage = phase?.stage || scene?.stage || 'home';
+  const activeNode = phase?.activeNode ?? -1;
+  const visibleLabels = phase?.visibleLabels || 'all';
   const emotion = useMemo(() => deriveEmotion(phase, scene), [phase, scene]);
 
   /* ===== Speech callbacks ===== */
@@ -74,7 +76,7 @@ export default function Act1({ onComplete, onGoHome }) {
     return () => setSpeechCallbacks(null);
   }, []);
 
-  /* ===== Cues + narration ===== */
+  /* ===== One-shot cues per phase ===== */
   const lastCuePhaseId = useRef(null);
   useEffect(() => {
     if (!phase) return;
@@ -83,15 +85,23 @@ export default function Act1({ onComplete, onGoHome }) {
     if (audioEnabled && phase.cue && sounds[phase.cue]) sounds[phase.cue]();
   }, [phase, audioEnabled]);
 
+  /* ===== TTS — every phase with narration or bubbles gets spoken =====
+   *
+   * Hardened: re-runs whenever phase OR audioEnabled changes. If audio
+   * gets enabled mid-phase, the current phase is re-spoken. Per-phase
+   * dedup prevents double-speaking when the effect re-runs. */
   const spokenForPhase = useRef(null);
   const phaseSpokeRef = useRef(false);
   useEffect(() => {
     if (!audioEnabled || !phase) return;
+    // Holds with interactive tasks don't get voice — they'd talk over the user.
     if (phase.hold && (phase.task || phase.reaction || phase.prediction)) {
       cancelSpeech();
       phaseSpokeRef.current = false;
       return;
     }
+    // Dedup per-phase — won't re-speak if audioEnabled toggles back on
+    // for the same phase.
     if (spokenForPhase.current === phase.id) return;
     spokenForPhase.current = phase.id;
     let spokeNow = false;
@@ -108,7 +118,7 @@ export default function Act1({ onComplete, onGoHome }) {
     phaseSpokeRef.current = spokeNow;
   }, [phase, audioEnabled]);
 
-  /* ===== Auto-advance ===== */
+  /* ===== Auto-advance on speech end (honouring phase.duration as a min) ===== */
   const prevSpeakingRef = useRef(false);
   const phaseStartedAtRef = useRef(Date.now());
   useEffect(() => { phaseStartedAtRef.current = Date.now(); }, [phase?.id]);
@@ -119,7 +129,7 @@ export default function Act1({ onComplete, onGoHome }) {
     if (phase.hold || seq.paused) return;
     if (!phaseSpokeRef.current) return;
     if (wasSpeaking && !isSpeaking) {
-      const minBuffer = 350;
+      const minBuffer = 400;
       const elapsed = Date.now() - phaseStartedAtRef.current;
       const remaining = Math.max(0, (phase.duration || 0) - elapsed);
       const wait = Math.max(minBuffer, remaining);
@@ -134,8 +144,8 @@ export default function Act1({ onComplete, onGoHome }) {
   /* ===== Music ===== */
   useEffect(() => {
     if (!audioEnabled) return;
-    setMusicMood(pickMood(scenePhase, emotion));
-  }, [audioEnabled, scenePhase, emotion]);
+    setMusicMood(pickMood(stage));
+  }, [audioEnabled, stage]);
   useEffect(() => () => { stopMusic(); cancelSpeech(); }, []);
   useEffect(() => {
     unlockAudio(audioEnabled);
@@ -159,6 +169,7 @@ export default function Act1({ onComplete, onGoHome }) {
     setAudioDismissed(true);
   }, [setAudioEnabled, setAudioDismissed]);
 
+  /* ===== Celebration + completion ===== */
   const [showCelebration, setShowCelebration] = useState(false);
 
   const markHoldDone = useCallback((id) => {
@@ -199,23 +210,14 @@ export default function Act1({ onComplete, onGoHome }) {
     ];
   }, [showCelebration]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  /* ===== Bubbles for the 3D scene =====
-   *
-   * Scene3D anchors each bubble above its `speaker` character's head.
-   * We carry `speaker` through from the phase data (added in lesson v2). */
+  /* ===== Bubbles for the stage ===== */
   const bubblesForScene = (phase?.bubbles || [])
     .filter((b) => b.speaker && b.speaker !== 'narrator')
     .map((b) => ({ speaker: b.speaker, text: b.text, type: b.type }));
 
-  /* ===== Right-column content selection =====
-   *
-   * Per UX brief: scenes 1-4 are pure cinematic — only the left stage
-   * shows. The right column appears ONLY in Scene 5, where the learner
-   * does the actual payment task and locks in their prediction. The
-   * signal-catcher in scene 2 is overlaid on the stage (not a column)
-   * so the left-only rule still holds. */
-  const isScene5 = sceneIdx === 4;
-  const showPaymentPhone = isScene5 && phase?.task?.kind === 'payment-flow';
+  /* ===== Layout selectors ===== */
+  const showPaymentPhone =
+    stage === 'phone-task' && phase?.task?.kind === 'payment-flow' && !completedHolds.has(phase.id);
   const showSignals = phase?.reaction?.kind === 'tap-signals' && !completedHolds.has(phase.id);
 
   return (
@@ -229,7 +231,17 @@ export default function Act1({ onComplete, onGoHome }) {
           <h1 className="text-[13px] font-semibold text-white/85 sm:text-base">{act.title}</h1>
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2">
-          <AudioToggle />
+          <button
+            onClick={audioEnabled ? () => setAudioEnabled(false) : enableAudio}
+            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-2 text-[11px] font-semibold sm:px-3 sm:text-xs ${
+              audioEnabled
+                ? 'border-emerald-300/40 bg-emerald-400/20 text-emerald-100 hover:bg-emerald-400/30'
+                : 'border-white/15 bg-white/5 text-white/85 hover:bg-white/10'
+            }`}
+          >
+            {audioEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+            <span className="hidden sm:inline">{audioEnabled ? 'Voice on' : 'Voice off'}</span>
+          </button>
           <button
             onClick={seq.paused ? seq.resume : seq.pause}
             className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-2.5 py-2 text-[11px] font-semibold text-white/85 hover:bg-white/10 sm:px-3 sm:text-xs"
@@ -247,9 +259,6 @@ export default function Act1({ onComplete, onGoHome }) {
         </div>
       </header>
 
-      {/* Prominent audio prompt — full-width, hard to miss. Stays above
-         the stage until the user clicks "Enable Voice". The lesson is
-         designed to talk to you; without audio it's just text. */}
       <AnimatePresence>
         {!audioEnabled && (
           <BigAudioPrompt onEnable={enableAudio} onDismiss={dismissAudio} />
@@ -258,29 +267,28 @@ export default function Act1({ onComplete, onGoHome }) {
 
       <SceneProgress current={seq.index} total={phases.length} label={scene?.title} />
 
-      {/* MAIN STAGE — 60/40 only on scene 5 (when the prediction phone
-         and prediction UI need a side column). Scenes 1-4 are full-width
-         stage so the characters get full breathing room. */}
+      {/* MAIN STAGE — full-bleed except when payment phone or signal catcher are on */}
       <div
         className={`grid items-stretch gap-4 grid-cols-1 ${
-          isScene5 ? 'md:grid-cols-[3fr_2fr] md:gap-5 lg:gap-6' : ''
+          showPaymentPhone ? 'md:grid-cols-[3fr_2fr] md:gap-5 lg:gap-6' : ''
         }`}
       >
-        {/* STAGE */}
-        <div className="relative h-[440px] sm:h-[520px] md:h-[580px] lg:h-[640px]">
+        <div className="relative h-[480px] sm:h-[560px] md:h-[620px] lg:h-[680px]">
           <Stage2D
-            scenePhase={scenePhase}
+            stage={stage}
             speaker={isSpeaking ? speakerKey : null}
             speaking={isSpeaking}
             amplitudeRef={mouthRef}
             emotion={emotion}
             bubbles={bubblesForScene}
+            activeNode={activeNode}
+            visibleLabels={visibleLabels}
           />
           {/* Scene tag */}
           <div className="pointer-events-none absolute left-3 top-3 z-20 rounded-full bg-black/45 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-white/90 backdrop-blur">
             Scene {sceneIdx + 1} · {scene?.title}
           </div>
-          {/* Voice-on chip — confirms audio is live and pulses while speaking */}
+          {/* Voice chip */}
           {audioEnabled && (
             <div className="pointer-events-none absolute right-3 top-3 z-20 flex items-center gap-1.5 rounded-full bg-emerald-400/20 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-emerald-200 ring-1 ring-emerald-300/50 backdrop-blur">
               <motion.span
@@ -306,13 +314,13 @@ export default function Act1({ onComplete, onGoHome }) {
               </motion.div>
             )}
           </AnimatePresence>
-          {/* Floating labels for Scene 4 */}
-          {phase?.showLabels && (
-            <FloatingLabels labels={phase.showLabels} />
+          {/* Status pill — only when no narration is on the ribbon */}
+          {phase?.status && !phase?.narration && (
+            <div className="pointer-events-none absolute inset-x-3 bottom-3 z-20 rounded-full bg-cyan-400/15 px-3 py-1.5 text-center text-[11px] font-bold uppercase tracking-widest text-cyan-100 ring-1 ring-cyan-300/30 backdrop-blur">
+              {phase.status}
+            </div>
           )}
-          {/* Signal catcher (scene 2) — overlays the stage instead of using
-             a side column so the left side stays full-width like the user
-             asked. */}
+          {/* Signal catcher — overlays the stage in scene 2 */}
           <AnimatePresence>
             {showSignals && (
               <motion.div
@@ -335,22 +343,18 @@ export default function Act1({ onComplete, onGoHome }) {
           </AnimatePresence>
         </div>
 
-        {/* RIGHT COLUMN — Scene 5 ONLY */}
-        {isScene5 && (
+        {/* Right column — PaymentPhone only during the interactive task */}
+        {showPaymentPhone && (
           <div className="relative flex flex-col items-stretch gap-3">
-            {showPaymentPhone ? (
-              <PaymentPhone
-                active={!completedHolds.has(phase?.id)}
-                glitch={0}
-                onComplete={() => {
-                  markHoldDone(phase.id);
-                  advanceOrFinish();
-                }}
-                hint="Try the actual payment Ritwik did — tap the highlighted button"
-              />
-            ) : (
-              <PredictionSidePanel phase={phase} characters={characters} />
-            )}
+            <PaymentPhone
+              active={!completedHolds.has(phase.id)}
+              glitch={0}
+              onComplete={() => {
+                markHoldDone(phase.id);
+                advanceOrFinish();
+              }}
+              hint="Follow the highlighted button on each screen"
+            />
           </div>
         )}
       </div>
@@ -413,7 +417,7 @@ export default function Act1({ onComplete, onGoHome }) {
             actLabel="Act 1"
             title="The Glitch & The Transformation"
             stats={celebrationStats}
-            takeaway="You walked through a real online payment, then watched it break. The money never disappeared — it just took a path Ritwik didn’t know existed. Act 2 maps that path."
+            takeaway="You walked through a real online payment, watched it break, and then traced the path the money actually takes — App → UPI → Bank → Security → Receiver. Act 2 will unpack each one in detail."
             continueLabel="Lock in & continue"
             onContinue={finishAct}
             secondaryLabel="Go to home"
@@ -430,19 +434,20 @@ export default function Act1({ onComplete, onGoHome }) {
 function deriveEmotion(phase, scene) {
   if (phase?.emotion) return phase.emotion;
   const id = phase?.id || '';
-  if (id.startsWith('s1-ritwik')) return 'confident';
+  if (id.startsWith('s1-ritwik-easy')) return 'confident';
   if (id.startsWith('s1-task')) return 'curious';
-  if (id.startsWith('s2-')) return 'unsettled';
+  if (id.startsWith('s2-')) return id === 's2-error' || id === 's2-fail' ? 'unsettled' : 'curious';
   if (id.startsWith('s3-ritwik-confused')) return 'shocked';
+  if (id.startsWith('s3-ritwik-lighter')) return 'realised';
+  if (id.startsWith('s3-ritwik-inside')) return 'realised';
   if (id.startsWith('s3-')) return 'shocked';
   if (id.startsWith('s4-')) return 'curious';
   if (id.startsWith('s5-')) return 'curious';
   return scene?.emotion || 'neutral';
 }
 
-/* Prominent audio prompt — full-width pill at the top of the lesson
- * with a big "Enable Voice" CTA. Replaces the small AudioConsentBanner
- * because users were missing it and reporting "no voice". */
+/* Prominent full-width audio prompt. Has to be hard to miss because
+ * the lesson is voice-first — without it, the experience collapses to text. */
 function BigAudioPrompt({ onEnable, onDismiss }) {
   return (
     <motion.div
@@ -476,96 +481,5 @@ function BigAudioPrompt({ onEnable, onDismiss }) {
         <VolumeX className="mr-1 inline h-3.5 w-3.5" /> Read in silence
       </button>
     </motion.div>
-  );
-}
-
-/* PredictionSidePanel — Scene-5 side card that explains the upcoming
- * prediction so the right column isn't empty between the payment task
- * and the prediction overlay popping in. */
-function PredictionSidePanel({ phase }) {
-  return (
-    <div className="relative flex h-full min-h-[440px] flex-col gap-3 overflow-hidden rounded-2xl bg-gradient-to-br from-[#0F1830] to-[#1A1240] p-4 ring-1 ring-cyan-300/20 sm:p-5">
-      <div className="flex items-center justify-between">
-        <div className="text-[11px] font-bold uppercase tracking-widest text-cyan-200">Final beat</div>
-        <div className="rounded-full bg-cyan-400/20 px-2 py-0.5 text-[10px] font-bold text-cyan-100">Scene 5</div>
-      </div>
-      <div className="text-base font-extrabold text-white sm:text-lg">
-        You’ve been the money. Now predict the path.
-      </div>
-      <p className="text-[13px] leading-snug text-white/75">
-        Ritwik tapped PAY. ₹500 has to travel from his phone to his brother. Pick the route you
-        think it actually takes — Act 2 unpacks the truth.
-      </p>
-      <div className="mt-2 grid grid-cols-2 gap-2 text-[11px]">
-        <div className="rounded-lg bg-white/[0.05] px-3 py-2 ring-1 ring-white/10">
-          <div className="text-white/55">📱 Payment App</div>
-        </div>
-        <div className="rounded-lg bg-white/[0.05] px-3 py-2 ring-1 ring-white/10">
-          <div className="text-white/55">🏦 Bank Server</div>
-        </div>
-        <div className="rounded-lg bg-white/[0.05] px-3 py-2 ring-1 ring-white/10">
-          <div className="text-white/55">☁️ Internet</div>
-        </div>
-        <div className="rounded-lg bg-white/[0.05] px-3 py-2 ring-1 ring-white/10">
-          <div className="text-white/55">🔳 QR Code</div>
-        </div>
-      </div>
-      <div className="mt-auto rounded-xl bg-cyan-400/10 px-3 py-2.5 text-[12px] text-cyan-100 ring-1 ring-cyan-300/30">
-        {phase?.id === 's5-prediction'
-          ? 'A prediction window will pop up — choose what feels right.'
-          : 'Hang on — the system is about to ask you to choose.'}
-      </div>
-    </div>
-  );
-}
-
-function SpeakerAvatar({ who, small = false, pulsing = false }) {
-  const map = {
-    ritwik: { bg: 'from-sky-400 to-indigo-500',     emoji: '🧑🏽' },
-    mom:    { bg: 'from-orange-400 to-rose-500',    emoji: '👩🏽' },
-    system: { bg: 'from-cyan-300 to-violet-500',    emoji: '⚡' },
-    narrator: { bg: 'from-slate-400 to-slate-700',  emoji: '🎙️' },
-  };
-  const m = map[who] || map.narrator;
-  const sz = small ? 'h-6 w-6 text-sm' : 'h-10 w-10 text-xl';
-  return (
-    <div className={`relative flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br ring-1 ring-white/30 ${m.bg} ${sz}`}>
-      <span>{m.emoji}</span>
-      {pulsing && (
-        <motion.span
-          className="absolute inset-0 rounded-full ring-2 ring-cyan-300/70"
-          animate={{ scale: [1, 1.18, 1], opacity: [0.8, 0, 0.8] }}
-          transition={{ duration: 1.4, repeat: Infinity }}
-        />
-      )}
-    </div>
-  );
-}
-
-/* Floating system labels (bank / app / security / network) overlaid on
- * the 3D stage in scene 4. Kept as 2D for legibility — labels in 3D
- * always end up either too small or always-facing-camera billboards. */
-function FloatingLabels({ labels = [] }) {
-  const items = [
-    { id: 'bank',     emoji: '🏦', text: 'Bank Server',    x: '12%', y: '22%' },
-    { id: 'app',      emoji: '📱', text: 'Payment App',    x: '80%', y: '18%' },
-    { id: 'security', emoji: '🛡️', text: 'Security Check', x: '14%', y: '64%' },
-    { id: 'network',  emoji: '🌐', text: 'Network Route',  x: '80%', y: '64%' },
-  ].filter((l) => labels.includes(l.id));
-  return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 z-20">
-      {items.map((l, i) => (
-        <motion.div
-          key={l.id}
-          initial={{ opacity: 0, scale: 0.6 }}
-          animate={{ opacity: 1, scale: 1, y: [0, -4, 0] }}
-          transition={{ duration: 3, delay: i * 0.3, repeat: Infinity }}
-          style={{ left: l.x, top: l.y }}
-          className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-white ring-1 ring-cyan-300/40 backdrop-blur"
-        >
-          <span className="mr-1">{l.emoji}</span>{l.text}
-        </motion.div>
-      ))}
-    </div>
   );
 }

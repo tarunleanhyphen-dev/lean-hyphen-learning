@@ -2,14 +2,16 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 
 /**
- * Ritwik v7 — SIMPLE minimal teen boy, ACTUALLY sitting.
+ * Ritwik v8 — SIMPLE minimal teen boy.
  *
- * Per user feedback (2026-05-29 again): v6 still looked standing
- * because the legs were straight rectangles going down from the body.
- * v7 has a proper sitting silhouette — diagonal thighs going OUTWARD
- * from the hip to the knees (clearly bent), shins dropping straight
- * down from the knees, body slightly forward. Reads as seated from
- * the first glance.
+ * Pose is normal standing — the sofa now renders OVER the character
+ * so the cushion + back naturally hides the hip/legs, making him look
+ * seated without needing awkward bent-knee SVGs.
+ *
+ * Changes per user (2026-05-29):
+ *  - Kind, calm eyes: bigger almond shape with white sclera + soft
+ *    black pupils + gentle highlight. Brows softly arched.
+ *  - Hoodie colour: emerald green (was blue).
  */
 export default function Ritwik({
   speaking = false,
@@ -55,76 +57,76 @@ export default function Ritwik({
   const eyeOffset = lookAt === 'left' ? -1.5 : lookAt === 'right' ? 1.5 : 0;
   const mouthDef = mouthShape(emotion, mouthLevel);
 
+  // Flat palette — green hoodie + dark pants
   const SKIN   = '#E8B98A';
   const HAIR   = '#1A0E08';
-  const HOODIE = '#2563EB';
+  const HOODIE = '#10B981';
   const PANTS  = '#1E293B';
 
   return (
     <motion.div
-      animate={{ y: [0, -2, 0] }}
+      animate={{ y: [0, -3, 0] }}
       transition={{ duration: 4.2, repeat: Infinity, ease: 'easeInOut' }}
       className={`relative ${className}`}
     >
-      <svg viewBox="0 0 240 320" className="h-full w-full" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax meet">
-        {/* === BENT LEGS — thighs going OUT then knees + shins going DOWN === */}
-        {/* Left thigh — diagonal from left hip outward */}
-        <polygon points="98,210 80,210 38,232 60,250" fill={PANTS} />
-        {/* Left shin — straight down from knee */}
-        <rect x="38" y="248" width="22" height="48" rx="4" fill={PANTS} />
-        {/* Left shoe */}
-        <ellipse cx="49" cy="298" rx="16" ry="5" fill="#0F172A" />
+      <svg viewBox="0 0 200 360" className="h-full w-full" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax meet">
+        {/* LEGS — straight, hidden by sofa cushion in front */}
+        <rect x="78"  y="220" width="18" height="120" rx="6" fill={PANTS} />
+        <rect x="104" y="220" width="18" height="120" rx="6" fill={PANTS} />
+        {/* SHOES */}
+        <ellipse cx="87"  cy="340" rx="12" ry="5" fill="#0F172A" />
+        <ellipse cx="113" cy="340" rx="12" ry="5" fill="#0F172A" />
 
-        {/* Right thigh — mirrored */}
-        <polygon points="142,210 160,210 202,232 180,250" fill={PANTS} />
-        {/* Right shin */}
-        <rect x="180" y="248" width="22" height="48" rx="4" fill={PANTS} />
-        {/* Right shoe */}
-        <ellipse cx="191" cy="298" rx="16" ry="5" fill="#0F172A" />
+        {/* TORSO — green hoodie */}
+        <path d="M 60 140 Q 60 128 76 122 L 124 122 Q 140 128 140 140 L 144 232 L 56 232 Z" fill={HOODIE} />
+        <path d="M 72 178 Q 100 188 128 178 L 126 202 Q 100 210 74 202 Z" fill={HOODIE} stroke="#047857" strokeWidth="1.5" />
+        <path d="M 76 130 Q 100 140 124 130 L 124 122 L 76 122 Z" fill="#047857" />
 
-        {/* === TORSO — hoodie, slightly leaned back as if on the couch === */}
-        <path d="M 80 130 Q 80 118 96 112 L 144 112 Q 160 118 160 130 L 164 215 L 76 215 Z" fill={HOODIE} />
-        {/* Hoodie pocket */}
-        <path d="M 92 168 Q 120 178 148 168 L 146 200 Q 120 208 94 200 Z" fill={HOODIE} stroke="#1E40AF" strokeWidth="1.5" />
-        {/* Hood opening */}
-        <path d="M 96 120 Q 120 130 144 120 L 144 112 L 96 112 Z" fill="#1E40AF" />
+        {/* ARMS */}
+        <path d="M 60 140 L 46 218 Q 46 224 52 226 L 62 226 L 64 180 Z" fill={HOODIE} />
+        <path d="M 140 140 L 154 218 Q 154 224 148 226 L 138 226 L 136 180 Z" fill={HOODIE} />
+        {/* HANDS */}
+        <circle cx="55" cy="226" r="8" fill={SKIN} />
+        <circle cx="145" cy="226" r="8" fill={SKIN} />
 
-        {/* === ARMS — resting on lap (hands forward over thighs) === */}
-        <path d="M 80 130 L 64 200 Q 60 208 68 212 L 82 214 L 84 170 Z" fill={HOODIE} />
-        <path d="M 160 130 L 176 200 Q 180 208 172 212 L 158 214 L 156 170 Z" fill={HOODIE} />
-        {/* HANDS — resting on lap area */}
-        <circle cx="74"  cy="214" r="9" fill={SKIN} />
-        <circle cx="166" cy="214" r="9" fill={SKIN} />
+        {/* NECK */}
+        <rect x="92" y="112" width="16" height="12" fill={SKIN} />
 
-        {/* === NECK === */}
-        <rect x="112" y="102" width="16" height="12" fill={SKIN} />
-
-        {/* === HEAD === */}
-        <circle cx="120" cy="70" r="38" fill={SKIN} />
+        {/* HEAD */}
+        <circle cx="100" cy="80" r="38" fill={SKIN} />
 
         {/* HAIR */}
-        <path d="M 84 68 Q 80 34 120 30 Q 160 34 156 68 L 156 50 Q 150 40 120 40 Q 90 40 84 50 Z" fill={HAIR} />
-        <path d="M 90 54 Q 108 70 120 58 Q 132 70 150 54 L 152 70 Q 120 74 88 70 Z" fill={HAIR} />
+        <path d="M 64 78 Q 60 44 100 40 Q 140 44 136 78 L 136 60 Q 130 50 100 50 Q 70 50 64 60 Z" fill={HAIR} />
+        <path d="M 70 64 Q 88 80 100 68 Q 112 80 130 64 L 132 80 Q 100 84 68 80 Z" fill={HAIR} />
 
         {/* EARS */}
-        <ellipse cx="82" cy="74" rx="4" ry="6" fill={SKIN} />
-        <ellipse cx="158" cy="74" rx="4" ry="6" fill={SKIN} />
+        <ellipse cx="62" cy="84" rx="4" ry="6" fill={SKIN} />
+        <ellipse cx="138" cy="84" rx="4" ry="6" fill={SKIN} />
 
-        {/* EYES */}
+        {/* === EYES — kind, calm, almond shape with sclera + soft pupils === */}
         {blink ? (
           <>
-            <path d="M 102 70 Q 108 72 114 70" stroke="#1A1426" strokeWidth="2" fill="none" strokeLinecap="round" />
-            <path d="M 126 70 Q 132 72 138 70" stroke="#1A1426" strokeWidth="2" fill="none" strokeLinecap="round" />
+            <path d="M 80 80 Q 88 82 96 80" stroke="#1A1426" strokeWidth="2" fill="none" strokeLinecap="round" />
+            <path d="M 104 80 Q 112 82 120 80" stroke="#1A1426" strokeWidth="2" fill="none" strokeLinecap="round" />
           </>
         ) : (
           <>
-            <circle cx={108 + eyeOffset} cy="70" r="3" fill="#1A1426" />
-            <circle cx={132 + eyeOffset} cy="70" r="3" fill="#1A1426" />
+            {/* Left eye: white sclera (almond) + iris + pupil + highlight */}
+            <ellipse cx="88"  cy="80" rx="7" ry="5" fill="#FFFFFF" stroke="#1A1426" strokeWidth="1.2" />
+            <circle  cx={88 + eyeOffset}  cy="80" r="3.5" fill="#3B2A1A" />
+            <circle  cx={88 + eyeOffset}  cy="80" r="2"   fill="#0A0604" />
+            <circle  cx={89 + eyeOffset}  cy="79" r="1"   fill="#FFFFFF" />
+            {/* Right eye */}
+            <ellipse cx="112" cy="80" rx="7" ry="5" fill="#FFFFFF" stroke="#1A1426" strokeWidth="1.2" />
+            <circle  cx={112 + eyeOffset} cy="80" r="3.5" fill="#3B2A1A" />
+            <circle  cx={112 + eyeOffset} cy="80" r="2"   fill="#0A0604" />
+            <circle  cx={113 + eyeOffset} cy="79" r="1"   fill="#FFFFFF" />
           </>
         )}
-        {/* EYEBROWS */}
-        <rect x="100" y="59" width="14" height="2.5" rx="1" fill={HAIR} />
-        <rect x="126" y="59" width="14" height="2.5" rx="1" fill={HAIR} />
+
+        {/* EYEBROWS — soft arched (kind/calm) */}
+        <path d="M 80 70 Q 88 67 96 70" stroke={HAIR} strokeWidth="2.5" fill="none" strokeLinecap="round" />
+        <path d="M 104 70 Q 112 67 120 70" stroke={HAIR} strokeWidth="2.5" fill="none" strokeLinecap="round" />
 
         {/* MOUTH */}
         <motion.path
@@ -143,19 +145,19 @@ export default function Ritwik({
 
 function mouthShape(emotion, level) {
   if (emotion === 'shocked' || level >= 3) {
-    return { d: 'M 110 86 Q 120 100 130 86 Q 120 98 110 86 Z', fill: '#3B0A18' };
+    return { d: 'M 90 96 Q 100 110 110 96 Q 100 108 90 96 Z', fill: '#3B0A18' };
   }
   if (level === 2) {
-    return { d: 'M 112 87 Q 120 96 128 87 Q 120 94 112 87 Z', fill: '#3B0A18' };
+    return { d: 'M 92 97 Q 100 106 108 97 Q 100 104 92 97 Z', fill: '#3B0A18' };
   }
   if (level === 1) {
-    return { d: 'M 114 88 Q 120 92 126 88 Q 120 91 114 88 Z', fill: '#7B2933' };
+    return { d: 'M 94 98 Q 100 102 106 98 Q 100 101 94 98 Z', fill: '#7B2933' };
   }
   if (emotion === 'happy' || emotion === 'confident') {
-    return { d: 'M 110 86 Q 120 94 130 86', fill: 'transparent' };
+    return { d: 'M 90 96 Q 100 104 110 96', fill: 'transparent' };
   }
   if (emotion === 'unsettled' || emotion === 'guilty') {
-    return { d: 'M 110 90 Q 120 84 130 90', fill: 'transparent' };
+    return { d: 'M 90 100 Q 100 94 110 100', fill: 'transparent' };
   }
-  return { d: 'M 114 88 Q 120 90 126 88', fill: 'transparent' };
+  return { d: 'M 92 98 Q 100 102 108 98', fill: 'transparent' };
 }

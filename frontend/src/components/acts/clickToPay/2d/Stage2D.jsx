@@ -6,7 +6,8 @@ import SystemAvatar from './SystemAvatar.jsx';
 import Money500 from './Money500.jsx';
 import UPIFlow from './UPIFlow.jsx';
 import RPMAvatar from '../3d/RPMAvatar.jsx';
-import { RPM_AVATARS } from '../../../../data/lessons/avatars.js';
+import LottieAvatar from './LottieAvatar.jsx';
+import { pickAvatarSource } from '../../../../data/lessons/avatars.js';
 
 /**
  * Stage2D — full-bleed cinematic stage. Renders the right background +
@@ -151,16 +152,8 @@ export default function Stage2D({
             className={`absolute -translate-x-1/2 ${yClass}`}
             style={{ left: slot.x }}
           >
-            {who === 'ritwik' && (
-              RPM_AVATARS.ritwik
-                ? <RPMAvatar url={RPM_AVATARS.ritwik} {...charProps} className={slot.size} />
-                : <Ritwik {...charProps} />
-            )}
-            {who === 'mom' && (
-              RPM_AVATARS.mom
-                ? <RPMAvatar url={RPM_AVATARS.mom} {...charProps} className={slot.size} />
-                : <Mom {...charProps} />
-            )}
+            {who === 'ritwik' && <ResolvedAvatar who="ritwik" charProps={charProps} slotSize={slot.size} svg={<Ritwik {...charProps} />} />}
+            {who === 'mom'    && <ResolvedAvatar who="mom"    charProps={charProps} slotSize={slot.size} svg={<Mom {...charProps} />} />}
             {who === 'system' && <SystemAvatar speaking={charProps.speaking} amplitudeRef={amplitudeRef} className={slot.size} />}
             {who === 'money'  && <Money500 pose="wave" speaking={isSpeaking} amplitudeRef={amplitudeRef} className={slot.size} />}
           </div>
@@ -186,6 +179,31 @@ export default function Stage2D({
       </div>
     </div>
   );
+}
+
+/* ResolvedAvatar — picks the highest-tier source the user has
+ * configured for this character. Three tiers, in priority order:
+ *   1. Lottie  → designer-made 2D animation (Duolingo-quality)
+ *   2. RPM     → Ready Player Me 3D model with morph-target lip-sync
+ *   3. SVG     → the hand-coded fallback already in this file
+ * Until the user populates avatars.js, tier 3 renders.
+ */
+function ResolvedAvatar({ who, charProps, slotSize, svg }) {
+  const source = pickAvatarSource(who);
+  if (source.tier === 'lottie') {
+    return (
+      <LottieAvatar
+        src={source.src}
+        state={charProps.speaking ? 'talk' : 'idle'}
+        speaking={charProps.speaking}
+        className={slotSize}
+      />
+    );
+  }
+  if (source.tier === 'rpm') {
+    return <RPMAvatar url={source.src} {...charProps} className={slotSize} />;
+  }
+  return svg;
 }
 
 function PointerBubble({ text, variant = 'speech', style }) {

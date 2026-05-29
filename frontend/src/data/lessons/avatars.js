@@ -1,32 +1,55 @@
 /**
- * Ready Player Me avatar URLs for Lesson 2 characters.
+ * Avatar registry for Lesson 2 characters. Three quality tiers in
+ * priority order — Stage2D mounts the highest one that's configured.
  *
- * HOW TO GET A URL:
- *   1. Visit https://readyplayer.me  (no signup needed)
- *   2. Click "Create Avatar"
- *   3. Pick a body template that matches the character, then tweak:
- *        Ritwik  → 15-yo Indian teen boy, brown skin, dark messy hair,
- *                  navy/teal hoodie, jeans, sneakers, slim build
- *        Mom     → Indian woman late 30s, brown skin, shoulder-length
- *                  black hair, orange / magenta top
- *   4. Click "Next" → "Use Avatar" → copy the .glb URL shown.
- *      It looks like:  https://models.readyplayer.me/abc123.glb
- *   5. Paste it below in place of the empty string, save the file,
- *      and the lesson auto-deploys.
+ *   1. LOTTIE  (Duolingo-style 2D)
+ *      ─ Designer-made character animations from After Effects.
+ *      ─ Source: https://lottiefiles.com (search "indian boy" /
+ *        "mother character"). Most are free.
+ *      ─ Download the .json, drop it into frontend/public/lottie/,
+ *        then set the path below (e.g. '/lottie/ritwik.json').
  *
- * Until URLs are pasted, the Stage falls back to the existing SVG
- * characters so nothing breaks.
+ *   2. RPM     (Ready Player Me real 3D)
+ *      ─ Real 3D human avatars with ARKit morph-target lip-sync.
+ *      ─ Source: https://readyplayer.me (5 min, no signup). Create
+ *        the avatar in their browser, copy the .glb URL.
+ *      ─ Paste the URL below.
+ *
+ *   3. SVG     (hand-coded fallback)
+ *      ─ The 2D SVG characters Stage2D already renders. Used when
+ *        neither LOTTIE nor RPM is configured for that character.
+ *
+ * Until you paste anything, Stage2D falls back to the SVG characters
+ * so nothing breaks. Once any path is configured, the lesson auto-
+ * deploys via the existing branch deploy pipeline.
  */
 
-export const RPM_AVATARS = {
-  // Paste Ritwik's .glb URL here:
-  ritwik: '',
-
-  // Paste Mom's .glb URL here:
-  mom:    '',
+export const AVATARS = {
+  ritwik: {
+    // Tier 1: drop a Lottie JSON path in here (highest quality)
+    lottie: '',          // e.g. '/lottie/ritwik.json'
+    // Tier 2: drop an RPM .glb URL here
+    rpm:    '',          // e.g. 'https://models.readyplayer.me/abc.glb'
+    // Tier 3: always-on SVG fallback (no config needed)
+  },
+  mom: {
+    lottie: '',
+    rpm:    '',
+  },
 };
 
-/** Returns true once at least one RPM URL is configured. */
-export function hasAnyRPMAvatar() {
-  return Object.values(RPM_AVATARS).some((u) => typeof u === 'string' && u.startsWith('http'));
+/** Picks the highest-tier source configured for a character. */
+export function pickAvatarSource(who) {
+  const a = AVATARS[who];
+  if (!a) return { tier: 'svg' };
+  if (a.lottie) return { tier: 'lottie', src: a.lottie };
+  if (a.rpm)    return { tier: 'rpm',    src: a.rpm    };
+  return { tier: 'svg' };
 }
+
+/* === Back-compat alias ===
+ * The earlier RPM-only registry used `RPM_AVATARS.{ritwik,mom}`.
+ * Keep it as a derived view so any older imports continue to work. */
+export const RPM_AVATARS = new Proxy({}, {
+  get: (_, key) => AVATARS[key]?.rpm || '',
+});

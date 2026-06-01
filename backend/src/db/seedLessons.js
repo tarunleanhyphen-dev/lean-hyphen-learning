@@ -27,6 +27,11 @@ const LESSONS = [
     featured: true,
     extrasKeys: ['act2Activities', 'act3Scenarios', 'act4Activities', 'products'],
   },
+  {
+    file: 'whereDoesMyMoneyGo.js',
+    featured: false,
+    extrasKeys: [],
+  },
 ];
 
 async function run() {

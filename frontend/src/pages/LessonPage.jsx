@@ -1,18 +1,13 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { useCallback } from 'react';
-import Act1 from '../components/acts/Act1/Act1.jsx';
-import Act2 from '../components/acts/Act2/Act2.jsx';
-import Act3 from '../components/acts/Act3/Act3.jsx';
-import Act4 from '../components/acts/Act4/Act4.jsx';
-import { lesson } from '../data/lessons/thinkBeforeYouSpend.js';
-
-const ACTS = { act1: Act1, act2: Act2, act3: Act3, act4: Act4 };
+import { getLesson } from '../data/lessons/registry.js';
 
 export default function LessonPage() {
   const { lessonId, actId = 'act1' } = useParams();
   const navigate = useNavigate();
 
-  if (lessonId !== lesson.id) {
+  const entry = getLesson(lessonId);
+  if (!entry) {
     return (
       <div className="mx-auto max-w-xl px-6 py-20 text-center text-white/80">
         <h1 className="text-2xl font-bold">Lesson not found</h1>
@@ -21,26 +16,20 @@ export default function LessonPage() {
     );
   }
 
-  const ActComponent = ACTS[actId] || Act1;
+  const { data: lesson, acts } = entry;
+  const ActComponent = acts[actId] || acts.act1;
 
   const handleComplete = useCallback(() => {
     const order = ['act1', 'act2', 'act3', 'act4'];
     const idx = order.indexOf(actId);
     const next = order[idx + 1];
-    // If the next act exists AND is actually playable, go there. Otherwise
-    // (no next act, or next act is still coming-soon) drop back to the home
-    // page. Right now Act 4 is coming-soon, so finishing Act 3 lands the
-    // student on the home page rather than a placeholder.
-    if (next && lesson.acts[next] && lesson.acts[next].status !== 'coming-soon') {
+    if (next && lesson.acts[next] && lesson.acts[next].status !== 'coming-soon' && acts[next]) {
       navigate(`/lesson/${lessonId}/${next}`);
     } else {
       navigate('/');
     }
-  }, [actId, lessonId, navigate]);
+  }, [actId, lessonId, navigate, lesson, acts]);
 
-  /* Explicit "Go to home" handler — used by the secondary button on
-   * the end-of-act celebration so the learner can exit to the lesson
-   * picker at any time without being routed to the next act. */
   const handleGoHome = useCallback(() => navigate('/'), [navigate]);
 
   return <ActComponent onComplete={handleComplete} onGoHome={handleGoHome} />;

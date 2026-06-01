@@ -6,6 +6,7 @@ import { hasSupabase } from './db/supabase.js';
 import reflectionsRouter from './routes/reflections.js';
 import progressRouter from './routes/progress.js';
 import lessonsRouter from './routes/lessons.js';
+import makeoverRunsRouter from './routes/makeoverRuns.js';
 import ttsRouter from './routes/tts.js';
 import { notFound, errorHandler } from './middleware/error.js';
 
@@ -35,6 +36,7 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/reflections', reflectionsRouter);
 app.use('/api/progress', progressRouter);
 app.use('/api/lessons', lessonsRouter);
+app.use('/api/makeover-runs', makeoverRunsRouter);
 app.use('/api/tts', ttsRouter);
 
 app.use(notFound);

@@ -23,13 +23,8 @@ async function loadLessonModule(file) {
  */
 const LESSONS = [
   {
-    file: 'clickToPay.js',
-    featured: true,
-    extrasKeys: ['characters'],
-  },
-  {
     file: 'thinkBeforeYouSpend.js',
-    featured: false,
+    featured: true,
     extrasKeys: ['act2Activities', 'act3Scenarios', 'act4Activities', 'products'],
   },
 ];

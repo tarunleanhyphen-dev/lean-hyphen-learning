@@ -12,7 +12,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { catalogue } from '../../../../data/lessons/whereDoesMyMoneyGo.js';
 
-const LS_KEY = 'lh.makeover.act1.v7';
+const LS_KEY = 'lh.makeover.act1.v8';
 const BUDGET_BASE = 50000;
 const RESERVE_INIT = 2000;
 

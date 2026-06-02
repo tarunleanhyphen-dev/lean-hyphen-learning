@@ -18,6 +18,7 @@ import {
 import { StyleCoach } from './StyleCoach.jsx';
 import { Room3D, VIBES } from './Room3D.jsx';
 import { VibeMini } from './VibeMini.jsx';
+import { SortItem3D } from './SortItem3D.jsx';
 import { Canvas } from '@react-three/fiber';
 import { View } from '@react-three/drei';
 import { sounds, speak, cancelSpeech, isAudioReady, setSpeechCallbacks } from '../../../../utils/sounds.js';
@@ -614,33 +615,60 @@ const RULE_BLOCKS = [
   },
 ];
 
+/* Single-stage guided briefing — one rule at a time, then tracker, then CTA.
+ * Full-screen, responsive, no inner scrolling. */
+const RULES_TOTAL_PAGES = RULE_BLOCKS.length + 1; // +1 for tracker preview
+
 export function Screen2Rules({ mk }) {
   const s = scene('screen-2-rules');
-  const [step, setStep] = useState(0);
-  // step 0 = title, 1..4 = rule cards staggered, 5 = tracker preview, 6 = CTA
+  /* page = -1  → opening title
+     page = 0..3 → one rule card per page
+     page = 4    → tracker preview
+     page = 5    → final CTA (auto-shown when tracker exit-able) */
+  const [page, setPage] = useState(-1);
+  const [showCta, setShowCta] = useState(false);
 
-  // Auto-step every 2.6s until step 6 (CTA).
+  /* Auto-advance through the title beat to page 0. */
   useEffect(() => {
-    if (step >= 6) return undefined;
-    const delay = step === 0 ? 1500 : 2400;
-    const t = setTimeout(() => setStep((x) => x + 1), delay);
+    if (page !== -1) return undefined;
+    const t = setTimeout(() => setPage(0), 1600);
     return () => clearTimeout(t);
-  }, [step]);
+  }, [page]);
 
-  // Narrate the title + each rule as it appears.
+  /* Auto-advance each rule after its demo completes (different durations
+   * per rule based on demo length). The tracker preview holds until CTA. */
+  const ruleAutoDurations = { 'budget': 4200, 'reserve': 4500, 'needs-first': 5000, 'overbudget': 4500 };
   useEffect(() => {
-    if (step === 0) { say(s.intro); return; }
-    const block = RULE_BLOCKS[step - 1];
-    if (block?.voice) say(block.voice);
-    if (step === 5) say(s.outro);
-  }, [step, s.intro, s.outro]);
+    if (page < 0 || page >= RULE_BLOCKS.length) return undefined;
+    const r = RULE_BLOCKS[page];
+    const t = setTimeout(() => setPage(page + 1), ruleAutoDurations[r.id] || 4200);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
 
-  // Cancel speech on unmount.
+  /* Show the CTA shortly after the tracker preview lands. */
+  useEffect(() => {
+    if (page !== RULE_BLOCKS.length) return undefined;
+    const t = setTimeout(() => setShowCta(true), 3200);
+    return () => clearTimeout(t);
+  }, [page]);
+
+  /* Narrate the title + each rule + tracker outro as they appear. */
+  useEffect(() => {
+    cancelSpeech();
+    if (page === -1)                       say(s.intro);
+    else if (page < RULE_BLOCKS.length)    say(RULE_BLOCKS[page].voice);
+    else                                   say(s.outro);
+  }, [page, s.intro, s.outro]);
+
   useEffect(() => () => cancelSpeech(), []);
 
-  function jump() {
+  function jumpTo(p) { sfx('tap'); setPage(p); }
+  function next() { sfx('tap'); setPage((p) => Math.min(RULE_BLOCKS.length, p + 1)); }
+  function skipAll() {
     sfx('tap');
-    setStep(6);
+    setPage(RULE_BLOCKS.length);
+    setTimeout(() => setShowCta(true), 1500);
   }
 
   function go() {
@@ -649,106 +677,157 @@ export function Screen2Rules({ mk }) {
     mk.setScreen('screen-3-sort');
   }
 
+  const onTracker = page === RULE_BLOCKS.length;
+  const currentRule = page >= 0 && page < RULE_BLOCKS.length ? RULE_BLOCKS[page] : null;
+
   return (
-    <div className="rulesscreen">
-      <header className="rulesscreen__head">
-        <div className="rulesscreen__eyebrow">Scene 3 · Mission briefing</div>
-        <h1 className="rulesscreen__title">{s.intro}</h1>
-        <p className="rulesscreen__sub">{s.outro}</p>
-        {step < 6 && (
-          <button className="rulesscreen__skip" onClick={jump} aria-label="Skip ahead">
-            Skip ahead <ChevronRight size={12} />
-          </button>
+    <div className="briefing">
+      {/* ===== Header: scene chip + dots ===== */}
+      <header className="briefing__head">
+        <div className="briefing__chip">Scene 3 · Mission briefing</div>
+        <div className="briefing__dots">
+          {RULE_BLOCKS.map((r, i) => (
+            <button
+              key={r.id}
+              className={`briefing__dot ${page === i ? 'is-active' : ''} ${page > i ? 'is-done' : ''}`}
+              onClick={() => jumpTo(i)}
+              aria-label={`Rule ${i + 1}`}
+            />
+          ))}
+          <button
+            className={`briefing__dot briefing__dot--tracker ${onTracker ? 'is-active' : ''} ${page > RULE_BLOCKS.length - 1 ? 'is-done' : ''}`}
+            onClick={() => jumpTo(RULE_BLOCKS.length)}
+            aria-label="Tracker"
+          />
+        </div>
+        {page >= 0 && !showCta && (
+          <button className="briefing__skip" onClick={skipAll}>Skip ahead <ChevronRight size={12}/></button>
         )}
       </header>
 
-      <div className="rulesscreen__body">
-        <div className="rulesgrid">
-          {RULE_BLOCKS.map((r, i) => (
-            <RuleCard
-              key={r.id}
-              rule={r}
-              index={i}
-              visible={step >= i + 1}
-            />
-          ))}
-        </div>
+      {/* ===== Stage: one card at a time ===== */}
+      <main className="briefing__stage">
+        <AnimatePresence mode="wait">
+          {page === -1 && (
+            <motion.div
+              key="title"
+              className="briefing__titlecard"
+              initial={{ opacity: 0, y: 30, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.94 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 22 }}
+            >
+              <div className="briefing__eyebrow">Mission Briefing</div>
+              <h1 className="briefing__h1">{s.intro}</h1>
+              <p className="briefing__sub">A quick walkthrough of the four rules + a tour of your live Expense Tracker.</p>
+              <button className="briefing__begin" onClick={() => setPage(0)}>
+                Begin briefing <ChevronRight size={16} />
+              </button>
+            </motion.div>
+          )}
 
-        <AnimatePresence>
-          {step >= 5 && <TrackerPreview key="trk" />}
+          {currentRule && (
+            <RulePage key={currentRule.id} rule={currentRule} index={page} onNext={next} />
+          )}
+
+          {onTracker && (
+            <TrackerPage key="tracker" outro={s.outro} />
+          )}
         </AnimatePresence>
-      </div>
+      </main>
 
-      <div className="rulesscreen__footer">
+      {/* ===== Footer: persistent CTA when ready ===== */}
+      <footer className="briefing__foot">
         <AnimatePresence>
-          {step >= 6 && (
+          {showCta && (
             <motion.button
               key="cta"
-              className="cta cta--xl"
+              className="briefing__cta"
               onClick={go}
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              initial={{ opacity: 0, y: 30, scale: 0.92 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
               transition={{ type: 'spring', stiffness: 220, damping: 22 }}
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.97 }}
             >
-              <span className="cta__pulse" aria-hidden />
-              {s.cta} <ChevronRight size={20} />
+              <span className="briefing__cta-pulse" aria-hidden />
+              <span className="briefing__cta-label">{s.cta}</span>
+              <ChevronRight size={20} />
             </motion.button>
           )}
         </AnimatePresence>
-      </div>
+      </footer>
     </div>
   );
 }
 
-/* ------------------ Rule card with built-in demo ------------------ */
-function RuleCard({ rule, index, visible }) {
+/* ----- One rule page (icon + title + demo) ----- */
+function RulePage({ rule, index, onNext }) {
   return (
     <motion.div
-      className={`rulecard rulecard--${rule.id}`}
+      key={rule.id}
+      className={`rpage rpage--${rule.id}`}
       style={{ '--rule-accent': rule.accent }}
-      initial={{ opacity: 0, y: 32, scale: 0.94 }}
-      animate={visible ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 32, scale: 0.94 }}
+      initial={{ opacity: 0, y: 30, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -16, scale: 0.94 }}
       transition={{ type: 'spring', stiffness: 200, damping: 22 }}
     >
-      <div className="rulecard__halo" aria-hidden />
-      <div className="rulecard__step">Rule {index + 1}</div>
-      <div className="rulecard__row">
-        <RuleIcon rule={rule} visible={visible} />
-        <div className="rulecard__text">
-          <div className="rulecard__title">{rule.title}</div>
-          <div className="rulecard__sub">{rule.sub}</div>
-        </div>
+      <div className="rpage__halo" aria-hidden />
+      <div className="rpage__step">Rule {index + 1} of {RULE_BLOCKS.length}</div>
+      <div className="rpage__icon-wrap">
+        <div className="rpage__icon-halo" aria-hidden />
+        <motion.div
+          className="rpage__icon"
+          animate={{ y: [0, -8, 0], rotate: [-3, 3, -3] }}
+          transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
+        >
+          {rule.icon}
+        </motion.div>
       </div>
-      <div className="rulecard__demo">
-        {visible && (
-          <>
-            {rule.id === 'budget'     && <BudgetDemo />}
-            {rule.id === 'reserve'    && <ReserveDemo />}
-            {rule.id === 'needs-first'&& <NeedsFirstDemo />}
-            {rule.id === 'overbudget' && <OverbudgetDemo />}
-          </>
-        )}
+      <h2 className="rpage__title">{rule.title}</h2>
+      <p className="rpage__sub">{rule.sub}</p>
+      <div className="rpage__demo">
+        {rule.id === 'budget'     && <BudgetDemo />}
+        {rule.id === 'reserve'    && <ReserveDemo />}
+        {rule.id === 'needs-first'&& <NeedsFirstDemo />}
+        {rule.id === 'overbudget' && <OverbudgetDemo />}
       </div>
+      <button className="rpage__next" onClick={onNext}>
+        {index === RULE_BLOCKS.length - 1 ? 'Meet the Tracker' : 'Next rule'} <ChevronRight size={14} />
+      </button>
     </motion.div>
   );
 }
 
-/* Big animated emoji with depth shadow + halo — "3D-feeling" icon. */
-function RuleIcon({ rule, visible }) {
+/* ----- Tracker page (replaces the broken side-panel layout) ----- */
+function TrackerPage({ outro }) {
   return (
     <motion.div
-      className="ruleicon"
-      animate={visible ? {
-        y: [0, -6, 0],
-        rotate: [-3, 3, -3],
-      } : {}}
-      transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
+      key="tracker"
+      className="tpage"
+      initial={{ opacity: 0, y: 30, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -16, scale: 0.94 }}
+      transition={{ type: 'spring', stiffness: 200, damping: 22 }}
     >
-      <div className="ruleicon__halo" aria-hidden />
-      <div className="ruleicon__glyph">{rule.icon}</div>
+      <div className="tpage__col tpage__col--left">
+        <div className="tpage__eyebrow">Your live game companion</div>
+        <h2 className="tpage__title">Meet the Expense Tracker</h2>
+        <p className="tpage__sub">
+          {outro || "Watch your tracker update as you shop. It'll show you exactly where your money is going."}
+        </p>
+        <ul className="tpage__bullets">
+          <li><span className="tpage__bullet-dot" /> Real-time spent / remaining / reserve</li>
+          <li><span className="tpage__bullet-dot" /> Category breakdown across 5 buckets</li>
+          <li><span className="tpage__bullet-dot" /> Donut chart that fills as you spend</li>
+          <li><span className="tpage__bullet-dot" /> Warns the moment you cross budget</li>
+        </ul>
+      </div>
+      <div className="tpage__col tpage__col--right">
+        <TrackerPreview />
+      </div>
     </motion.div>
   );
 }
@@ -1008,33 +1087,81 @@ function DonutPreview({ liveSpent }) {
 }
 
 /* ============================================================
- * SCREEN 3 — Sort: drag into NEED / WANT bucket
+ * SCREEN 4 (user-facing) — Sort: NEED vs WANT mini-game
+ *
+ * Modern drag-and-drop game with:
+ *   - Cinematic intro showing animated NEED + WANT explainer
+ *   - Big animated buckets with depth, glow, hover pulse, particle burst
+ *   - Premium item card with drag + tap, throw-to-bucket animation
+ *   - Per-answer feedback toast (correct/incorrect/grey-area)
+ *   - Progress dots + "Item N of 14" counter
+ *   - Summary screen with Needs vs Wants totals, comparison bar,
+ *     personalised insight, then "Start Shopping →" CTA
  * ============================================================ */
+const SORT_INTRO_BEATS = [
+  { lines: ["Before you spend a single rupee — let's think."], dur: 3000, voice: "Before you spend a single rupee — let's think." },
+  { lines: ["Some things in your room are things you NEED.", "Others are things you WANT."], dur: 4500, voice: 'Some things in your room are things you need. Others are things you want.' },
+  { lines: ["Can you tell the difference?", 'Sort each item into the right bucket.'], dur: 3500, voice: "Can you tell the difference? Sort each item into the right bucket." },
+];
+
 export function Screen3Sort({ mk }) {
   const s = scene('screen-3-sort');
+  const [stage, setStage] = useState('intro');   // 'intro' | 'playing' | 'summary'
+  const [beatIdx, setBeatIdx] = useState(0);
   const [idx, setIdx] = useState(0);
   const [feedback, setFeedback] = useState(null);
   const [throwDir, setThrowDir] = useState(null); // 'need' | 'want' | null
+  const [burstAt, setBurstAt] = useState(null);   // 'need' | 'want' | null — for particle burst
+
   const item = sortItems[idx];
   const isDone = idx >= sortItems.length;
 
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-260, 260], [-14, 14]);
-  const needHi = useTransform(x, [-260, -60, 0], [1, 0.4, 0]);
-  const wantHi = useTransform(x, [0, 60, 260], [0, 0.4, 1]);
+  const dragGlowL = useTransform(x, [-260, -40, 0], [1, 0.3, 0]);
+  const dragGlowR = useTransform(x, [0, 40, 260], [0, 0.3, 1]);
 
+  /* ---------- Intro beat sequencing ---------- */
+  useEffect(() => {
+    if (stage !== 'intro') return undefined;
+    if (beatIdx >= SORT_INTRO_BEATS.length) {
+      setStage('playing');
+      return undefined;
+    }
+    const beat = SORT_INTRO_BEATS[beatIdx];
+    say(beat.voice);
+    const t = setTimeout(() => setBeatIdx((b) => b + 1), beat.dur);
+    return () => clearTimeout(t);
+  }, [stage, beatIdx]);
+
+  /* ---------- Transition to summary when all sorted ---------- */
+  useEffect(() => {
+    if (stage === 'playing' && isDone) {
+      cancelSpeech();
+      say(s.summaryHeading + ' ' + s.summaryOutro);
+      setStage('summary');
+    }
+  }, [stage, isDone, s.summaryHeading, s.summaryOutro]);
+
+  /* ---------- Cancel speech on unmount ---------- */
+  useEffect(() => () => cancelSpeech(), []);
+
+  /* ---------- Sort commit ---------- */
   function commit(choice) {
     if (feedback) return;
-    sfx(choice === item.correct ? 'ding' : 'tap');
+    const correct = choice === item.correct;
+    sfx(correct ? 'ding' : 'tap');
     mk.setSortAnswer(item.id, choice);
     setThrowDir(choice);
-    setFeedback({ choice, text: item.feedback[choice], isGrey: item.isGreyArea });
+    setBurstAt(choice);
+    setFeedback({ choice, text: item.feedback[choice], isGrey: item.isGreyArea, correct });
     setTimeout(() => {
       setFeedback(null);
       setThrowDir(null);
+      setBurstAt(null);
       x.set(0);
       setIdx((i) => i + 1);
-    }, 2000);
+    }, 1800);
   }
 
   function handleDragEnd(_, info) {
@@ -1044,126 +1171,268 @@ export function Screen3Sort({ mk }) {
     animate(x, 0, { type: 'spring', stiffness: 400, damping: 30 });
   }
 
-  if (isDone) {
-    const answers = mk.state.sortAnswers;
-    const needsValue = sortItems.reduce((s, it) => s + (answers[it.id] === 'need' ? it.price : 0), 0);
-    const wantsValue = sortItems.reduce((s, it) => s + (answers[it.id] === 'want' ? it.price : 0), 0);
+  /* ---------- Render: intro stage ---------- */
+  if (stage === 'intro') {
+    const beat = SORT_INTRO_BEATS[Math.min(beatIdx, SORT_INTRO_BEATS.length - 1)];
     return (
-      <>
-        <StyleCoach
-          lines={[s.summaryHeading, s.summaryOutro]}
-          name="Maya"
-          vibeId={mk.state.vibe}
-        />
-        <motion.div className="stage stage--bottom" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="stage__eyebrow">Sort complete</div>
-          <div className="sort-summary">
-            <SortSummaryRow label="Needs"  value={needsValue} color="#10B981" />
-            <SortSummaryRow label="Wants"  value={wantsValue} color="#8B5CF6" />
-          </div>
-          <button className="cta" onClick={() => { sfx('aha'); mk.setScreen('screen-4-shop'); }}>
-            {s.cta} <ChevronRight size={16} />
-          </button>
-        </motion.div>
-      </>
+      <div className="sortgame sortgame--intro">
+        <button className="sortgame__skipintro" onClick={() => { sfx('tap'); cancelSpeech(); setStage('playing'); }}>
+          Skip intro <ChevronRight size={12} />
+        </button>
+        <div className="sortgame__introdots">
+          {SORT_INTRO_BEATS.map((_, i) => (
+            <span key={i} className={`sortgame__dot ${i === beatIdx ? 'is-active' : ''} ${i < beatIdx ? 'is-done' : ''}`} />
+          ))}
+        </div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={beatIdx}
+            className="sortgame__introcard"
+            initial={{ opacity: 0, y: 24, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -16, scale: 0.96 }}
+            transition={{ type: 'spring', stiffness: 200, damping: 22 }}
+          >
+            {beat.lines.map((line, i) => (
+              <motion.div
+                key={i}
+                className="sortgame__introline"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 + i * 0.5 }}
+              >
+                {renderHighlightedLine(line)}
+              </motion.div>
+            ))}
+          </motion.div>
+        </AnimatePresence>
+      </div>
     );
   }
 
-  return (
-    <>
-      <StyleCoach
-        lines={[s.intro]}
-        name="Maya"
-        vibeId={mk.state.vibe}
-        autoAdvance
-      />
-      <div className="sort-arena">
-        <div className="sort-arena__buckets">
-          <motion.div className="bucket bucket--need" style={{ opacity: useTransform(needHi, [0, 1], [0.6, 1]) }}>
-            <div className="bucket__chip">⬅️ NEED</div>
-            <div className="bucket__hint">drag left for Need</div>
-          </motion.div>
-          <motion.div className="bucket bucket--want" style={{ opacity: useTransform(wantHi, [0, 1], [0.6, 1]) }}>
-            <div className="bucket__chip">WANT ➡️</div>
-            <div className="bucket__hint">drag right for Want</div>
-          </motion.div>
-        </div>
+  /* ---------- Render: summary stage ---------- */
+  if (stage === 'summary') {
+    return <SortSummary mk={mk} s={s} />;
+  }
 
-        <div className="sort-arena__center">
-          <div className="sort-counter">{idx + 1} / {sortItems.length}</div>
-          {/* Draggable card holds only visual content — buttons sit below
-              as siblings so framer-motion drag never swallows their clicks. */}
+  /* ---------- Render: playing stage ---------- */
+  return (
+    <div className="sortgame sortgame--play">
+      <header className="sortgame__head">
+        <div className="sortgame__chip">Scene 4 · Sort it out</div>
+        <div className="sortgame__counter">Item {idx + 1} of {sortItems.length}</div>
+        <div className="sortgame__progress" aria-hidden>
+          {sortItems.map((_, i) => (
+            <span key={i} className={`sortgame__pdot ${i < idx ? 'is-done' : ''} ${i === idx ? 'is-active' : ''}`} />
+          ))}
+        </div>
+      </header>
+
+      <main className="sortgame__arena">
+        <Bucket kind="need" glow={dragGlowL} burst={burstAt === 'need'} onClick={() => commit('need')} disabled={!!feedback} />
+
+        <div className="sortgame__center">
           <AnimatePresence mode="wait">
             <motion.div
               key={item.id}
-              className="sortcard"
+              className="sortcard-pro"
               drag={feedback ? false : 'x'}
               dragConstraints={{ left: 0, right: 0 }}
               dragElastic={0.6}
               onDragEnd={handleDragEnd}
               style={{ x, rotate }}
-              initial={{ opacity: 0, y: 24, scale: 0.94 }}
+              initial={{ opacity: 0, y: 30, scale: 0.92 }}
               animate={throwDir
-                ? { x: throwDir === 'need' ? -700 : 700, opacity: 0, rotate: throwDir === 'need' ? -25 : 25, transition: { duration: 0.5 } }
+                ? { x: throwDir === 'need' ? -800 : 800, opacity: 0, rotate: throwDir === 'need' ? -30 : 30, scale: 0.8, transition: { duration: 0.55 } }
                 : { opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -24, scale: 0.94 }}
-              transition={{ type: 'spring', stiffness: 220, damping: 22 }}
+              exit={{ opacity: 0, y: -16, scale: 0.94 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 22 }}
             >
-              <div className="sortcard__emoji">{item.icon}</div>
-              <div className="sortcard__name">{item.name}</div>
-              <div className="sortcard__price">{fmt(item.price)}</div>
-              {item.isGreyArea && <div className="sortcard__grey">grey area · choose your reasoning</div>}
-              <div className="sortcard__hint">drag left / right · or use the buttons below</div>
+              <div className="sortcard-pro__halo" aria-hidden />
+              <div className="sortcard-pro__preview">
+                <SortItem3D itemId={item.id} />
+              </div>
+              <div className="sortcard-pro__name">{item.name}</div>
+              <div className="sortcard-pro__price">{fmt(item.price)}</div>
+              {item.isGreyArea && (
+                <div className="sortcard-pro__grey">🟡 grey area · context matters</div>
+              )}
+              <div className="sortcard-pro__hint">drag a side · or tap a bucket</div>
             </motion.div>
           </AnimatePresence>
-          <div className="sortcard__tap">
-            <button
-              type="button"
-              className="tapbtn tapbtn--need"
-              onClick={() => commit('need')}
-              disabled={!!feedback}
-            >
-              <Check size={16} /> NEED
-            </button>
-            <button
-              type="button"
-              className="tapbtn tapbtn--want"
-              onClick={() => commit('want')}
-              disabled={!!feedback}
-            >
-              <Sparkles size={16} /> WANT
-            </button>
-          </div>
         </div>
-      </div>
+
+        <Bucket kind="want" glow={dragGlowR} burst={burstAt === 'want'} onClick={() => commit('want')} disabled={!!feedback} />
+      </main>
+
+      {/* Always-visible compact tracker chip */}
+      <aside className="sortgame__trackerchip">
+        <div className="sortgame__trackerchip-label">Spent</div>
+        <div className="sortgame__trackerchip-num">₹0</div>
+        <div className="sortgame__trackerchip-meta">of ₹48,000 spendable</div>
+      </aside>
 
       <AnimatePresence>
         {feedback && (
           <motion.div
-            className={`toast ${feedback.isGrey ? 'toast--grey' : feedback.choice === item?.correct ? 'toast--good' : 'toast--info'}`}
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 16 }}
+            className={`sortgame__feedback sortgame__feedback--${feedback.isGrey ? 'grey' : feedback.correct ? 'good' : 'info'}`}
+            initial={{ opacity: 0, y: 20, scale: 0.94 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 16, scale: 0.94 }}
+            transition={{ type: 'spring', stiffness: 200, damping: 22 }}
           >
-            {feedback.text}
+            <div className="sortgame__feedback-icon">
+              {feedback.isGrey ? '🟡' : feedback.correct ? '✨' : '💭'}
+            </div>
+            <div>{feedback.text}</div>
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+/* Render line with NEED/WANT visually emphasized. */
+function renderHighlightedLine(line) {
+  const parts = line.split(/(NEED|WANT)/g);
+  return (
+    <>
+      {parts.map((p, i) => {
+        if (p === 'NEED') return <span key={i} className="hi hi--need">NEED</span>;
+        if (p === 'WANT') return <span key={i} className="hi hi--want">WANT</span>;
+        return <span key={i}>{p}</span>;
+      })}
     </>
   );
 }
 
-function SortSummaryRow({ label, value, color }) {
+/* ----- Big animated bucket ----- */
+function Bucket({ kind, glow, burst, onClick, disabled }) {
+  const label = kind === 'need' ? 'NEED' : 'WANT';
+  const arrow = kind === 'need' ? '⬅️' : '➡️';
+  const dotPositions = useMemo(() =>
+    Array.from({ length: 14 }, (_, i) => ({
+      x: (Math.random() - 0.5) * 240,
+      y: (Math.random() - 0.5) * 240,
+      d: Math.random() * 0.15,
+    })),
+  [kind]); // re-seed per bucket
+  return (
+    <motion.button
+      type="button"
+      className={`bucket-pro bucket-pro--${kind}`}
+      onClick={onClick}
+      disabled={disabled}
+      whileHover={!disabled ? { scale: 1.04, y: -4 } : {}}
+      whileTap={!disabled ? { scale: 0.96 } : {}}
+      style={{
+        boxShadow: kind === 'need'
+          ? `0 0 0 ${0}px rgba(16, 185, 129, 0.4)`
+          : `0 0 0 ${0}px rgba(139, 92, 246, 0.4)`,
+      }}
+    >
+      {/* Glow ring driven by drag proximity */}
+      <motion.div
+        className="bucket-pro__glow"
+        style={{ opacity: glow }}
+        aria-hidden
+      />
+      <motion.div className="bucket-pro__halo" animate={{ scale: [1, 1.12, 1] }} transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }} aria-hidden />
+
+      <div className="bucket-pro__arrow">{arrow}</div>
+      <div className="bucket-pro__label">{label}</div>
+      <div className="bucket-pro__sub">{kind === 'need' ? 'essential, must-have' : 'fun, optional'}</div>
+
+      {/* Particle burst when an item lands here */}
+      <AnimatePresence>
+        {burst && (
+          <motion.div className="bucket-pro__burst" aria-hidden>
+            {dotPositions.map((p, i) => (
+              <motion.span
+                key={i}
+                className="bucket-pro__particle"
+                initial={{ x: 0, y: 0, opacity: 1, scale: 0.6 }}
+                animate={{ x: p.x, y: p.y, opacity: 0, scale: 1 }}
+                transition={{ duration: 0.8, delay: p.d, ease: [0.16, 1, 0.3, 1] }}
+              />
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.button>
+  );
+}
+
+/* ----- Summary screen with totals + insight + CTA ----- */
+function SortSummary({ mk, s }) {
+  const answers = mk.state.sortAnswers;
+  const needsValue = sortItems.reduce((acc, it) => acc + (answers[it.id] === 'need' ? it.price : 0), 0);
+  const wantsValue = sortItems.reduce((acc, it) => acc + (answers[it.id] === 'want' ? it.price : 0), 0);
+  const total = Math.max(1, needsValue + wantsValue);
+  const needsPct = Math.round((needsValue / total) * 100);
+  const wantsPct = 100 - needsPct;
+
+  return (
+    <div className="sortsummary">
+      <header className="sortsummary__head">
+        <div className="sortsummary__chip">Sort complete</div>
+        <h1 className="sortsummary__title">{s.summaryHeading}</h1>
+      </header>
+
+      <div className="sortsummary__hero">
+        <SortSummaryHero label="NEEDS" value={needsValue} color="#10B981" />
+        <SortSummaryHero label="WANTS" value={wantsValue} color="#8B5CF6" />
+      </div>
+
+      <div className="sortsummary__bar" aria-hidden>
+        <motion.div
+          className="sortsummary__bar-need"
+          initial={{ width: 0 }}
+          animate={{ width: `${needsPct}%` }}
+          transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
+        />
+        <motion.div
+          className="sortsummary__bar-want"
+          initial={{ width: 0 }}
+          animate={{ width: `${wantsPct}%` }}
+          transition={{ duration: 1.1, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+        />
+        <div className="sortsummary__bar-tick" style={{ left: `${needsPct}%` }} />
+        <div className="sortsummary__bar-need-pct">{needsPct}% Needs</div>
+        <div className="sortsummary__bar-want-pct">{wantsPct}% Wants</div>
+      </div>
+
+      <div className="sortsummary__insight">
+        <Sparkles size={14} /> {s.summaryOutro}
+      </div>
+
+      <motion.button
+        className="sortsummary__cta"
+        onClick={() => { sfx('reveal'); cancelSpeech(); mk.setScreen('screen-4-shop'); }}
+        whileHover={{ scale: 1.04 }}
+        whileTap={{ scale: 0.96 }}
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1.0 }}
+      >
+        <span className="sortsummary__cta-pulse" aria-hidden />
+        Start Shopping <ChevronRight size={18} />
+      </motion.button>
+    </div>
+  );
+}
+
+function SortSummaryHero({ label, value, color }) {
   const v = useMotionValue(0);
   const text = useTransform(v, (n) => fmt(n));
   useEffect(() => {
-    const c = animate(v, value, { duration: 0.8, ease: 'easeOut' });
+    const c = animate(v, value, { duration: 1.4, ease: [0.16, 1, 0.3, 1] });
     return () => c.stop();
   }, [value]);
   return (
-    <div className="sort-summary__row">
-      <span className="sort-summary__chip" style={{ background: color }}>{label}</span>
-      <motion.strong>{text}</motion.strong>
+    <div className="sortsummary__col" style={{ '--col-color': color }}>
+      <div className="sortsummary__col-chip">{label}</div>
+      <motion.div className="sortsummary__col-num">{text}</motion.div>
     </div>
   );
 }

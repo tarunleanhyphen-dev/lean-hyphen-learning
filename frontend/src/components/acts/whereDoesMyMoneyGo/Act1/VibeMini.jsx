@@ -447,7 +447,8 @@ export function VibeMini({ vibeId, hovered = false, selected = false }) {
   const Comp = VIBE_COMPONENTS[vibeId] || CosyMini;
   return (
     <>
-      <PerspectiveCamera makeDefault position={[2.6, 2.2, 3.0]} fov={36} />
+      {/* Wider, slightly lower camera for a real-estate-photo feel */}
+      <PerspectiveCamera makeDefault position={[2.4, 1.8, 3.2]} fov={42} />
       <ambientLight intensity={0.55} />
       <directionalLight position={[3, 5, 4]} intensity={0.9} />
       <group ref={ref}>

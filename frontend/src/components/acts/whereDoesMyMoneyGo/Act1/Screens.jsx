@@ -16,7 +16,7 @@ import {
   lesson, sortItems, catalogue, surpriseEvents,
 } from '../../../../data/lessons/whereDoesMyMoneyGo.js';
 import { StyleCoach } from './StyleCoach.jsx';
-import { VIBES } from './Room3D.jsx';
+import { Room3D, VIBES } from './Room3D.jsx';
 import { sounds } from '../../../../utils/sounds.js';
 
 /* Tiny safe-call wrapper so a missing/muted audio context never throws. */
@@ -26,108 +26,430 @@ function fmt(n) { return '₹' + Number(n || 0).toLocaleString('en-IN'); }
 function scene(id) { return lesson.acts.act1.scenes.find((s) => s.id === id); }
 
 /* ============================================================
- * SCREEN 1 — Intro + Vibe Picker
- * StyleCoach narrates. Once narration ends, vibe wheel appears.
+ * SCREEN 1 — Cinematic split-screen intro.
+ *
+ * Left half  : the 3D bedroom transforms from empty to fully dressed as
+ *              items spawn in on a staggered timeline.
+ * Right half : a beat-sequenced rail that scrolls through five moments —
+ *              big-news narration, animated ₹50,000 budget reveal, mini
+ *              trade-off demo, mystery envelope, and a premium "Let's Go"
+ *              CTA. Clicking the CTA pops the vibe picker modal.
+ *
+ * Beats auto-advance on a timer (with a Skip Intro button on the panel
+ * for impatient learners). Items spawn in the 3D room independently.
  * ============================================================ */
+const SCENE1_PREVIEW_ITEMS = [
+  { id: 'bed-budget',      delay: 600 },
+  { id: 'wardrobe-budget', delay: 1200 },
+  { id: 'study-desk',      delay: 1800 },
+  { id: 'basic-chair',     delay: 2300 },
+  { id: 'curtains',        delay: 2900 },
+  { id: 'desk-lamp',       delay: 3400 },
+  { id: 'posters',         delay: 3900 },
+  { id: 'bookshelf',       delay: 4400 },
+  { id: 'led-strips',      delay: 5000 },
+];
+
+const SCENE1_BEATS = [
+  {
+    id: 'big-news',
+    durationMs: 6500,
+    lines: [
+      "Your parents just gave you some big news.",
+      "They're renovating the house — and YOUR room is getting a complete makeover.",
+    ],
+    visual: null,
+  },
+  {
+    id: 'budget',
+    durationMs: 5500,
+    lines: [
+      "The budget? ₹50,000.",
+      "All yours. One time. No top-ups.",
+    ],
+    visual: 'budget',
+  },
+  {
+    id: 'tradeoff',
+    durationMs: 7000,
+    lines: [
+      "But here's the catch — you have to plan every single rupee.",
+      "Spend too much on one thing and you won't have enough for something else.",
+    ],
+    visual: 'tradeoff',
+  },
+  {
+    id: 'envelope',
+    durationMs: 4500,
+    lines: [
+      "And life has a few surprises waiting for you too.",
+    ],
+    visual: 'envelope',
+  },
+  {
+    id: 'cta',
+    durationMs: null,            // last beat — wait for click
+    lines: [
+      "Ready to design your dream bedroom — on a budget?",
+    ],
+    visual: 'cta',
+  },
+];
+
 export function Screen1Intro({ mk }) {
   const s = scene('screen-1-intro');
-  const [revealVibes, setRevealVibes] = useState(false);
+  const [beatIdx, setBeatIdx] = useState(0);
+  const [previewIds, setPreviewIds] = useState([]);
+  const [vibePicker, setVibePicker] = useState(false);
+  const beat = SCENE1_BEATS[beatIdx];
+
+  /* Auto-advance through beats. Last beat has duration=null so it holds. */
+  useEffect(() => {
+    if (!beat?.durationMs) return undefined;
+    const t = setTimeout(() => setBeatIdx((i) => Math.min(SCENE1_BEATS.length - 1, i + 1)), beat.durationMs);
+    return () => clearTimeout(t);
+  }, [beatIdx, beat]);
+
+  /* Stagger furniture into the room as the intro plays. */
+  useEffect(() => {
+    const timers = SCENE1_PREVIEW_ITEMS.map((it) =>
+      setTimeout(() => {
+        setPreviewIds((ids) => (ids.includes(it.id) ? ids : [...ids, it.id]));
+        sfx('tap');
+      }, it.delay),
+    );
+    return () => timers.forEach(clearTimeout);
+  }, []);
+
+  function skipIntro() {
+    sfx('click');
+    setBeatIdx(SCENE1_BEATS.length - 1);
+    setPreviewIds(SCENE1_PREVIEW_ITEMS.map((it) => it.id));
+  }
+
+  function openVibePicker() {
+    sfx('reveal');
+    setVibePicker(true);
+  }
+
+  function chooseVibe(v) {
+    sfx('ding');
+    mk.pickVibe(v.id);
+    setTimeout(() => mk.setScreen('screen-2-rules'), 700);
+  }
 
   return (
-    <>
-      <StyleCoach
-        lines={s.narration}
-        name="Maya"
-        vibeId="default"
-        onDone={() => setRevealVibes(true)}
-      />
+    <div className="scene1">
+      {/* LEFT — cinematic 3D room */}
+      <div className="scene1__room">
+        <Room3D
+          vibeId="cosy"
+          purchasedIds={previewIds}
+          shot="hero"
+          orbit
+          showCharacter
+        />
+        <div className="scene1__room-grad" aria-hidden />
+        {/* Floating items-counter overlay */}
+        <motion.div
+          className="scene1__roomchip"
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4, type: 'spring', stiffness: 220, damping: 22 }}
+        >
+          <span className="scene1__roomchip-dot" />
+          {previewIds.length} item{previewIds.length === 1 ? '' : 's'} placed
+        </motion.div>
+      </div>
 
-      {/* Cinematic hero title — fades out once vibe picker appears. */}
-      <AnimatePresence>
-        {!revealVibes && (
-          <motion.div
-            className="herotitle"
-            initial={{ opacity: 0, scale: 1.08 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.96 }}
-            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-          >
+      {/* RIGHT — narration + visual rail */}
+      <div className="scene1__panel">
+        <div className="scene1__head">
+          <div className="scene1__eyebrow">Lesson 2 · Act 1</div>
+          <button className="scene1__skip" onClick={skipIntro} aria-label="Skip intro">
+            Skip intro <ChevronRight size={12} />
+          </button>
+        </div>
+        <h1 className="scene1__title">
+          <span className="scene1__title-gradient">Dream Bedroom</span>
+          <span className="scene1__title-plain">Makeover</span>
+        </h1>
+
+        {/* Beat dots */}
+        <div className="scene1__beats">
+          {SCENE1_BEATS.map((b, i) => (
+            <button
+              key={b.id}
+              className={`scene1__beat ${i === beatIdx ? 'is-active' : ''} ${i < beatIdx ? 'is-done' : ''}`}
+              onClick={() => setBeatIdx(i)}
+              aria-label={`Go to beat ${i + 1}`}
+            />
+          ))}
+        </div>
+
+        {/* Narration block */}
+        <div className="scene1__narr">
+          <AnimatePresence mode="wait">
             <motion.div
-              className="herotitle__eyebrow"
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.6 }}
-            >
-              Lesson 2 · Act 1
-            </motion.div>
-            <motion.h1
-              className="herotitle__main"
-              initial={{ opacity: 0, y: 24, filter: 'blur(8px)' }}
-              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-              transition={{ delay: 0.45, duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
-            >
-              Dream Bedroom Makeover
-            </motion.h1>
-            <motion.div
-              className="herotitle__sub"
+              key={beat.id}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.1, duration: 0.6 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.32 }}
             >
-              ₹50,000 · One room · Every rupee counts
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {revealVibes && (
-          <motion.div
-            className="stage stage--bottom"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ type: 'spring', stiffness: 180, damping: 22 }}
-          >
-            <div className="stage__eyebrow">Step 1 of 6</div>
-            <h1 className="stage__title">{s.vibePrompt}</h1>
-            <div className="vibewheel">
-              {s.vibes.map((v, i) => (
-                <motion.button
-                  key={v.id}
-                  className="vibecard"
-                  style={{ '--vibe-accent': v.accent }}
-                  initial={{ opacity: 0, y: 24, rotateY: -8 }}
-                  animate={{ opacity: 1, y: 0, rotateY: 0 }}
-                  transition={{ delay: i * 0.08, type: 'spring', stiffness: 220, damping: 18 }}
-                  whileHover={{ y: -8, rotateY: 6, scale: 1.04 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => {
-                    sfx('ding');
-                    mk.pickVibe(v.id);
-                    setTimeout(() => mk.setScreen('screen-2-rules'), 700);
-                  }}
-                >
-                  <div className="vibecard__halo" />
-                  <div className="vibecard__emoji">{v.emoji}</div>
-                  <div className="vibecard__label">{v.label}</div>
-                  <div className="vibecard__sub">{v.sub}</div>
-                </motion.button>
+              {beat.lines.map((line, i) => (
+                <Typewriter key={i} text={line} delayMs={i * 950} />
               ))}
-            </div>
-            {mk.state.vibe && (
-              <motion.div
-                className="vibe-confirm"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-              >
-                <Check size={14} /> Style locked in. Setting your room up…
-              </motion.div>
-            )}
-          </motion.div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* Visual rail — morphs per beat */}
+        <div className="scene1__visual">
+          <AnimatePresence mode="wait">
+            {beat.visual === 'budget'   && <BudgetReveal key="b" />}
+            {beat.visual === 'tradeoff' && <TradeoffDemo key="t" />}
+            {beat.visual === 'envelope' && <SecretEnvelope key="e" />}
+            {beat.visual === 'cta'      && <LetsGoCTA key="c" onClick={openVibePicker} />}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      {/* Vibe picker — appears after CTA */}
+      <AnimatePresence>
+        {vibePicker && (
+          <VibePickerOverlay
+            vibes={s.vibes}
+            prompt={s.vibePrompt}
+            onPick={chooseVibe}
+            onClose={() => setVibePicker(false)}
+            pickedVibe={mk.state.vibe}
+          />
         )}
       </AnimatePresence>
-    </>
+    </div>
+  );
+}
+
+/* -------- Scene 1 sub-components -------- */
+
+function Typewriter({ text, delayMs = 0, speedMs = 22 }) {
+  const [shown, setShown] = useState('');
+  useEffect(() => {
+    let i = 0;
+    setShown('');
+    const startTimer = setTimeout(() => {
+      const iv = setInterval(() => {
+        i += 2;
+        if (i >= text.length) { setShown(text); clearInterval(iv); }
+        else setShown(text.slice(0, i));
+      }, speedMs);
+    }, delayMs);
+    return () => clearTimeout(startTimer);
+  }, [text, delayMs, speedMs]);
+  return <p className="scene1__line">{shown}</p>;
+}
+
+function BudgetReveal() {
+  const v = useMotionValue(0);
+  const text = useTransform(v, (n) => '₹' + Math.round(n).toLocaleString('en-IN'));
+  useEffect(() => {
+    const c = animate(v, 50000, { duration: 1.7, ease: [0.16, 1, 0.3, 1] });
+    setTimeout(() => sfx('reveal'), 100);
+    return () => c.stop();
+  }, []);
+  return (
+    <motion.div
+      className="budgetreveal"
+      initial={{ opacity: 0, scale: 0.92, y: 16 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.92, y: -16 }}
+      transition={{ type: 'spring', stiffness: 200, damping: 22 }}
+    >
+      <div className="budgetreveal__halo" aria-hidden />
+      <div className="budgetreveal__label">Your budget</div>
+      <motion.div className="budgetreveal__num">{text}</motion.div>
+      <div className="budgetreveal__sub">All yours · One time · No top-ups</div>
+    </motion.div>
+  );
+}
+
+function TradeoffDemo() {
+  const [stage, setStage] = useState(0);
+  // Animated budget value
+  const budget = useMotionValue(50000);
+  const budgetText = useTransform(budget, (n) => '₹' + Math.round(n).toLocaleString('en-IN'));
+
+  useEffect(() => {
+    const timers = [
+      setTimeout(() => { setStage(1); sfx('tap'); }, 600),
+      setTimeout(() => { setStage(2); sfx('add'); animate(budget, 28000, { duration: 1.2 }); }, 1800),
+      setTimeout(() => { setStage(3); sfx('alert'); }, 3300),
+    ];
+    return () => timers.forEach(clearTimeout);
+  }, [budget]);
+
+  const items = [
+    { id: 'bed-pre', name: 'Premium Bed', price: 22000, icon: '🛏️', highlighted: stage >= 1, picked: stage >= 2 },
+    { id: 'desk',    name: 'Study Desk',  price:  7500, icon: '🗄️', faded: stage >= 3 },
+    { id: 'lamp',    name: 'Desk Lamp',   price:   800, icon: '💡', faded: stage >= 3 },
+    { id: 'speaker', name: 'Speaker',     price:  2500, icon: '🔊', faded: stage >= 3 },
+  ];
+
+  return (
+    <motion.div
+      className="tradeoff"
+      initial={{ opacity: 0, scale: 0.94 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.94 }}
+      transition={{ type: 'spring', stiffness: 200, damping: 22 }}
+    >
+      <div className="tradeoff__label">Spending preview</div>
+      <div className="tradeoff__items">
+        {items.map((it) => (
+          <motion.div
+            key={it.id}
+            className={`tradeoffitem ${it.highlighted ? 'is-highlighted' : ''} ${it.picked ? 'is-picked' : ''} ${it.faded ? 'is-faded' : ''}`}
+            animate={it.faded ? { x: [0, -4, 4, -2, 2, 0] } : {}}
+            transition={{ duration: 0.35 }}
+          >
+            <div className="tradeoffitem__emoji">{it.icon}</div>
+            <div className="tradeoffitem__name">{it.name}</div>
+            <div className="tradeoffitem__price">₹{it.price.toLocaleString('en-IN')}</div>
+            {it.picked && <div className="tradeoffitem__badge">✓ picked</div>}
+            {it.faded && <div className="tradeoffitem__x">✕</div>}
+          </motion.div>
+        ))}
+      </div>
+      <div className="tradeoff__budgetbar">
+        <div className="tradeoff__budgetbar-label">Remaining</div>
+        <motion.div className="tradeoff__budgetbar-val">{budgetText}</motion.div>
+        <div className="tradeoff__budgetbar-track">
+          <motion.div
+            className="tradeoff__budgetbar-fill"
+            initial={{ width: '100%' }}
+            animate={{ width: stage >= 2 ? '56%' : '100%' }}
+            transition={{ duration: 1.0, ease: 'easeOut' }}
+          />
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function SecretEnvelope() {
+  return (
+    <motion.div
+      className="envelopeshow"
+      initial={{ opacity: 0, scale: 0.85, y: 24 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.85, y: -24 }}
+      transition={{ type: 'spring', stiffness: 200, damping: 22 }}
+    >
+      <motion.div
+        className="envelopeshow__halo"
+        animate={{ scale: [1, 1.18, 1], opacity: [0.5, 0.85, 0.5] }}
+        transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      <motion.div
+        className="envelopeshow__icon"
+        animate={{ y: [0, -8, 0], rotate: [-2, 2, -2] }}
+        transition={{ duration: 3.0, repeat: Infinity, ease: 'easeInOut' }}
+      >
+        ✉️
+        <div className="envelopeshow__seal">★</div>
+      </motion.div>
+      <div className="envelopeshow__label">a surprise is waiting…</div>
+      <div className="envelopeshow__sparks" aria-hidden>
+        {[0, 1, 2, 3, 4, 5].map((i) => (
+          <motion.span
+            key={i}
+            className="envelopeshow__spark"
+            style={{ left: `${15 + i * 14}%` }}
+            animate={{ y: [0, -30, 0], opacity: [0, 1, 0] }}
+            transition={{ duration: 2.2, delay: i * 0.18, repeat: Infinity, ease: 'easeOut' }}
+          />
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
+function LetsGoCTA({ onClick }) {
+  return (
+    <motion.div
+      className="letsgo"
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -16 }}
+      transition={{ type: 'spring', stiffness: 200, damping: 22 }}
+    >
+      <motion.button
+        className="letsgo__btn"
+        onClick={onClick}
+        whileHover={{ scale: 1.04 }}
+        whileTap={{ scale: 0.96 }}
+        aria-label="Start designing your dream bedroom"
+      >
+        <span className="letsgo__pulse" aria-hidden />
+        <span className="letsgo__label">Let's Go</span>
+        <motion.span
+          className="letsgo__arrow"
+          animate={{ x: [0, 4, 0] }}
+          transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+        >→</motion.span>
+      </motion.button>
+      <div className="letsgo__hint">click to pick your style</div>
+    </motion.div>
+  );
+}
+
+function VibePickerOverlay({ vibes, prompt, onPick, onClose, pickedVibe }) {
+  return (
+    <motion.div
+      className="vibemodal-bg"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+    >
+      <motion.div
+        className="vibemodal"
+        initial={{ scale: 0.85, opacity: 0, y: 24 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.85, opacity: 0 }}
+        transition={{ type: 'spring', stiffness: 220, damping: 22 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="vibemodal__eyebrow">Choose your style</div>
+        <h2 className="vibemodal__title">{prompt}</h2>
+        <div className="vibewheel">
+          {vibes.map((v, i) => (
+            <motion.button
+              key={v.id}
+              className="vibecard"
+              style={{ '--vibe-accent': v.accent }}
+              initial={{ opacity: 0, y: 24, rotateY: -8 }}
+              animate={{ opacity: 1, y: 0, rotateY: 0 }}
+              transition={{ delay: i * 0.08, type: 'spring', stiffness: 220, damping: 18 }}
+              whileHover={{ y: -6, scale: 1.04 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => onPick(v)}
+            >
+              <div className="vibecard__halo" />
+              <div className="vibecard__emoji">{v.emoji}</div>
+              <div className="vibecard__label">{v.label}</div>
+              <div className="vibecard__sub">{v.sub}</div>
+            </motion.button>
+          ))}
+        </div>
+        {pickedVibe && (
+          <motion.div className="vibe-confirm" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <Check size={14} /> Style locked in. Setting your room up…
+          </motion.div>
+        )}
+      </motion.div>
+    </motion.div>
   );
 }
 

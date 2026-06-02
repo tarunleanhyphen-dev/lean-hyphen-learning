@@ -170,30 +170,38 @@ export default function WhereDoesMyMoneyGoAct1() {
     alert("You're done with Act 1! Act 2 is up next (coming soon).");
   }
 
-  return (
-    <div className={`wmg wmg--${mk.state.vibe || 'cosy'}`} style={{ '--accent': vibe.accent }}>
-      <div className="wmg__bg">
-        <Room3D
-          vibeId={mk.state.vibe || 'cosy'}
-          purchasedIds={purchasedIds}
-          shot={shot}
-          orbit={orbit}
-          showCharacter
-          speaking={false}
-        />
-        <div className="wmg__vignette" />
-      </div>
+  // Scene 1 owns its own split-screen layout (room left, panel right) and
+  // shouldn't be covered by the global background room or status bars.
+  const isScene1 = mk.state.screen === 'screen-1-intro';
 
-      <SceneStatusBar
-        screenId={mk.state.screen}
-        accent={vibe.accent}
-        music={musicOn}
-        onToggleMusic={handleToggleMusic}
-      />
+  return (
+    <div className={`wmg wmg--${mk.state.vibe || 'cosy'} ${isScene1 ? 'wmg--scene1' : ''}`} style={{ '--accent': vibe.accent }}>
+      {!isScene1 && (
+        <div className="wmg__bg">
+          <Room3D
+            vibeId={mk.state.vibe || 'cosy'}
+            purchasedIds={purchasedIds}
+            shot={shot}
+            orbit={orbit}
+            showCharacter
+            speaking={false}
+          />
+          <div className="wmg__vignette" />
+        </div>
+      )}
+
+      {!isScene1 && (
+        <SceneStatusBar
+          screenId={mk.state.screen}
+          accent={vibe.accent}
+          music={musicOn}
+          onToggleMusic={handleToggleMusic}
+        />
+      )}
 
       {showHud && <TopHUD mk={mk} accent={vibe.accent} />}
 
-      <main className="wmg__main">
+      <main className={`wmg__main ${isScene1 ? 'wmg__main--scene1' : ''}`}>
         <AnimatePresence mode="wait">
           <motion.div
             key={mk.state.screen}

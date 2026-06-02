@@ -283,7 +283,7 @@ export default function WhereDoesMyMoneyGoAct1() {
             <div className="audiocard__icon"><Music2 size={20} /></div>
             <div className="audiocard__body">
               <div className="audiocard__title">Hear the narrator?</div>
-              <div className="audiocard__sub">Maya guides you through the makeover. Pick voice-only for narration without music, or full audio with lo-fi underneath.</div>
+              <div className="audiocard__sub">Aarav guides you through the makeover. Pick voice-only for narration without music, or full audio with lo-fi underneath.</div>
             </div>
             <div className="audiocard__actions">
               <button className="audiocard__btn audiocard__btn--ghost" onClick={handleSkipAudio} aria-label="Silent">

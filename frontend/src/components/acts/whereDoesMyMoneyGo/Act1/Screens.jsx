@@ -2102,7 +2102,7 @@ export function Screen5Events({ mk }) {
       <>
         <StyleCoach
           lines={[s.intro, s.envelopeLine]}
-          name="Maya"
+          name="Aarav"
           vibeId={mk.state.vibe}
           onDone={() => { /* user opens the envelope themselves */ }}
         />
@@ -2132,7 +2132,7 @@ export function Screen5Events({ mk }) {
     const ev = surpriseEvents.fixedEvent;
     return (
       <>
-        <StyleCoach lines={[ev.text]} name="Maya" vibeId={mk.state.vibe} autoAdvance />
+        <StyleCoach lines={[ev.text]} name="Aarav" vibeId={mk.state.vibe} autoAdvance />
         <EventStage event={ev} kind="bad" onPick={(c) => handlePick('fixed', c)} />
         <ConsequenceModal cons={showConsequence} onClose={dismissConsequence} />
       </>
@@ -2142,7 +2142,7 @@ export function Screen5Events({ mk }) {
   if (stage === 'spin') {
     return (
       <>
-        <StyleCoach lines={['Another twist is on the way…']} name="Maya" vibeId={mk.state.vibe} autoAdvance />
+        <StyleCoach lines={['Another twist is on the way…']} name="Aarav" vibeId={mk.state.vibe} autoAdvance />
         {!state.randomEvent ? (
           <motion.div className="wheel" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             <motion.div
@@ -2265,7 +2265,7 @@ export function Screen6Snapshot({ mk, onComplete }) {
 
   return (
     <>
-      <StyleCoach lines={[s.intro]} name="Maya" vibeId={mk.state.vibe} autoAdvance />
+      <StyleCoach lines={[s.intro]} name="Aarav" vibeId={mk.state.vibe} autoAdvance />
       <ConfettiBurst accent={VIBES[mk.state.vibe]?.accent || '#10B981'} />
       <motion.div
         className="stage stage--bottom snapshot"

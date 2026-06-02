@@ -102,6 +102,7 @@ export const lesson = {
               tagline: 'space · light · only what you need',
               sub: 'White walls, light wood, almost monastic calm. Fewer things, more room to breathe.',
               accent: '#06B6D4',
+              previewImage: '/images/vibes/minimalist.jpg',
             },
           ],
         },

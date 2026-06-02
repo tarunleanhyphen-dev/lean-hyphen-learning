@@ -1660,7 +1660,6 @@ export function Screen4Shop({ mk }) {
   const [oppCost, setOppCost] = useState(null);
   const [toast, setToast] = useState(null);
   const [overFlash, setOverFlash] = useState(false);
-  const roomRef = useRef(null);
 
   const {
     state, spent, remaining, budget,
@@ -1690,7 +1689,18 @@ export function Screen4Shop({ mk }) {
     const matchedOC = s.opportunityCosts.find((oc) => oc.when.added === item.id);
     if (matchedOC && !currentlyIn) {
       sfx('alert');
-      setOppCost({ message: matchedOC.message, itemId: item.id, item });
+      // Derive the budget alternative + delta dynamically so the compare
+      // grid is correct for whichever tier swap triggered this popup.
+      const budgetSiblingId = matchedOC.when.removed;
+      const budgetSibling = mk.itemIndex[budgetSiblingId];
+      const delta = budgetSibling ? item.price - budgetSibling.price : item.price;
+      setOppCost({
+        message: matchedOC.message,
+        itemId: item.id,
+        item,
+        budgetSibling,
+        delta,
+      });
       return;
     }
     if (!currentlyIn) {
@@ -1730,7 +1740,7 @@ export function Screen4Shop({ mk }) {
   return (
     <div className={`shopstage shopstage--zone-${zone} ${overFlash ? 'is-overflash' : ''}`}>
       {/* ===== LEFT — live 3D room ===== */}
-      <aside className="shopstage__room" ref={roomRef}>
+      <aside className="shopstage__room">
         <Room3D
           vibeId={mk.state.vibe || 'cosy'}
           purchasedIds={state.cart}
@@ -2038,15 +2048,15 @@ function OpportunityCostModal({ data, onClose, onConfirm }) {
         <p className="oppcost__body">{data.message}</p>
         <div className="oppcost__compare">
           <div className="oppcost__compare-col">
-            <div className="oppcost__compare-label">If you upgrade</div>
-            <div className="oppcost__compare-value">{data.item.name}</div>
-            <div className="oppcost__compare-meta">{fmt(data.item.price)}</div>
+            <div className="oppcost__compare-label">Upgrade adds</div>
+            <div className="oppcost__compare-value">+{fmt(data.delta)}</div>
+            <div className="oppcost__compare-meta">to {data.item.name}</div>
           </div>
           <div className="oppcost__compare-arrow">vs.</div>
           <div className="oppcost__compare-col">
-            <div className="oppcost__compare-label">What ₹10k could buy</div>
-            <div className="oppcost__compare-value">Study desk + chair</div>
-            <div className="oppcost__compare-meta">₹10,000</div>
+            <div className="oppcost__compare-label">Stick with</div>
+            <div className="oppcost__compare-value">{data.budgetSibling?.name || 'Budget option'}</div>
+            <div className="oppcost__compare-meta">{fmt(data.budgetSibling?.price || 0)}</div>
           </div>
         </div>
         <div className="oppcost__actions">

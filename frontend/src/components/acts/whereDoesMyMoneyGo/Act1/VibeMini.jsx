@@ -454,14 +454,17 @@ export function VibeMini({ vibeId, hovered = false, selected = false }) {
   const Comp = VIBE_COMPONENTS[vibeId] || CosyMini;
   return (
     <>
-      {/* Wider, lower camera for a real-estate-photo feel. */}
-      <PerspectiveCamera makeDefault position={[2.4, 1.8, 3.2]} fov={42} />
+      {/* Tighter close-up camera so each room visibly centers in the
+       * card. The whole scene is also nudged a bit toward camera
+       * center via the wrapping group's position offset below. */}
+      <PerspectiveCamera makeDefault position={[2.0, 1.7, 2.6]} fov={45} />
       {/* Much brighter overall — these are 200px-tall preview thumbnails,
        * they need to read clearly without bloom or HDR setup. */}
-      <ambientLight intensity={1.2} />
-      <directionalLight position={[3, 5, 4]} intensity={1.4} />
-      <directionalLight position={[-2, 3, 3]} intensity={0.6} />
-      <group ref={ref}>
+      <ambientLight intensity={1.4} />
+      <directionalLight position={[3, 5, 4]} intensity={1.6} />
+      <directionalLight position={[-2, 3, 3]} intensity={0.7} />
+      <directionalLight position={[0, 4, -2]} intensity={0.4} />
+      <group ref={ref} position={[-0.25, 0, -0.15]}>
         <Comp hovered={hovered || selected} />
       </group>
     </>

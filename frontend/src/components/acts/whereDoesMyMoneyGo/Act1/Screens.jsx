@@ -454,7 +454,11 @@ export function Screen2Vibe({ mk }) {
   const containerRef = useRef(null);
   const cardRefs = useRef({});
   const [hovered, setHovered] = useState(null);
-  const [picked, setPicked] = useState(mk.state.vibe || null);
+  /* Always start with all four cards selectable — even if the learner
+   * picked a vibe in a previous session, this screen is the moment to
+   * pick again. The actual vibe still lives in mk.state.vibe until the
+   * learner commits a new one via handlePick. */
+  const [picked, setPicked] = useState(null);
   const [confirmed, setConfirmed] = useState(false);
 
   /* Narrate the intro line once on mount. */

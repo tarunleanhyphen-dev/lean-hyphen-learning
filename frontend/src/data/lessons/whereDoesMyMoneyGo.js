@@ -77,7 +77,7 @@ export const lesson = {
               tagline: 'soft lighting · warm wood · pillows you sink into',
               sub: 'A bedroom that hugs you back. Amber lamps, layered textures, gentle shadows.',
               accent: '#F59E0B',
-              previewImage: 'https://media.designcafe.com/wp-content/uploads/2024/03/02141736/small-study-room-design.jpg',
+              previewImage: '/images/vibes/cosy.png',
             },
             {
               id: 'study',

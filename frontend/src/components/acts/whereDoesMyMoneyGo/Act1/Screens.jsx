@@ -1363,77 +1363,234 @@ function Bucket({ kind, glow, burst, onClick, disabled }) {
   );
 }
 
-/* ----- Summary screen with totals + insight + CTA ----- */
+/* ----- Premium results summary with confetti + donut + insight + catalogue preview ----- */
 function SortSummary({ mk, s }) {
   const answers = mk.state.sortAnswers;
   const needsValue = sortItems.reduce((acc, it) => acc + (answers[it.id] === 'need' ? it.price : 0), 0);
   const wantsValue = sortItems.reduce((acc, it) => acc + (answers[it.id] === 'want' ? it.price : 0), 0);
+  const greyCount = sortItems.reduce((acc, it) => acc + (it.isGreyArea && answers[it.id] ? 1 : 0), 0);
   const total = Math.max(1, needsValue + wantsValue);
   const needsPct = Math.round((needsValue / total) * 100);
   const wantsPct = 100 - needsPct;
 
+  // Personalised insight derived from the player's actual split.
+  const insight = useMemo(() => {
+    if (needsPct >= 70)      return "You leaned hard into Needs — exactly how a planner starts. Now you'll see how trade-offs shape the room.";
+    if (needsPct >= 55)      return "A healthy Need-first split. Most spending usually goes here — and that's completely normal.";
+    if (wantsPct >= 60)      return "You favoured Wants — fun! Coming up, you'll see how this changes what fits in the budget.";
+    return "Roughly balanced. Whether that holds up depends on what makes your final room actually work.";
+  }, [needsPct, wantsPct]);
+
+  /* Fire celebration sounds on mount. */
+  useEffect(() => {
+    const a = setTimeout(() => sfx('ding'), 300);
+    const b = setTimeout(() => sfx('aha'),  900);
+    return () => { clearTimeout(a); clearTimeout(b); };
+  }, []);
+
   return (
     <div className="sortsummary">
+      {/* Celebration confetti */}
+      <ConfettiBurst accent="#10B981" />
+
       <header className="sortsummary__head">
-        <div className="sortsummary__chip">Sort complete</div>
-        <h1 className="sortsummary__title">{s.summaryHeading}</h1>
+        <motion.div
+          className="sortsummary__chip"
+          initial={{ opacity: 0, scale: 0.7 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 240, damping: 18 }}
+        >
+          ✓ All 14 sorted
+        </motion.div>
+        <motion.h1
+          className="sortsummary__title"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          Nice work! Here's a quick look at what you found.
+        </motion.h1>
       </header>
 
-      <div className="sortsummary__hero">
-        <SortSummaryHero label="NEEDS" value={needsValue} color="#10B981" />
-        <SortSummaryHero label="WANTS" value={wantsValue} color="#8B5CF6" />
-      </div>
+      <div className="sortsummary__stage">
+        <div className="sortsummary__stagecol sortsummary__stagecol--data">
+          {/* Animated hero totals */}
+          <div className="sortsummary__hero">
+            <SortSummaryHero label="NEEDS" value={needsValue} color="#10B981" delay={0.4} />
+            <SortSummaryHero label="WANTS" value={wantsValue} color="#8B5CF6" delay={0.55} />
+          </div>
 
-      <div className="sortsummary__bar" aria-hidden>
-        <motion.div
-          className="sortsummary__bar-need"
-          initial={{ width: 0 }}
-          animate={{ width: `${needsPct}%` }}
-          transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
-        />
-        <motion.div
-          className="sortsummary__bar-want"
-          initial={{ width: 0 }}
-          animate={{ width: `${wantsPct}%` }}
-          transition={{ duration: 1.1, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-        />
-        <div className="sortsummary__bar-tick" style={{ left: `${needsPct}%` }} />
-        <div className="sortsummary__bar-need-pct">{needsPct}% Needs</div>
-        <div className="sortsummary__bar-want-pct">{wantsPct}% Wants</div>
-      </div>
+          {/* Comparison bar */}
+          <div className="sortsummary__bar" aria-hidden>
+            <motion.div
+              className="sortsummary__bar-need"
+              initial={{ width: 0 }}
+              animate={{ width: `${needsPct}%` }}
+              transition={{ delay: 0.8, duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
+            />
+            <motion.div
+              className="sortsummary__bar-want"
+              initial={{ width: 0 }}
+              animate={{ width: `${wantsPct}%` }}
+              transition={{ delay: 0.9, duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
+            />
+            <div className="sortsummary__bar-tick" style={{ left: `${needsPct}%` }} />
+            <div className="sortsummary__bar-need-pct">{needsPct}% Needs</div>
+            <div className="sortsummary__bar-want-pct">{wantsPct}% Wants</div>
+          </div>
 
-      <div className="sortsummary__insight">
-        <Sparkles size={14} /> {s.summaryOutro}
-      </div>
+          {/* Stat chips */}
+          <div className="sortsummary__chips">
+            <div className="sortsummary__statchip">
+              <span className="sortsummary__statchip-label">Grey-area calls</span>
+              <span className="sortsummary__statchip-value">{greyCount}</span>
+            </div>
+            <div className="sortsummary__statchip">
+              <span className="sortsummary__statchip-label">Items total</span>
+              <span className="sortsummary__statchip-value">{fmt(needsValue + wantsValue)}</span>
+            </div>
+          </div>
 
-      <motion.button
-        className="sortsummary__cta"
-        onClick={() => { sfx('reveal'); cancelSpeech(); mk.setScreen('screen-4-shop'); }}
-        whileHover={{ scale: 1.04 }}
-        whileTap={{ scale: 0.96 }}
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1.0 }}
-      >
-        <span className="sortsummary__cta-pulse" aria-hidden />
-        Start Shopping <ChevronRight size={18} />
-      </motion.button>
+          {/* Personalised insight */}
+          <motion.div
+            className="sortsummary__insight"
+            initial={{ opacity: 0, x: -12 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 1.5 }}
+          >
+            <Sparkles size={14} /> {insight}
+          </motion.div>
+
+          {/* Transition copy */}
+          <motion.div
+            className="sortsummary__transition"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 2.0 }}
+          >
+            <strong>Now let's actually start shopping.</strong>
+            <div>Can you build your dream room while staying within budget?</div>
+          </motion.div>
+
+          <motion.button
+            className="sortsummary__cta"
+            onClick={() => { sfx('reveal'); cancelSpeech(); mk.setScreen('screen-4-shop'); }}
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.96 }}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 2.3 }}
+          >
+            <span className="sortsummary__cta-pulse" aria-hidden />
+            Start Shopping <ChevronRight size={18} />
+          </motion.button>
+        </div>
+
+        <aside className="sortsummary__stagecol sortsummary__stagecol--viz">
+          {/* Animated donut chart */}
+          <SortDonut needsPct={needsPct} />
+          {/* Catalogue tease — small icons fly in as a preview of shopping */}
+          <CataloguePreview />
+        </aside>
+      </div>
     </div>
   );
 }
 
-function SortSummaryHero({ label, value, color }) {
+function SortDonut({ needsPct }) {
+  const R = 64;
+  const C = 2 * Math.PI * R;
+  const needsLen = (C * needsPct) / 100;
+  const wantsLen = C - needsLen;
+  return (
+    <div className="sortsummary__donutwrap">
+      <svg className="sortsummary__donut" viewBox="0 0 160 160">
+        <defs>
+          <linearGradient id="grad-need" x1="0" x2="1" y1="0" y2="1">
+            <stop offset="0%" stopColor="#34D399" />
+            <stop offset="100%" stopColor="#059669" />
+          </linearGradient>
+          <linearGradient id="grad-want" x1="0" x2="1" y1="0" y2="1">
+            <stop offset="0%" stopColor="#C084FC" />
+            <stop offset="100%" stopColor="#8B5CF6" />
+          </linearGradient>
+        </defs>
+        <circle cx="80" cy="80" r={R} stroke="rgba(255,255,255,0.06)" strokeWidth="18" fill="none" />
+        {/* Needs arc */}
+        <motion.circle
+          cx="80" cy="80" r={R}
+          stroke="url(#grad-need)" strokeWidth="18" fill="none" strokeLinecap="round"
+          strokeDasharray={C}
+          initial={{ strokeDashoffset: C }}
+          animate={{ strokeDashoffset: C - needsLen }}
+          transition={{ delay: 1.0, duration: 1.3, ease: [0.16, 1, 0.3, 1] }}
+          transform="rotate(-90 80 80)"
+        />
+        {/* Wants arc — starts after needs end */}
+        <motion.circle
+          cx="80" cy="80" r={R}
+          stroke="url(#grad-want)" strokeWidth="18" fill="none" strokeLinecap="round"
+          strokeDasharray={`${wantsLen} ${C}`}
+          initial={{ strokeDashoffset: 0 }}
+          animate={{ strokeDashoffset: -needsLen }}
+          transition={{ delay: 1.2, duration: 1.3, ease: [0.16, 1, 0.3, 1] }}
+          transform="rotate(-90 80 80)"
+        />
+        <text x="80" y="76" textAnchor="middle" fontSize="18" fontWeight="900" fill="#fff">{needsPct}%</text>
+        <text x="80" y="96" textAnchor="middle" fontSize="10" fontWeight="700" fill="rgba(255,255,255,0.55)">NEEDS</text>
+      </svg>
+    </div>
+  );
+}
+
+function CataloguePreview() {
+  const tease = ['🛏️', '🪑', '🗄️', '💡', '📦', '🎨', '🪟', '🔊', '🪞', '🧊'];
+  return (
+    <div className="sortsummary__cataloguewrap">
+      <div className="sortsummary__catalogue-label">Coming up</div>
+      <div className="sortsummary__catalogue">
+        {tease.map((g, i) => (
+          <motion.div
+            key={i}
+            className="sortsummary__catalogue-item"
+            initial={{ opacity: 0, y: -16, rotate: -8 }}
+            animate={{ opacity: 1, y: 0, rotate: 0 }}
+            transition={{ delay: 1.6 + i * 0.08, type: 'spring', stiffness: 220, damping: 22 }}
+          >
+            {g}
+          </motion.div>
+        ))}
+      </div>
+      <motion.div
+        className="sortsummary__catalogue-caption"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 2.4 }}
+      >
+        18-item catalogue · ₹48,000 to spend
+      </motion.div>
+    </div>
+  );
+}
+
+function SortSummaryHero({ label, value, color, delay = 0 }) {
   const v = useMotionValue(0);
   const text = useTransform(v, (n) => fmt(n));
   useEffect(() => {
-    const c = animate(v, value, { duration: 1.4, ease: [0.16, 1, 0.3, 1] });
-    return () => c.stop();
-  }, [value]);
+    const t = setTimeout(() => animate(v, value, { duration: 1.4, ease: [0.16, 1, 0.3, 1] }), delay * 1000);
+    return () => clearTimeout(t);
+  }, [value, delay]);
   return (
-    <div className="sortsummary__col" style={{ '--col-color': color }}>
+    <motion.div
+      className="sortsummary__col"
+      style={{ '--col-color': color }}
+      initial={{ opacity: 0, y: 18, scale: 0.94 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ delay, type: 'spring', stiffness: 200, damping: 22 }}
+    >
       <div className="sortsummary__col-chip">{label}</div>
       <motion.div className="sortsummary__col-num">{text}</motion.div>
-    </div>
+    </motion.div>
   );
 }
 

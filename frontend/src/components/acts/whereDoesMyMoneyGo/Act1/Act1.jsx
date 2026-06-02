@@ -63,9 +63,14 @@ const MOOD_FOR_SCREEN = {
 };
 
 const ORBIT_ON = new Set(['screen-1-intro', 'screen-6-snapshot']);
-/* Scene 1 + Scene 2 both own their own full-screen layout; the global
- * background room/status bar/HUD shouldn't be rendered behind them. */
-const OWN_LAYOUT = new Set(['screen-1-intro', 'screen-2-vibe']);
+/* Screens that own a full-screen layout (no global background room /
+ * status bar / HUD rendered behind them). Each of these screens renders
+ * its own Room3D where it wants the room to appear. */
+const OWN_LAYOUT = new Set([
+  'screen-1-intro',
+  'screen-2-vibe',
+  'screen-4-shop',
+]);
 const AUDIO_PREF_KEY = 'lh.makeover.audio.v3';
 
 export default function WhereDoesMyMoneyGoAct1() {

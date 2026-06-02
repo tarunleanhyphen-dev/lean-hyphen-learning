@@ -1627,121 +1627,434 @@ function SortSummaryHero({ label, value, color, delay = 0 }) {
 }
 
 /* ============================================================
- * SCREEN 4 — Shop
+ * SCREEN 4 — Shop Smart
+ *
+ * Premium split-screen room-design simulator:
+ *   LEFT  : Live 3D room that fills with furniture as the player adds
+ *           items, with a floating items-count chip.
+ *   RIGHT : Sticky tracker (animated remaining + budget bar + donut +
+ *           category breakdown + needs/wants split) above the catalogue
+ *           grouped into 5 sections, all 18 items as premium cards.
+ *
+ * Behaviour:
+ *   - Adding an item pushes that item into mk.state.cart, which the
+ *     Room3D component renders immediately, so the room visibly fills
+ *     up in real time.
+ *   - Adding a tier-swap item (e.g. premium bed when budget bed in cart)
+ *     triggers the opportunity-cost popup.
+ *   - Trying to add an item that would push over budget triggers the
+ *     budget-bar flash + shake + toast.
+ *   - CTA only unlocks when budget is valid AND 3+ Need items are in.
+ *   - TTS speaks the 3 intro lines on mount.
  * ============================================================ */
+const CATEGORY_TIPS = {
+  furniture: "The biggest line items — bed + wardrobe usually eat half the budget.",
+  seating:   'Pick one chair. Basic or gaming — both are valid choices.',
+  storage:   'Small spend, big quality-of-life. Easy to skip — easy to regret.',
+  lighting:  'A ceiling light is essential. LED strips and lamps are flavour.',
+  decor:     "Pure flavour. Spend here LAST, only with the money left over.",
+};
+
 export function Screen4Shop({ mk }) {
   const s = scene('screen-4-shop');
   const [oppCost, setOppCost] = useState(null);
-  const { state, spent, budget, needsCount, toggleItem, cartItems } = mk;
+  const [toast, setToast] = useState(null);
+  const [overFlash, setOverFlash] = useState(false);
+  const roomRef = useRef(null);
+
+  const {
+    state, spent, remaining, budget,
+    categoryTotals, needsTotal, wantsTotal, needsCount,
+    toggleItem, cartItems,
+  } = mk;
 
   const overBudget  = spent > budget.spendable;
   const enoughNeeds = needsCount >= s.gates.minNeeds;
   const canCheckout = !overBudget && enoughNeeds && cartItems.length > 0;
+  const zone = spent > 45000 ? 'edge' : spent > 38000 ? 'tight' : 'safe';
+  const zoneColor = zone === 'edge' ? '#EF4444' : zone === 'tight' ? '#F59E0B' : '#10B981';
 
+  /* ----- TTS: speak the 3 intro lines on mount, then go quiet ----- */
+  useEffect(() => {
+    say(s.intro);
+    say("Remember: two thousand rupees is locked as your Emergency Reserve.");
+    say(s.tip);
+    return () => cancelSpeech();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /* ----- Add / remove with full guard rails ----- */
   function handleAdd(item) {
+    const currentlyIn = state.cart.includes(item.id);
+    // Opportunity cost popups intercept the FIRST-time add of a premium swap.
     const matchedOC = s.opportunityCosts.find((oc) => oc.when.added === item.id);
-    if (matchedOC && !state.cart.includes(item.id)) {
+    if (matchedOC && !currentlyIn) {
       sfx('alert');
-      setOppCost({ message: matchedOC.message, itemId: item.id });
+      setOppCost({ message: matchedOC.message, itemId: item.id, item });
       return;
     }
-    sfx(state.cart.includes(item.id) ? 'tap' : 'add');
+    if (!currentlyIn) {
+      // Adding this would push us over budget? Reject + shake.
+      if (spent + item.price > budget.spendable) {
+        sfx('alert');
+        triggerOverFlash(s.gates.overBudgetMessage);
+        return;
+      }
+      sfx('add');
+    } else {
+      sfx('tap');
+    }
     toggleItem(item.id);
   }
 
+  function triggerOverFlash(message) {
+    setOverFlash(true);
+    setToast({ msg: message, kind: 'over' });
+    setTimeout(() => { setOverFlash(false); setToast(null); }, 2400);
+  }
+
+  function handleCheckout() {
+    if (overBudget)   { triggerOverFlash(s.gates.overBudgetMessage); return; }
+    if (!enoughNeeds) {
+      setToast({ msg: s.gates.insufficientNeedsMessage, kind: 'needs' });
+      setTimeout(() => setToast(null), 3000);
+      return;
+    }
+    sfx('reveal');
+    cancelSpeech();
+    mk.setScreen('screen-5-events');
+  }
+
+  const totalCatalogueItems = Object.values(catalogue).reduce((c, cat) => c + cat.items.length, 0);
+
   return (
-    <>
-      <StyleCoach
-        lines={[s.intro, s.tip]}
-        name="Maya"
-        vibeId={mk.state.vibe}
-      />
+    <div className={`shopstage shopstage--zone-${zone} ${overFlash ? 'is-overflash' : ''}`}>
+      {/* ===== LEFT — live 3D room ===== */}
+      <aside className="shopstage__room" ref={roomRef}>
+        <Room3D
+          vibeId={mk.state.vibe || 'cosy'}
+          purchasedIds={state.cart}
+          shot="shop"
+          orbit={false}
+          showCharacter
+          speaking={false}
+        />
+        <div className="shopstage__room-grad" aria-hidden />
+        <motion.div
+          className="shopstage__roomchip"
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <span className="shopstage__roomchip-dot" />
+          {cartItems.length} of {totalCatalogueItems} items placed
+        </motion.div>
+        <motion.div
+          className="shopstage__roomtag"
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.5 }}
+        >
+          Your room — updates live as you shop
+        </motion.div>
+      </aside>
 
-      <motion.div
-        className="stage stage--shop"
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ type: 'spring', stiffness: 180, damping: 22 }}
-      >
-        <div className="stage__eyebrow">Catalogue · {Object.values(catalogue).reduce((c, cat) => c + cat.items.length, 0)} items</div>
+      {/* ===== RIGHT — tracker + catalogue + CTA ===== */}
+      <section className="shopstage__panel">
+        <header className="shopstage__head">
+          <div className="shopstage__chip">Scene 5 · Shop Smart</div>
+          <h1 className="shopstage__title">Build your dream room.</h1>
+          <p className="shopstage__sub">{s.intro}</p>
+        </header>
 
-        <div className="catalog">
-          {Object.entries(catalogue).map(([catId, cat]) => (
-            <section key={catId} className="catalog__cat">
-              <h4 className="catalog__cat-title">{cat.icon} {cat.label}</h4>
-              <div className="catalog__grid">
-                {cat.items.map((it) => {
-                  const inCart = state.cart.includes(it.id);
-                  return (
-                    <motion.button
+        {/* Sticky tracker */}
+        <div className="shoptracker">
+          <ShopTrackerHero remaining={remaining} spendable={budget.spendable} zoneColor={zoneColor} />
+          <BudgetBar spent={spent} spendable={budget.spendable} flash={overFlash} />
+          <div className="shoptracker__stats">
+            <ShopStat label="Total" value={budget.total} />
+            <ShopStat label="🔒 Reserve" value={budget.reserve} muted />
+            <ShopStat label="Spent" value={spent} animate />
+          </div>
+          <div className="shoptracker__split">
+            <ShopDonut spent={spent} categoryTotals={categoryTotals} />
+            <div className="shoptracker__breakdown">
+              {Object.entries(catalogue).map(([catId, cat]) => (
+                <CategoryRow
+                  key={catId}
+                  icon={cat.icon}
+                  label={cat.label}
+                  amount={categoryTotals[catId] || 0}
+                  ofBudget={budget.spendable}
+                />
+              ))}
+            </div>
+          </div>
+          <NeedsWantsSplit needs={needsTotal} wants={wantsTotal} />
+          <div className="shoptracker__zone" style={{ color: zoneColor }}>
+            <span className="shoptracker__zone-dot" style={{ background: zoneColor }} /> {s.budgetBands.find((b) => b.id === zone)?.label}
+            <span className="shoptracker__zone-spare">· {needsCount} Need{needsCount === 1 ? '' : 's'} placed</span>
+          </div>
+        </div>
+
+        {/* Catalogue */}
+        <div className="shopcat">
+          {Object.entries(catalogue).map(([catId, cat]) => {
+            const catSpent = categoryTotals[catId] || 0;
+            return (
+              <section key={catId} className="shopcat__section">
+                <header className="shopcat__head">
+                  <div className="shopcat__title">{cat.icon} {cat.label}</div>
+                  {catSpent > 0 && (
+                    <div className="shopcat__spent">{fmt(catSpent)} spent here</div>
+                  )}
+                </header>
+                <div className="shopcat__tip">{CATEGORY_TIPS[catId]}</div>
+                <div className="shopcat__grid">
+                  {cat.items.map((it) => (
+                    <ShopItemCard
                       key={it.id}
-                      className={`shopcard ${inCart ? 'shopcard--in' : ''} shopcard--${it.type}`}
+                      item={it}
+                      inCart={state.cart.includes(it.id)}
+                      wouldOverBudget={!state.cart.includes(it.id) && spent + it.price > budget.spendable}
                       onClick={() => handleAdd(it)}
-                      whileHover={{ y: -2 }}
-                      whileTap={{ scale: 0.97 }}
-                      layout
-                    >
-                      <div className="shopcard__top">
-                        <span className={`shopcard__type shopcard__type--${it.type}`}>{it.type}</span>
-                        {it.tier && <span className="shopcard__tier">{it.tier}</span>}
-                      </div>
-                      <div className="shopcard__name">{it.name}</div>
-                      <div className="shopcard__price">{fmt(it.price)}</div>
-                      <div className="shopcard__action">
-                        {inCart ? <><Check size={12}/> In room</> : '+ Add to room'}
-                      </div>
-                    </motion.button>
-                  );
-                })}
-              </div>
-            </section>
-          ))}
+                    />
+                  ))}
+                </div>
+              </section>
+            );
+          })}
         </div>
 
-        <div className="stage__footer">
-          {!enoughNeeds && (
-            <div className="gate">
-              <AlertTriangle size={14}/> {s.gates.insufficientNeedsMessage}
-            </div>
-          )}
-          {overBudget && (
-            <div className="gate gate--over">
-              <AlertTriangle size={14}/> {s.gates.overBudgetMessage}
-            </div>
-          )}
-          <button
-            className="cta"
-            disabled={!canCheckout}
-            onClick={() => { sfx('reveal'); mk.setScreen('screen-5-events'); }}
+        {/* Sticky footer with CTA */}
+        <footer className="shopstage__foot">
+          <div className="shopstage__foot-gates">
+            {!enoughNeeds && (
+              <span className="shopstage__gate"><AlertTriangle size={12} /> 3+ Needs required · {needsCount}/3</span>
+            )}
+            {overBudget && (
+              <span className="shopstage__gate shopstage__gate--over"><AlertTriangle size={12} /> over budget by {fmt(spent - budget.spendable)}</span>
+            )}
+          </div>
+          <motion.button
+            className={`shopstage__cta ${canCheckout ? 'is-ready' : ''}`}
+            onClick={handleCheckout}
+            whileHover={canCheckout ? { scale: 1.04 } : {}}
+            whileTap={canCheckout ? { scale: 0.97 } : {}}
+            animate={canCheckout ? { boxShadow: ['0 0 0 0 rgba(16, 185, 129, 0.45)', '0 0 0 14px rgba(16, 185, 129, 0)', '0 0 0 0 rgba(16, 185, 129, 0)'] } : {}}
+            transition={canCheckout ? { duration: 1.8, repeat: Infinity } : {}}
           >
-            {s.cta} <ChevronRight size={16} />
-          </button>
-        </div>
-      </motion.div>
+            I'm happy with my room <ChevronRight size={18} />
+          </motion.button>
+        </footer>
+      </section>
 
+      {/* Opportunity-cost popup */}
       <AnimatePresence>
-        {oppCost && (
-          <motion.div className="modal-bg" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <motion.div
-              className="modal"
-              initial={{ scale: 0.86, opacity: 0, y: 12 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.86, opacity: 0 }}
-            >
-              <div className="modal__icon">⚖️</div>
-              <h3>Opportunity cost</h3>
-              <p>{oppCost.message}</p>
-              <div className="modal__actions">
-                <button className="btn btn--ghost" onClick={() => setOppCost(null)}>Stick with budget</button>
-                <button className="btn btn--primary" onClick={() => { mk.toggleItem(oppCost.itemId); setOppCost(null); }}>
-                  Upgrade anyway
-                </button>
-              </div>
-            </motion.div>
+        {oppCost && <OpportunityCostModal data={oppCost} onClose={() => setOppCost(null)} onConfirm={() => { toggleItem(oppCost.itemId); setOppCost(null); }} />}
+      </AnimatePresence>
+
+      {/* Toast */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            className={`shoptoast shoptoast--${toast.kind}`}
+            initial={{ opacity: 0, y: 30, scale: 0.94 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 16, scale: 0.94 }}
+            transition={{ type: 'spring', stiffness: 220, damping: 22 }}
+          >
+            <span className="shoptoast__icon">{toast.kind === 'over' ? '⚠️' : '💡'}</span>
+            {toast.msg}
           </motion.div>
         )}
       </AnimatePresence>
-    </>
+    </div>
+  );
+}
+
+/* ---------- Tracker sub-components ---------- */
+function ShopTrackerHero({ remaining, spendable, zoneColor }) {
+  const v = useMotionValue(remaining);
+  const text = useTransform(v, (n) => fmt(Math.round(n)));
+  useEffect(() => { animate(v, remaining, { duration: 0.55, ease: 'easeOut' }); }, [remaining]);
+  return (
+    <div className="shoptracker__hero" style={{ '--zone': zoneColor }}>
+      <div className="shoptracker__hero-label">Remaining</div>
+      <motion.div className="shoptracker__hero-num">{text}</motion.div>
+      <div className="shoptracker__hero-meta">of {fmt(spendable)} spendable</div>
+    </div>
+  );
+}
+
+function BudgetBar({ spent, spendable, flash }) {
+  const pct = Math.min(120, (spent / spendable) * 100);
+  return (
+    <div className={`shopbar ${flash ? 'is-flash' : ''}`}>
+      <div className="shopbar__zones">
+        <span className="shopbar__zone shopbar__zone--safe" />
+        <span className="shopbar__zone shopbar__zone--tight" />
+        <span className="shopbar__zone shopbar__zone--edge" />
+      </div>
+      <motion.div
+        className="shopbar__fill"
+        animate={{ width: `${pct}%` }}
+        transition={{ type: 'spring', stiffness: 180, damping: 22 }}
+      />
+      <span className="shopbar__tick shopbar__tick--low"  >₹38k</span>
+      <span className="shopbar__tick shopbar__tick--high" >₹45k</span>
+    </div>
+  );
+}
+
+function ShopStat({ label, value, muted, animate: animVal }) {
+  const v = useMotionValue(value);
+  const text = useTransform(v, (n) => fmt(Math.round(n)));
+  useEffect(() => { animate(v, value, { duration: 0.45 }); }, [value]);
+  return (
+    <div className={`shopstat ${muted ? 'is-muted' : ''}`}>
+      <span className="shopstat__label">{label}</span>
+      {animVal
+        ? <motion.span className="shopstat__value">{text}</motion.span>
+        : <span className="shopstat__value">{fmt(value)}</span>}
+    </div>
+  );
+}
+
+function ShopDonut({ spent, categoryTotals }) {
+  const R = 38, C = 2 * Math.PI * R;
+  const max = 48000;
+  const totalPct = Math.min(1, spent / max);
+  const totalLen = C * totalPct;
+  return (
+    <div className="shopdonut">
+      <svg viewBox="0 0 100 100" width="100%" height="100%">
+        <circle cx="50" cy="50" r={R} stroke="rgba(255,255,255,0.08)" strokeWidth="12" fill="none" />
+        <motion.circle
+          cx="50" cy="50" r={R}
+          stroke="url(#shopdonut-grad)" strokeWidth="12" fill="none" strokeLinecap="round"
+          strokeDasharray={C}
+          animate={{ strokeDashoffset: C - totalLen }}
+          transition={{ type: 'spring', stiffness: 100, damping: 20 }}
+          transform="rotate(-90 50 50)"
+        />
+        <defs>
+          <linearGradient id="shopdonut-grad" x1="0" x2="1" y1="0" y2="1">
+            <stop offset="0%" stopColor="#10B981" />
+            <stop offset="60%" stopColor="#FACC15" />
+            <stop offset="100%" stopColor="#EF4444" />
+          </linearGradient>
+        </defs>
+        <text x="50" y="48" textAnchor="middle" fontSize="14" fontWeight="900" fill="#fff">{Math.round(totalPct * 100)}%</text>
+        <text x="50" y="62" textAnchor="middle" fontSize="7" fontWeight="700" fill="rgba(255,255,255,0.55)">SPENT</text>
+      </svg>
+    </div>
+  );
+}
+
+function CategoryRow({ icon, label, amount, ofBudget }) {
+  const pct = Math.min(100, (amount / ofBudget) * 100);
+  const v = useMotionValue(amount);
+  const text = useTransform(v, (n) => fmt(Math.round(n)));
+  useEffect(() => { animate(v, amount, { duration: 0.45 }); }, [amount]);
+  return (
+    <div className="shopcatrow">
+      <div className="shopcatrow__line">
+        <span className="shopcatrow__label">{icon} {label}</span>
+        <motion.strong className="shopcatrow__amount">{text}</motion.strong>
+      </div>
+      <div className="shopcatrow__bar">
+        <motion.div className="shopcatrow__fill" animate={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function NeedsWantsSplit({ needs, wants }) {
+  const total = Math.max(1, needs + wants);
+  const needsPct = Math.round((needs / total) * 100);
+  return (
+    <div className="shopsplit">
+      <div className="shopsplit__bar">
+        <motion.div className="shopsplit__need" animate={{ width: `${needsPct}%` }} />
+        <motion.div className="shopsplit__want" animate={{ width: `${100 - needsPct}%` }} />
+      </div>
+      <div className="shopsplit__legend">
+        <span><span className="shopsplit__dot shopsplit__dot--need" /> Needs {fmt(needs)}</span>
+        <span><span className="shopsplit__dot shopsplit__dot--want" /> Wants {fmt(wants)}</span>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Premium item card ---------- */
+function ShopItemCard({ item, inCart, wouldOverBudget, onClick }) {
+  return (
+    <motion.button
+      type="button"
+      onClick={onClick}
+      className={`shopitem shopitem--${item.type} ${inCart ? 'is-in' : ''} ${item.tier ? `shopitem--tier-${item.tier}` : ''} ${wouldOverBudget ? 'is-disabled-budget' : ''}`}
+      whileHover={{ y: -3 }}
+      whileTap={{ scale: 0.97 }}
+      layout
+    >
+      <div className="shopitem__head">
+        <span className={`shopitem__badge shopitem__badge--${item.type}`}>{item.type === 'need' ? 'Need' : 'Want'}</span>
+        {item.tier && <span className="shopitem__tier">{item.tier}</span>}
+      </div>
+      <div className="shopitem__name">{item.name}</div>
+      <div className="shopitem__price">{fmt(item.price)}</div>
+      <div className="shopitem__cta">
+        {inCart
+          ? <><Check size={12} /> In room — tap to remove</>
+          : wouldOverBudget
+            ? <><AlertTriangle size={12} /> would overspend</>
+            : <>+ Add to room</>}
+      </div>
+      {inCart && <div className="shopitem__glow" aria-hidden />}
+    </motion.button>
+  );
+}
+
+/* ---------- Opportunity-cost modal ---------- */
+function OpportunityCostModal({ data, onClose, onConfirm }) {
+  return (
+    <motion.div
+      className="oppcost-bg"
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      onClick={onClose}
+    >
+      <motion.div
+        className="oppcost"
+        initial={{ scale: 0.86, opacity: 0, y: 18 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.86, opacity: 0 }}
+        transition={{ type: 'spring', stiffness: 220, damping: 22 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="oppcost__eyebrow">A moment of trade-off</div>
+        <div className="oppcost__icon">⚖️</div>
+        <h2 className="oppcost__title">Worth the upgrade?</h2>
+        <p className="oppcost__body">{data.message}</p>
+        <div className="oppcost__compare">
+          <div className="oppcost__compare-col">
+            <div className="oppcost__compare-label">If you upgrade</div>
+            <div className="oppcost__compare-value">{data.item.name}</div>
+            <div className="oppcost__compare-meta">{fmt(data.item.price)}</div>
+          </div>
+          <div className="oppcost__compare-arrow">vs.</div>
+          <div className="oppcost__compare-col">
+            <div className="oppcost__compare-label">What ₹10k could buy</div>
+            <div className="oppcost__compare-value">Study desk + chair</div>
+            <div className="oppcost__compare-meta">₹10,000</div>
+          </div>
+        </div>
+        <div className="oppcost__actions">
+          <button className="oppcost__btn oppcost__btn--ghost" onClick={onClose}>Stick with budget</button>
+          <button className="oppcost__btn oppcost__btn--primary" onClick={onConfirm}>Upgrade anyway</button>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }
 

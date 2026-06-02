@@ -263,6 +263,8 @@ export function Screen3Sort({ mk }) {
 
         <div className="sort-arena__center">
           <div className="sort-counter">{idx + 1} / {sortItems.length}</div>
+          {/* Draggable card holds only visual content — buttons sit below
+              as siblings so framer-motion drag never swallows their clicks. */}
           <AnimatePresence mode="wait">
             <motion.div
               key={item.id}
@@ -278,22 +280,32 @@ export function Screen3Sort({ mk }) {
                 : { opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -24, scale: 0.94 }}
               transition={{ type: 'spring', stiffness: 220, damping: 22 }}
-              whileTap={{ scale: 0.98 }}
             >
               <div className="sortcard__emoji">{item.icon}</div>
               <div className="sortcard__name">{item.name}</div>
               <div className="sortcard__price">{fmt(item.price)}</div>
               {item.isGreyArea && <div className="sortcard__grey">grey area · choose your reasoning</div>}
-              <div className="sortcard__tap">
-                <button className="tapbtn tapbtn--need" onClick={() => commit('need')} disabled={!!feedback}>
-                  <Check size={14} /> Need
-                </button>
-                <button className="tapbtn tapbtn--want" onClick={() => commit('want')} disabled={!!feedback}>
-                  <Sparkles size={14} /> Want
-                </button>
-              </div>
+              <div className="sortcard__hint">drag left / right · or use the buttons below</div>
             </motion.div>
           </AnimatePresence>
+          <div className="sortcard__tap">
+            <button
+              type="button"
+              className="tapbtn tapbtn--need"
+              onClick={() => commit('need')}
+              disabled={!!feedback}
+            >
+              <Check size={16} /> NEED
+            </button>
+            <button
+              type="button"
+              className="tapbtn tapbtn--want"
+              onClick={() => commit('want')}
+              disabled={!!feedback}
+            >
+              <Sparkles size={16} /> WANT
+            </button>
+          </div>
         </div>
       </div>
 

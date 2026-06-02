@@ -56,10 +56,18 @@ function buildItemIndex() {
 
 export function useMakeoverState() {
   const itemIndex = useMemo(buildItemIndex, []);
-  const [state, setState] = useState(() => loadFromStorage() ?? {
-    ...INITIAL,
-    sessionId: cryptoRandom(),
-    startedAt: new Date().toISOString(),
+  /* On every fresh load, always re-enter at Scene 1 (the intro). We still
+   * restore the rest of the player's state (vibe, cart, sort answers,
+   * reserve, etc.) so reloads mid-act don't wipe their progress on the
+   * underlying data — they just get to re-watch the cinematic intro. */
+  const [state, setState] = useState(() => {
+    const stored = loadFromStorage();
+    if (stored) return { ...stored, screen: 'screen-1-intro' };
+    return {
+      ...INITIAL,
+      sessionId: cryptoRandom(),
+      startedAt: new Date().toISOString(),
+    };
   });
 
   // Autosave to localStorage on any state change.

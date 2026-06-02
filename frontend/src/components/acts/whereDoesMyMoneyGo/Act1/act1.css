@@ -2635,10 +2635,11 @@
 .vibecard-big__preview {
   position: relative;
   width: 100%;
-  aspect-ratio: 4 / 3;
-  background:
-    linear-gradient(180deg, rgba(0,0,0,0.30) 0%, transparent 30%, transparent 70%, rgba(0,0,0,0.30) 100%);
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  aspect-ratio: 5 / 4;
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--vibe-accent) 20%, #1a1f30) 0%,
+    color-mix(in srgb, var(--vibe-accent) 8%, #0f1320) 100%);
+  border-bottom: 1px solid rgba(255,255,255,0.10);
   overflow: hidden;
 }
 .vibecard-big__view {
@@ -2912,7 +2913,30 @@
 .scene1__beat.is-active { background: #F59E0B; box-shadow: 0 0 12px #F59E0B; }
 .scene1__beat.is-done { background: rgba(245, 158, 11, 0.4); }
 
-.scene1__narr { min-height: 130px; margin-bottom: 24px; }
+.scene1__narr {
+  position: relative;
+  min-height: 130px;
+  margin-bottom: 24px;
+}
+.scene1__nextbeat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 14px;
+  padding: 8px 16px;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  color: #0F172A;
+  background: linear-gradient(135deg, #FACC15 0%, #F59E0B 100%);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: 0 8px 18px -6px rgba(245, 158, 11, 0.55);
+  transition: transform 0.15s var(--ease-spring);
+}
+.scene1__nextbeat:hover { transform: translateY(-1px); }
 .scene1__line {
   font-size: 22px;
   font-weight: 600;

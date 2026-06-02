@@ -13,7 +13,9 @@ import { PerspectiveCamera, RoundedBox, Float } from '@react-three/drei';
 const VIBE_THEME = {
   cosy:    { wall: '#FBE5C8', floor: '#A57B5B', accent: '#F59E0B', light: '#FFE2B5' },
   study:   { wall: '#E6EBE0', floor: '#B6926A', accent: '#10B981', light: '#FFFFFF' },
-  gamer:   { wall: '#11132A', floor: '#0A0C1A', accent: '#8B5CF6', light: '#A78BFA' },
+  // Lifted slightly from #11132A so the gamer scene isn't pitch-black at
+  // thumbnail scale and the props read clearly against the wall.
+  gamer:   { wall: '#1F2545', floor: '#10162A', accent: '#8B5CF6', light: '#A78BFA' },
   minimal: { wall: '#F8FAFC', floor: '#D6CCC2', accent: '#06B6D4', light: '#E0F2FE' },
 };
 
@@ -436,21 +438,29 @@ const VIBE_COMPONENTS = {
   minimal: MinimalMini,
 };
 
-/* Auto-rotating wrapper that holds the camera and the chosen scene. */
+/* Hover-rotating wrapper. At rest the scene sits at a fixed angle so each
+ * card reads as a still room photo; on hover/select it slowly orbits. */
 export function VibeMini({ vibeId, hovered = false, selected = false }) {
   const ref = useRef();
   useFrame((_, dt) => {
     if (!ref.current) return;
-    const speed = hovered || selected ? 0.6 : 0.25;
-    ref.current.rotation.y += speed * dt;
+    const target = hovered || selected ? 0.5 : 0;  // active rotation speed
+    ref.current.rotation.y += target * dt;
+    // Subtle drift back toward 0 when not hovered (a gentle parallax sway only).
+    if (!hovered && !selected) {
+      ref.current.rotation.y *= 0.985;
+    }
   });
   const Comp = VIBE_COMPONENTS[vibeId] || CosyMini;
   return (
     <>
-      {/* Wider, slightly lower camera for a real-estate-photo feel */}
+      {/* Wider, lower camera for a real-estate-photo feel. */}
       <PerspectiveCamera makeDefault position={[2.4, 1.8, 3.2]} fov={42} />
-      <ambientLight intensity={0.55} />
-      <directionalLight position={[3, 5, 4]} intensity={0.9} />
+      {/* Much brighter overall — these are 200px-tall preview thumbnails,
+       * they need to read clearly without bloom or HDR setup. */}
+      <ambientLight intensity={1.2} />
+      <directionalLight position={[3, 5, 4]} intensity={1.4} />
+      <directionalLight position={[-2, 3, 3]} intensity={0.6} />
       <group ref={ref}>
         <Comp hovered={hovered || selected} />
       </group>

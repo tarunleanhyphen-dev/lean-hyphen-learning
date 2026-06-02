@@ -89,6 +89,27 @@ export default function WhereDoesMyMoneyGoAct1() {
     return () => clearTimeout(t);
   }, [audioPrompted]);
 
+  /* Auto-unlock audio context on the very first user interaction anywhere
+   * on the page. Without this, TTS + sound effects silently fail because
+   * the AudioContext stays suspended. Listener self-removes after firing. */
+  useEffect(() => {
+    if (musicOn) return undefined;
+    const unlock = async () => {
+      try { await unlockAudio(true); } catch { /* noop */ }
+    };
+    const handler = () => {
+      unlock();
+      window.removeEventListener('pointerdown', handler);
+      window.removeEventListener('keydown', handler);
+    };
+    window.addEventListener('pointerdown', handler, { once: true });
+    window.addEventListener('keydown', handler, { once: true });
+    return () => {
+      window.removeEventListener('pointerdown', handler);
+      window.removeEventListener('keydown', handler);
+    };
+  }, [musicOn]);
+
   /* Track act_started once on mount */
   useEffect(() => {
     apiPost('/api/progress', {

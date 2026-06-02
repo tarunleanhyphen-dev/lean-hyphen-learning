@@ -61,7 +61,7 @@ const SCENE1_PREVIEW_ITEMS = [
 const SCENE1_BEATS = [
   {
     id: 'big-news',
-    fallbackMs: 12000,
+    fallbackMs: 8500,
     lines: [
       "Your parents just gave you some big news.",
       "They're renovating the house — and YOUR room is getting a complete makeover.",
@@ -70,7 +70,7 @@ const SCENE1_BEATS = [
   },
   {
     id: 'budget',
-    fallbackMs: 10000,
+    fallbackMs: 7000,
     lines: [
       "The budget? ₹50,000.",
       "All yours. One time. No top-ups.",
@@ -79,7 +79,7 @@ const SCENE1_BEATS = [
   },
   {
     id: 'tradeoff',
-    fallbackMs: 13000,
+    fallbackMs: 9000,
     lines: [
       "But here's the catch — you have to plan every single rupee.",
       "Spend too much on one thing and you won't have enough for something else.",
@@ -88,7 +88,7 @@ const SCENE1_BEATS = [
   },
   {
     id: 'envelope',
-    fallbackMs: 7000,
+    fallbackMs: 5500,
     lines: [
       "And life has a few surprises waiting for you too.",
     ],
@@ -231,6 +231,20 @@ export function Screen1Intro({ mk }) {
               ))}
             </motion.div>
           </AnimatePresence>
+          {/* Per-beat Next button — visible on every beat except the CTA,
+             so the learner can always advance whenever they're ready. */}
+          {beatIdx < SCENE1_BEATS.length - 1 && (
+            <motion.button
+              className="scene1__nextbeat"
+              onClick={() => { sfx('tap'); cancelSpeech(); setBeatIdx(beatIdx + 1); }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.5 }}
+              aria-label="Next"
+            >
+              Next <ChevronRight size={14} />
+            </motion.button>
+          )}
         </div>
 
         {/* Visual rail — morphs per beat */}

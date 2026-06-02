@@ -2650,6 +2650,24 @@
   position: absolute;
   inset: 0;
 }
+/* Real-photo preview: fills the card preview area edge-to-edge with a
+ * subtle zoom-out on hover for a premium feel. */
+.vibecard-big__photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  transition: transform 0.7s var(--ease-spring), filter 0.4s;
+  filter: saturate(1.05);
+}
+.vibecard-big:hover .vibecard-big__photo,
+.vibecard-big.is-picked .vibecard-big__photo {
+  transform: scale(1.06);
+  filter: saturate(1.18);
+}
 
 .vibecard-big__head {
   display: flex;

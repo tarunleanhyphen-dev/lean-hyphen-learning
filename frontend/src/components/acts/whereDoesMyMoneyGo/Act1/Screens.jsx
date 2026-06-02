@@ -518,16 +518,29 @@ export function Screen2Vibe({ mk }) {
             >
               <div className="vibecard-big__halo" aria-hidden />
               <div className="vibecard-big__preview">
-                {/* drei View tracks this ref's bounding rect.
-                    The shared Canvas at the bottom of this component renders into it. */}
-                <View
-                  className="vibecard-big__view"
-                  track={{ current: cardRefs.current[`${v.id}-preview`] }}
-                />
-                <div
-                  className="vibecard-big__preview-anchor"
-                  ref={(el) => { if (el) cardRefs.current[`${v.id}-preview`] = el; }}
-                />
+                {/* If the vibe has a real room photo (previewImage), show it
+                    instead of the 3D mini — photos read clearer at small
+                    sizes. Otherwise, drei View tracks this ref's bounding
+                    rect and the shared Canvas renders the mini room. */}
+                {v.previewImage ? (
+                  <img
+                    className="vibecard-big__photo"
+                    src={v.previewImage}
+                    alt={`${v.label} room preview`}
+                    loading="lazy"
+                  />
+                ) : (
+                  <>
+                    <View
+                      className="vibecard-big__view"
+                      track={{ current: cardRefs.current[`${v.id}-preview`] }}
+                    />
+                    <div
+                      className="vibecard-big__preview-anchor"
+                      ref={(el) => { if (el) cardRefs.current[`${v.id}-preview`] = el; }}
+                    />
+                  </>
+                )}
               </div>
               <div className="vibecard-big__head">
                 <span className="vibecard-big__emoji">{v.emoji}</span>
@@ -557,7 +570,8 @@ export function Screen2Vibe({ mk }) {
         gl={{ antialias: true }}
       >
         <View.Port />
-        {vibes.map((v) => (
+        {/* Only spin up a 3D View for vibes that don't have a photo. */}
+        {vibes.filter((v) => !v.previewImage).map((v) => (
           <View key={v.id} track={{ current: cardRefs.current[`${v.id}-preview`] }}>
             <VibeMini vibeId={v.id} hovered={hovered === v.id} selected={picked === v.id} />
           </View>

@@ -9,7 +9,7 @@
  *   - The 3D room is always in the background; we never leave it.
  *   - No wall-of-text panels. Narration is conversational; UI is decisive.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
 import { ChevronRight, Check, Sparkles, AlertTriangle, Gift, Zap, Hammer } from 'lucide-react';
 import {
@@ -17,10 +17,14 @@ import {
 } from '../../../../data/lessons/whereDoesMyMoneyGo.js';
 import { StyleCoach } from './StyleCoach.jsx';
 import { Room3D, VIBES } from './Room3D.jsx';
-import { sounds } from '../../../../utils/sounds.js';
+import { VibeMini } from './VibeMini.jsx';
+import { Canvas } from '@react-three/fiber';
+import { View } from '@react-three/drei';
+import { sounds, speak, cancelSpeech, isAudioReady } from '../../../../utils/sounds.js';
 
 /* Tiny safe-call wrapper so a missing/muted audio context never throws. */
 function sfx(name) { try { sounds[name]?.(); } catch { /* noop */ } }
+function say(text) { try { if (isAudioReady()) speak(text, { voice: 'narrator', who: 'narrator' }); } catch { /* noop */ } }
 
 function fmt(n) { return '₹' + Number(n || 0).toLocaleString('en-IN'); }
 function scene(id) { return lesson.acts.act1.scenes.find((s) => s.id === id); }
@@ -97,10 +101,8 @@ const SCENE1_BEATS = [
 ];
 
 export function Screen1Intro({ mk }) {
-  const s = scene('screen-1-intro');
   const [beatIdx, setBeatIdx] = useState(0);
   const [previewIds, setPreviewIds] = useState([]);
-  const [vibePicker, setVibePicker] = useState(false);
   const beat = SCENE1_BEATS[beatIdx];
 
   /* Auto-advance through beats. Last beat has duration=null so it holds. */
@@ -109,6 +111,21 @@ export function Screen1Intro({ mk }) {
     const t = setTimeout(() => setBeatIdx((i) => Math.min(SCENE1_BEATS.length - 1, i + 1)), beat.durationMs);
     return () => clearTimeout(t);
   }, [beatIdx, beat]);
+
+  /* TTS — speak each beat's narration lines as they appear.
+     Cancels any pending speech on beat change / unmount so lines never overlap. */
+  useEffect(() => {
+    if (!beat?.lines?.length) return undefined;
+    cancelSpeech();
+    beat.lines.forEach((line, i) => {
+      const delay = i * 950; // matches typewriter line stagger
+      setTimeout(() => say(line), delay);
+    });
+    return () => cancelSpeech();
+  }, [beatIdx, beat]);
+
+  /* Cancel any speech on full unmount (leaving Scene 1). */
+  useEffect(() => () => cancelSpeech(), []);
 
   /* Stagger furniture into the room as the intro plays. */
   useEffect(() => {
@@ -127,15 +144,10 @@ export function Screen1Intro({ mk }) {
     setPreviewIds(SCENE1_PREVIEW_ITEMS.map((it) => it.id));
   }
 
-  function openVibePicker() {
+  function goToVibeScreen() {
     sfx('reveal');
-    setVibePicker(true);
-  }
-
-  function chooseVibe(v) {
-    sfx('ding');
-    mk.pickVibe(v.id);
-    setTimeout(() => mk.setScreen('screen-2-rules'), 700);
+    cancelSpeech();
+    mk.setScreen('screen-2-vibe');
   }
 
   return (
@@ -210,23 +222,10 @@ export function Screen1Intro({ mk }) {
             {beat.visual === 'budget'   && <BudgetReveal key="b" />}
             {beat.visual === 'tradeoff' && <TradeoffDemo key="t" />}
             {beat.visual === 'envelope' && <SecretEnvelope key="e" />}
-            {beat.visual === 'cta'      && <LetsGoCTA key="c" onClick={openVibePicker} />}
+            {beat.visual === 'cta'      && <LetsGoCTA key="c" onClick={goToVibeScreen} />}
           </AnimatePresence>
         </div>
       </div>
-
-      {/* Vibe picker — appears after CTA */}
-      <AnimatePresence>
-        {vibePicker && (
-          <VibePickerOverlay
-            vibes={s.vibes}
-            prompt={s.vibePrompt}
-            onPick={chooseVibe}
-            onClose={() => setVibePicker(false)}
-            pickedVibe={mk.state.vibe}
-          />
-        )}
-      </AnimatePresence>
     </div>
   );
 }
@@ -404,57 +403,162 @@ function LetsGoCTA({ onClick }) {
   );
 }
 
-function VibePickerOverlay({ vibes, prompt, onPick, onClose, pickedVibe }) {
+/* ============================================================
+ * SCREEN 2 — Pick Your Room Vibe
+ *
+ * Premium customization screen. 4 large cards, each with its own
+ * live 3D mini-room preview (rendered via drei <View> on a single
+ * shared Canvas so we only spin up one WebGL context).
+ *
+ * Flow:
+ *   1. Cards float in, narrator asks "what's your style?"
+ *   2. Hover a card → that preview rotates faster + glows
+ *   3. Tap a card → it expands, locks in, others fade
+ *   4. Confirmation banner slides in: "Nice choice! …"
+ *   5. Continue button → screen-2-rules
+ * ============================================================ */
+export function Screen2Vibe({ mk }) {
+  const s = scene('screen-2-vibe');
+  const vibes = s?.vibes || scene('screen-1-intro').vibes;
+  const containerRef = useRef(null);
+  const cardRefs = useRef({});
+  const [hovered, setHovered] = useState(null);
+  const [picked, setPicked] = useState(mk.state.vibe || null);
+  const [confirmed, setConfirmed] = useState(false);
+
+  /* Narrate the intro line once on mount. */
+  useEffect(() => {
+    say(s.intro);
+    return () => cancelSpeech();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function handlePick(v) {
+    if (confirmed) return;
+    sfx('ding');
+    setPicked(v.id);
+    mk.pickVibe(v.id);
+    setTimeout(() => {
+      sfx('aha');
+      say(s.confirmation);
+      setConfirmed(true);
+    }, 700);
+  }
+
+  function handleContinue() {
+    sfx('reveal');
+    cancelSpeech();
+    mk.setScreen('screen-2-rules');
+  }
+
   return (
-    <motion.div
-      className="vibemodal-bg"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={onClose}
-    >
-      <motion.div
-        className="vibemodal"
-        initial={{ scale: 0.85, opacity: 0, y: 24 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.85, opacity: 0 }}
-        transition={{ type: 'spring', stiffness: 220, damping: 22 }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="vibemodal__eyebrow">Choose your style</div>
-        <h2 className="vibemodal__title">{prompt}</h2>
-        <div className="vibewheel">
-          {vibes.map((v, i) => (
+    <div className="vibescreen" ref={containerRef}>
+      <div className="vibescreen__head">
+        <div className="vibescreen__eyebrow">Scene 2 · Pick your style</div>
+        <h1 className="vibescreen__title">{s.intro}</h1>
+        <p className="vibescreen__sub">
+          Just a vibe — your budget, your trade-offs, and the surprises will be the same no matter what you pick.
+        </p>
+      </div>
+
+      <div className="vibegrid">
+        {vibes.map((v, i) => {
+          const isPicked = picked === v.id;
+          const isOther = picked && !isPicked;
+          return (
             <motion.button
               key={v.id}
-              className="vibecard"
+              ref={(el) => { if (el) cardRefs.current[v.id] = el; }}
+              className={`vibecard-big ${isPicked ? 'is-picked' : ''} ${isOther ? 'is-other' : ''} vibecard-big--${v.id}`}
               style={{ '--vibe-accent': v.accent }}
-              initial={{ opacity: 0, y: 24, rotateY: -8 }}
-              animate={{ opacity: 1, y: 0, rotateY: 0 }}
-              transition={{ delay: i * 0.08, type: 'spring', stiffness: 220, damping: 18 }}
-              whileHover={{ y: -6, scale: 1.04 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => onPick(v)}
+              initial={{ opacity: 0, y: 24, scale: 0.96 }}
+              animate={{ opacity: isOther ? 0.45 : 1, y: 0, scale: isPicked ? 1.03 : 1 }}
+              transition={{ delay: i * 0.08, type: 'spring', stiffness: 200, damping: 24 }}
+              whileHover={!confirmed ? { y: -6 } : {}}
+              whileTap={!confirmed ? { scale: 0.98 } : {}}
+              onMouseEnter={() => setHovered(v.id)}
+              onMouseLeave={() => setHovered(null)}
+              onClick={() => handlePick(v)}
+              disabled={confirmed}
             >
-              <div className="vibecard__halo" />
-              <div className="vibecard__emoji">{v.emoji}</div>
-              <div className="vibecard__label">{v.label}</div>
-              <div className="vibecard__sub">{v.sub}</div>
+              <div className="vibecard-big__halo" aria-hidden />
+              <div className="vibecard-big__preview">
+                {/* drei View tracks this ref's bounding rect.
+                    The shared Canvas at the bottom of this component renders into it. */}
+                <View
+                  className="vibecard-big__view"
+                  track={{ current: cardRefs.current[`${v.id}-preview`] }}
+                />
+                <div
+                  className="vibecard-big__preview-anchor"
+                  ref={(el) => { if (el) cardRefs.current[`${v.id}-preview`] = el; }}
+                />
+              </div>
+              <div className="vibecard-big__head">
+                <span className="vibecard-big__emoji">{v.emoji}</span>
+                <span className="vibecard-big__label">{v.label}</span>
+              </div>
+              <div className="vibecard-big__tagline">{v.tagline}</div>
+              <div className="vibecard-big__sub">{v.sub}</div>
+              {isPicked && (
+                <motion.div
+                  className="vibecard-big__pickedchip"
+                  initial={{ opacity: 0, scale: 0.7 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                >
+                  <Check size={12} /> Locked in
+                </motion.div>
+              )}
             </motion.button>
-          ))}
-        </div>
-        {pickedVibe && (
-          <motion.div className="vibe-confirm" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <Check size={14} /> Style locked in. Setting your room up…
+          );
+        })}
+      </div>
+
+      {/* Shared Canvas — one WebGL context renders all 4 mini scenes via Views. */}
+      <Canvas
+        className="vibescreen__sharedcanvas"
+        eventSource={containerRef}
+        dpr={[1, 1.6]}
+        gl={{ antialias: true }}
+      >
+        <View.Port />
+        {vibes.map((v) => (
+          <View key={v.id} track={{ current: cardRefs.current[`${v.id}-preview`] }}>
+            <VibeMini vibeId={v.id} hovered={hovered === v.id} selected={picked === v.id} />
+          </View>
+        ))}
+      </Canvas>
+
+      <AnimatePresence>
+        {confirmed && (
+          <motion.div
+            className="vibeconfirm"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -16 }}
+            transition={{ type: 'spring', stiffness: 200, damping: 22 }}
+          >
+            <div className="vibeconfirm__icon">✨</div>
+            <div className="vibeconfirm__body">
+              <div className="vibeconfirm__title">{s.confirmation}</div>
+            </div>
+            <motion.button
+              className="vibeconfirm__cta"
+              onClick={handleContinue}
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
+            >
+              {s.cta} <ChevronRight size={16} />
+            </motion.button>
           </motion.div>
         )}
-      </motion.div>
-    </motion.div>
+      </AnimatePresence>
+    </div>
   );
 }
 
 /* ============================================================
- * SCREEN 2 — Rules
+ * SCREEN 2 — Rules (now Scene 3 in the user-facing flow)
  * Stagger rule cards; CTA appears after the last one lands.
  * ============================================================ */
 export function Screen2Rules({ mk }) {

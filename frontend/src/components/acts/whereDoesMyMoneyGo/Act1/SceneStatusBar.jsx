@@ -10,11 +10,12 @@ import { lesson } from '../../../../data/lessons/whereDoesMyMoneyGo.js';
 
 const SHORT_TITLE = {
   'screen-1-intro':    'Scene 1 · The Big News',
-  'screen-2-rules':    'Scene 2 · Ground Rules',
-  'screen-3-sort':     'Scene 3 · Needs vs Wants',
-  'screen-4-shop':     'Scene 4 · Shop Smart',
-  'screen-5-events':   'Scene 5 · Plot Twists',
-  'screen-6-snapshot': 'Scene 6 · Spending Snapshot',
+  'screen-2-vibe':     'Scene 2 · Pick Your Style',
+  'screen-2-rules':    'Scene 3 · Ground Rules',
+  'screen-3-sort':     'Scene 4 · Needs vs Wants',
+  'screen-4-shop':     'Scene 5 · Shop Smart',
+  'screen-5-events':   'Scene 6 · Plot Twists',
+  'screen-6-snapshot': 'Scene 7 · Spending Snapshot',
 };
 
 export function SceneStatusBar({ screenId, accent = '#10B981', music, onToggleMusic }) {

@@ -952,6 +952,257 @@
    ============================================================ */
 
 /* ============================================================
+   SCENE 2 — Pick Your Vibe (premium customization screen)
+   ============================================================ */
+
+.wmg--ownlayout .wmg__main { padding: 0; pointer-events: auto; }
+.wmg--ownlayout .wmg__main > div { width: 100%; height: 100%; }
+
+.vibescreen {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(70% 60% at 30% 0%, rgba(245, 158, 11, 0.10) 0%, transparent 60%),
+    radial-gradient(70% 60% at 70% 100%, rgba(139, 92, 246, 0.10) 0%, transparent 60%),
+    linear-gradient(160deg, #0b0e1a 0%, #14182a 100%);
+  color: #ECF0F8;
+  padding: 56px clamp(20px, 4vw, 80px);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.vibescreen__head {
+  text-align: center;
+  max-width: 720px;
+  margin: 0 auto;
+}
+.vibescreen__eyebrow {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: rgba(236, 240, 248, 0.55);
+  padding: 4px 12px;
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 999px;
+  background: rgba(255,255,255,0.04);
+  margin-bottom: 14px;
+}
+.vibescreen__title {
+  font-size: clamp(32px, 4vw, 48px);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1.08;
+  margin: 0 0 10px;
+  background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.7) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.vibescreen__sub {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: rgba(236, 240, 248, 0.65);
+  margin: 0;
+}
+
+.vibegrid {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+  max-width: 1280px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.vibescreen__sharedcanvas {
+  position: absolute !important;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.vibecard-big {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  border: 1.5px solid rgba(255, 255, 255, 0.10);
+  border-radius: 22px;
+  background:
+    radial-gradient(80% 60% at 50% 0%, color-mix(in srgb, var(--vibe-accent) 22%, transparent), transparent 60%),
+    linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
+  cursor: pointer;
+  text-align: left;
+  color: #ECF0F8;
+  font-family: inherit;
+  overflow: hidden;
+  isolation: isolate;
+  transition: border-color 0.25s var(--ease-spring), box-shadow 0.3s, opacity 0.35s, transform 0.25s;
+  z-index: 2;
+}
+.vibecard-big:not(:disabled):hover {
+  border-color: color-mix(in srgb, var(--vibe-accent) 70%, transparent);
+  box-shadow:
+    0 24px 48px -14px color-mix(in srgb, var(--vibe-accent) 55%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--vibe-accent) 30%, transparent) inset;
+}
+.vibecard-big.is-picked {
+  border-color: var(--vibe-accent);
+  box-shadow:
+    0 30px 60px -16px color-mix(in srgb, var(--vibe-accent) 65%, transparent),
+    0 0 0 2px color-mix(in srgb, var(--vibe-accent) 45%, transparent) inset;
+}
+.vibecard-big.is-other { filter: saturate(0.4); }
+
+.vibecard-big__halo {
+  position: absolute;
+  inset: -40% -40% auto auto;
+  width: 140%;
+  height: 140%;
+  background: radial-gradient(circle, var(--vibe-accent) 0%, transparent 60%);
+  opacity: 0.18;
+  filter: blur(20px);
+  z-index: -1;
+  transition: opacity 0.3s;
+}
+.vibecard-big:not(:disabled):hover .vibecard-big__halo { opacity: 0.35; }
+.vibecard-big.is-picked .vibecard-big__halo { opacity: 0.5; }
+
+.vibecard-big__preview {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background:
+    linear-gradient(180deg, rgba(0,0,0,0.30) 0%, transparent 30%, transparent 70%, rgba(0,0,0,0.30) 100%);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  overflow: hidden;
+}
+.vibecard-big__view {
+  position: absolute !important;
+  inset: 0;
+}
+.vibecard-big__preview-anchor {
+  position: absolute;
+  inset: 0;
+}
+
+.vibecard-big__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 18px 4px;
+}
+.vibecard-big__emoji {
+  font-size: 26px;
+  line-height: 1;
+  filter: drop-shadow(0 4px 10px color-mix(in srgb, var(--vibe-accent) 50%, transparent));
+}
+.vibecard-big__label {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  background: linear-gradient(135deg, #fff 0%, color-mix(in srgb, var(--vibe-accent) 60%, #fff) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.vibecard-big__tagline {
+  padding: 0 18px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--vibe-accent);
+  text-transform: uppercase;
+}
+.vibecard-big__sub {
+  padding: 0 18px 18px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: rgba(236, 240, 248, 0.65);
+}
+.vibecard-big__pickedchip {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  background: var(--vibe-accent);
+  color: #0F172A;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  border-radius: 999px;
+  z-index: 3;
+}
+
+/* Confirmation banner (slides in after pick) */
+.vibeconfirm {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  background: rgba(11, 14, 26, 0.92);
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid color-mix(in srgb, var(--accent, #10B981) 40%, rgba(255,255,255,0.15));
+  border-radius: 16px;
+  box-shadow:
+    0 30px 60px -16px color-mix(in srgb, var(--accent, #10B981) 50%, transparent),
+    0 0 0 2px color-mix(in srgb, var(--accent, #10B981) 25%, transparent) inset;
+  width: min(560px, calc(100vw - 56px));
+}
+.vibeconfirm__icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+.vibeconfirm__body { flex: 1; min-width: 0; }
+.vibeconfirm__title {
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: rgba(236, 240, 248, 0.92);
+}
+.vibeconfirm__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 11px 18px;
+  font-size: 13.5px;
+  font-weight: 800;
+  letter-spacing: -0.005em;
+  background: var(--accent, #10B981);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: 0 8px 18px -6px color-mix(in srgb, var(--accent, #10B981) 70%, transparent);
+}
+
+@media (max-width: 1100px) {
+  .vibegrid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 720px) {
+  .vibescreen { padding: 28px 18px; }
+  .vibegrid { grid-template-columns: 1fr; gap: 12px; }
+  .vibecard-big__preview { aspect-ratio: 5 / 3; }
+}
+
+/* ============================================================
    SCENE 1 — Split-screen cinematic intro
    ============================================================ */
 
@@ -1655,9 +1906,16 @@
   background: rgba(255, 255, 255, 0.06);
   color: rgba(255, 255, 255, 0.7);
 }
+.audiocard__btn--secondary {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+.audiocard__btn--secondary:hover { background: rgba(255, 255, 255, 0.18); }
 .audiocard__btn--primary {
   background: var(--accent, #10B981);
   color: #fff;
+  box-shadow: 0 6px 18px -6px var(--accent, #10B981);
 }
 
 @media (max-width: 900px) {

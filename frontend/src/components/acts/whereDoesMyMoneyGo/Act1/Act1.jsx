@@ -18,7 +18,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Music2, X } from 'lucide-react';
 import { Room3D, VIBES } from './Room3D.jsx';
 import {
-  Screen1Intro, Screen2Rules, Screen3Sort,
+  Screen1Intro, Screen2Vibe, Screen2Rules, Screen3Sort,
   Screen4Shop, Screen5Events, Screen6Snapshot,
 } from './Screens.jsx';
 import { TopHUD } from './TopHUD.jsx';
@@ -43,6 +43,7 @@ async function apiPost(path, body) {
 
 const SHOT_FOR_SCREEN = {
   'screen-1-intro':    'hero',
+  'screen-2-vibe':     'hero',     // background room not visible on this screen
   'screen-2-rules':    'rules',
   'screen-3-sort':     'sort',
   'screen-4-shop':     'shop',
@@ -53,6 +54,7 @@ const SHOT_FOR_SCREEN = {
 /* Per-screen music mood. Lofi for active interactions, calm for narration. */
 const MOOD_FOR_SCREEN = {
   'screen-1-intro':    'calm',
+  'screen-2-vibe':     'calm',
   'screen-2-rules':    'calm',
   'screen-3-sort':     'lofi',
   'screen-4-shop':     'lofi',
@@ -61,7 +63,10 @@ const MOOD_FOR_SCREEN = {
 };
 
 const ORBIT_ON = new Set(['screen-1-intro', 'screen-6-snapshot']);
-const AUDIO_PREF_KEY = 'lh.makeover.audio.v2';
+/* Scene 1 + Scene 2 both own their own full-screen layout; the global
+ * background room/status bar/HUD shouldn't be rendered behind them. */
+const OWN_LAYOUT = new Set(['screen-1-intro', 'screen-2-vibe']);
+const AUDIO_PREF_KEY = 'lh.makeover.audio.v3';
 
 export default function WhereDoesMyMoneyGoAct1() {
   const mk = useMakeoverState();
@@ -104,6 +109,7 @@ export default function WhereDoesMyMoneyGoAct1() {
   /* Stop music on unmount */
   useEffect(() => () => { stopMusic(); }, []);
 
+  /** Full audio — music + narrator voice + sound effects. */
   const handleEnableAudio = useCallback(async () => {
     try {
       await unlockAudio(true);
@@ -118,6 +124,20 @@ export default function WhereDoesMyMoneyGoAct1() {
     }
   }, [mk.state.screen]);
 
+  /** Voice-only — narrator + sfx (unlocks audio context) but no music. */
+  const handleVoiceOnly = useCallback(async () => {
+    try {
+      await unlockAudio(true);
+      setMusicOn(false);
+      try { localStorage.setItem(AUDIO_PREF_KEY, 'voice-only'); } catch { /* noop */ }
+      setPrompted(true);
+    } catch (e) {
+      console.warn('[audio] unlock failed:', e?.message);
+      setPrompted(true);
+    }
+  }, []);
+
+  /** Fully silent — no music, no voice, no sfx. */
   const handleSkipAudio = useCallback(() => {
     try { localStorage.setItem(AUDIO_PREF_KEY, 'skipped'); } catch { /* noop */ }
     setPrompted(true);
@@ -170,13 +190,16 @@ export default function WhereDoesMyMoneyGoAct1() {
     alert("You're done with Act 1! Act 2 is up next (coming soon).");
   }
 
-  // Scene 1 owns its own split-screen layout (room left, panel right) and
-  // shouldn't be covered by the global background room or status bars.
-  const isScene1 = mk.state.screen === 'screen-1-intro';
+  // Scene 1 (intro) and Scene 2 (vibe) own their own full-screen layout
+  // and shouldn't be covered by the global background room / status bar / HUD.
+  const ownsLayout = OWN_LAYOUT.has(mk.state.screen);
 
   return (
-    <div className={`wmg wmg--${mk.state.vibe || 'cosy'} ${isScene1 ? 'wmg--scene1' : ''}`} style={{ '--accent': vibe.accent }}>
-      {!isScene1 && (
+    <div
+      className={`wmg wmg--${mk.state.vibe || 'cosy'} ${ownsLayout ? 'wmg--ownlayout' : ''} ${mk.state.screen === 'screen-1-intro' ? 'wmg--scene1' : ''}`}
+      style={{ '--accent': vibe.accent }}
+    >
+      {!ownsLayout && (
         <div className="wmg__bg">
           <Room3D
             vibeId={mk.state.vibe || 'cosy'}
@@ -190,7 +213,7 @@ export default function WhereDoesMyMoneyGoAct1() {
         </div>
       )}
 
-      {!isScene1 && (
+      {!ownsLayout && (
         <SceneStatusBar
           screenId={mk.state.screen}
           accent={vibe.accent}
@@ -199,9 +222,9 @@ export default function WhereDoesMyMoneyGoAct1() {
         />
       )}
 
-      {showHud && <TopHUD mk={mk} accent={vibe.accent} />}
+      {showHud && !ownsLayout && <TopHUD mk={mk} accent={vibe.accent} />}
 
-      <main className={`wmg__main ${isScene1 ? 'wmg__main--scene1' : ''}`}>
+      <main className={`wmg__main ${ownsLayout ? 'wmg__main--scene1' : ''}`}>
         <AnimatePresence mode="wait">
           <motion.div
             key={mk.state.screen}
@@ -212,6 +235,7 @@ export default function WhereDoesMyMoneyGoAct1() {
             style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
           >
             {mk.state.screen === 'screen-1-intro'    && <Screen1Intro    mk={mk} />}
+            {mk.state.screen === 'screen-2-vibe'     && <Screen2Vibe     mk={mk} />}
             {mk.state.screen === 'screen-2-rules'    && <Screen2Rules    mk={mk} />}
             {mk.state.screen === 'screen-3-sort'     && <Screen3Sort     mk={mk} />}
             {mk.state.screen === 'screen-4-shop'     && <Screen4Shop     mk={mk} />}
@@ -232,15 +256,18 @@ export default function WhereDoesMyMoneyGoAct1() {
           >
             <div className="audiocard__icon"><Music2 size={20} /></div>
             <div className="audiocard__body">
-              <div className="audiocard__title">Calm coding lo-fi?</div>
-              <div className="audiocard__sub">Soft background music makes the makeover feel right. You can toggle it any time.</div>
+              <div className="audiocard__title">Hear the narrator?</div>
+              <div className="audiocard__sub">Maya guides you through the makeover. Pick voice-only for narration without music, or full audio with lo-fi underneath.</div>
             </div>
             <div className="audiocard__actions">
-              <button className="audiocard__btn audiocard__btn--ghost" onClick={handleSkipAudio} aria-label="Skip">
-                <X size={14} /> Skip
+              <button className="audiocard__btn audiocard__btn--ghost" onClick={handleSkipAudio} aria-label="Silent">
+                <X size={14} /> Silent
+              </button>
+              <button className="audiocard__btn audiocard__btn--secondary" onClick={handleVoiceOnly} aria-label="Voice only">
+                Voice only
               </button>
               <button className="audiocard__btn audiocard__btn--primary" onClick={handleEnableAudio}>
-                Play music
+                Full audio
               </button>
             </div>
           </motion.div>

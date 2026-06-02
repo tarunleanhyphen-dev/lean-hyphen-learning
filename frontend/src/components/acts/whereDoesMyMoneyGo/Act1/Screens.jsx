@@ -20,7 +20,7 @@ import { Room3D, VIBES } from './Room3D.jsx';
 import { VibeMini } from './VibeMini.jsx';
 import { Canvas } from '@react-three/fiber';
 import { View } from '@react-three/drei';
-import { sounds, speak, cancelSpeech, isAudioReady } from '../../../../utils/sounds.js';
+import { sounds, speak, cancelSpeech, isAudioReady, setSpeechCallbacks } from '../../../../utils/sounds.js';
 
 /* Tiny safe-call wrapper so a missing/muted audio context never throws. */
 function sfx(name) { try { sounds[name]?.(); } catch { /* noop */ } }
@@ -54,10 +54,13 @@ const SCENE1_PREVIEW_ITEMS = [
   { id: 'led-strips',      delay: 5000 },
 ];
 
+/* Beat durations are the FALLBACK for silent / no-TTS mode. When TTS is
+ * enabled, beats actually advance on the speech-end callback so every
+ * narration line is heard in full no matter how long it runs. */
 const SCENE1_BEATS = [
   {
     id: 'big-news',
-    durationMs: 6500,
+    fallbackMs: 12000,
     lines: [
       "Your parents just gave you some big news.",
       "They're renovating the house — and YOUR room is getting a complete makeover.",
@@ -66,7 +69,7 @@ const SCENE1_BEATS = [
   },
   {
     id: 'budget',
-    durationMs: 5500,
+    fallbackMs: 10000,
     lines: [
       "The budget? ₹50,000.",
       "All yours. One time. No top-ups.",
@@ -75,7 +78,7 @@ const SCENE1_BEATS = [
   },
   {
     id: 'tradeoff',
-    durationMs: 7000,
+    fallbackMs: 13000,
     lines: [
       "But here's the catch — you have to plan every single rupee.",
       "Spend too much on one thing and you won't have enough for something else.",
@@ -84,7 +87,7 @@ const SCENE1_BEATS = [
   },
   {
     id: 'envelope',
-    durationMs: 4500,
+    fallbackMs: 7000,
     lines: [
       "And life has a few surprises waiting for you too.",
     ],
@@ -92,7 +95,7 @@ const SCENE1_BEATS = [
   },
   {
     id: 'cta',
-    durationMs: null,            // last beat — wait for click
+    fallbackMs: null,            // last beat — wait for click
     lines: [
       "Ready to design your dream bedroom — on a budget?",
     ],
@@ -105,27 +108,40 @@ export function Screen1Intro({ mk }) {
   const [previewIds, setPreviewIds] = useState([]);
   const beat = SCENE1_BEATS[beatIdx];
 
-  /* Auto-advance through beats. Last beat has duration=null so it holds. */
+  /* Beat advancement is driven by whichever happens first:
+   *   (a) the narrator finishes speaking all lines for this beat
+   *   (b) the fallback timer (for silent / no-TTS mode) fires
+   * Either way we only advance once per beat, never past the last beat. */
   useEffect(() => {
-    if (!beat?.durationMs) return undefined;
-    const t = setTimeout(() => setBeatIdx((i) => Math.min(SCENE1_BEATS.length - 1, i + 1)), beat.durationMs);
-    return () => clearTimeout(t);
-  }, [beatIdx, beat]);
+    if (!beat) return undefined;
+    let advanced = false;
+    const advance = () => {
+      if (advanced) return;
+      advanced = true;
+      if (beatIdx < SCENE1_BEATS.length - 1) setBeatIdx(beatIdx + 1);
+    };
 
-  /* TTS — speak each beat's narration lines as they appear.
-     Cancels any pending speech on beat change / unmount so lines never overlap. */
-  useEffect(() => {
-    if (!beat?.lines?.length) return undefined;
     cancelSpeech();
-    beat.lines.forEach((line, i) => {
-      const delay = i * 950; // matches typewriter line stagger
-      setTimeout(() => say(line), delay);
-    });
-    return () => cancelSpeech();
-  }, [beatIdx, beat]);
+    setSpeechCallbacks({ onEnd: () => setTimeout(advance, 1100) });
 
-  /* Cancel any speech on full unmount (leaving Scene 1). */
-  useEffect(() => () => cancelSpeech(), []);
+    // Queue every line at once so the speak engine plays them back-to-back.
+    // onEnd only fires when the entire queue empties.
+    if (beat.lines?.length) {
+      beat.lines.forEach((line) => say(line));
+    }
+
+    const fallback = beat.fallbackMs ? setTimeout(advance, beat.fallbackMs) : null;
+    return () => {
+      if (fallback) clearTimeout(fallback);
+      setSpeechCallbacks(null);
+      cancelSpeech();
+    };
+    // beatIdx in deps so each beat sets up its own callbacks/timers
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [beatIdx]);
+
+  /* Cancel speech on Scene 1 unmount. */
+  useEffect(() => () => { cancelSpeech(); setSpeechCallbacks(null); }, []);
 
   /* Stagger furniture into the room as the intro plays. */
   useEffect(() => {
@@ -561,47 +577,433 @@ export function Screen2Vibe({ mk }) {
  * SCREEN 2 — Rules (now Scene 3 in the user-facing flow)
  * Stagger rule cards; CTA appears after the last one lands.
  * ============================================================ */
+/* Each rule card has a built-in mini animation that explains the rule
+ * visually — not just an icon, an actual moving demo. */
+const RULE_BLOCKS = [
+  {
+    id: 'budget',
+    icon: '💰',
+    title: 'You have ₹50,000 to spend',
+    sub: 'The whole budget. One time. No top-ups.',
+    accent: '#FACC15',
+    voice: 'You have fifty thousand rupees to spend. The whole budget. One time. No top-ups.',
+  },
+  {
+    id: 'reserve',
+    icon: '🛡️',
+    title: 'Keep ₹2,000 locked as Emergency Reserve',
+    sub: "Don't touch it. Life has surprises.",
+    accent: '#3B82F6',
+    voice: 'Keep two thousand rupees locked as your Emergency Reserve. Don\'t touch it. Life has surprises.',
+  },
+  {
+    id: 'needs-first',
+    icon: '✅',
+    title: 'Buy at least 3 Needs before any Wants',
+    sub: 'Essentials first. Then comes the fun stuff.',
+    accent: '#10B981',
+    voice: 'Buy at least three Need items before adding any Wants. Essentials first. Then comes the fun stuff.',
+  },
+  {
+    id: 'overbudget',
+    icon: '⚠️',
+    title: 'Go over budget? Remove items before continuing',
+    sub: 'The tracker turns red, and you have to bring it back.',
+    accent: '#EF4444',
+    voice: 'If you go over budget, you must remove items before moving forward.',
+  },
+];
+
 export function Screen2Rules({ mk }) {
   const s = scene('screen-2-rules');
+  const [step, setStep] = useState(0);
+  // step 0 = title, 1..4 = rule cards staggered, 5 = tracker preview, 6 = CTA
+
+  // Auto-step every 2.6s until step 6 (CTA).
+  useEffect(() => {
+    if (step >= 6) return undefined;
+    const delay = step === 0 ? 1500 : 2400;
+    const t = setTimeout(() => setStep((x) => x + 1), delay);
+    return () => clearTimeout(t);
+  }, [step]);
+
+  // Narrate the title + each rule as it appears.
+  useEffect(() => {
+    if (step === 0) { say(s.intro); return; }
+    const block = RULE_BLOCKS[step - 1];
+    if (block?.voice) say(block.voice);
+    if (step === 5) say(s.outro);
+  }, [step, s.intro, s.outro]);
+
+  // Cancel speech on unmount.
+  useEffect(() => () => cancelSpeech(), []);
+
+  function jump() {
+    sfx('tap');
+    setStep(6);
+  }
+
+  function go() {
+    sfx('reveal');
+    cancelSpeech();
+    mk.setScreen('screen-3-sort');
+  }
+
   return (
-    <>
-      <StyleCoach
-        lines={[s.intro, s.outro]}
-        name="Maya"
-        vibeId={mk.state.vibe}
-      />
-      <motion.div
-        className="stage stage--bottom"
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ type: 'spring', stiffness: 180, damping: 22 }}
-      >
-        <div className="stage__eyebrow">Step 2 of 6 · Ground rules</div>
-        <div className="rules">
-          {s.rules.map((r, i) => (
-            <motion.div
-              key={i}
-              className="rule"
-              initial={{ opacity: 0, x: -16 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.12, type: 'spring', stiffness: 200, damping: 22 }}
-            >
-              <div className="rule__icon">{r.icon}</div>
-              <div className="rule__text">{r.text}</div>
-            </motion.div>
+    <div className="rulesscreen">
+      <header className="rulesscreen__head">
+        <div className="rulesscreen__eyebrow">Scene 3 · Mission briefing</div>
+        <h1 className="rulesscreen__title">{s.intro}</h1>
+        <p className="rulesscreen__sub">{s.outro}</p>
+        {step < 6 && (
+          <button className="rulesscreen__skip" onClick={jump} aria-label="Skip ahead">
+            Skip ahead <ChevronRight size={12} />
+          </button>
+        )}
+      </header>
+
+      <div className="rulesscreen__body">
+        <div className="rulesgrid">
+          {RULE_BLOCKS.map((r, i) => (
+            <RuleCard
+              key={r.id}
+              rule={r}
+              index={i}
+              visible={step >= i + 1}
+            />
           ))}
         </div>
-        <motion.button
-          className="cta"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.7 }}
-          onClick={() => { sfx('click'); mk.setScreen('screen-3-sort'); }}
+
+        <AnimatePresence>
+          {step >= 5 && <TrackerPreview key="trk" />}
+        </AnimatePresence>
+      </div>
+
+      <div className="rulesscreen__footer">
+        <AnimatePresence>
+          {step >= 6 && (
+            <motion.button
+              key="cta"
+              className="cta cta--xl"
+              onClick={go}
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ type: 'spring', stiffness: 220, damping: 22 }}
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.97 }}
+            >
+              <span className="cta__pulse" aria-hidden />
+              {s.cta} <ChevronRight size={20} />
+            </motion.button>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------ Rule card with built-in demo ------------------ */
+function RuleCard({ rule, index, visible }) {
+  return (
+    <motion.div
+      className={`rulecard rulecard--${rule.id}`}
+      style={{ '--rule-accent': rule.accent }}
+      initial={{ opacity: 0, y: 32, scale: 0.94 }}
+      animate={visible ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 32, scale: 0.94 }}
+      transition={{ type: 'spring', stiffness: 200, damping: 22 }}
+    >
+      <div className="rulecard__halo" aria-hidden />
+      <div className="rulecard__step">Rule {index + 1}</div>
+      <div className="rulecard__row">
+        <RuleIcon rule={rule} visible={visible} />
+        <div className="rulecard__text">
+          <div className="rulecard__title">{rule.title}</div>
+          <div className="rulecard__sub">{rule.sub}</div>
+        </div>
+      </div>
+      <div className="rulecard__demo">
+        {visible && (
+          <>
+            {rule.id === 'budget'     && <BudgetDemo />}
+            {rule.id === 'reserve'    && <ReserveDemo />}
+            {rule.id === 'needs-first'&& <NeedsFirstDemo />}
+            {rule.id === 'overbudget' && <OverbudgetDemo />}
+          </>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+/* Big animated emoji with depth shadow + halo — "3D-feeling" icon. */
+function RuleIcon({ rule, visible }) {
+  return (
+    <motion.div
+      className="ruleicon"
+      animate={visible ? {
+        y: [0, -6, 0],
+        rotate: [-3, 3, -3],
+      } : {}}
+      transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
+    >
+      <div className="ruleicon__halo" aria-hidden />
+      <div className="ruleicon__glyph">{rule.icon}</div>
+    </motion.div>
+  );
+}
+
+/* ------------------ Demos: each rule's mini animation ------------------ */
+
+function BudgetDemo() {
+  const v = useMotionValue(0);
+  const text = useTransform(v, (n) => '₹' + Math.round(n).toLocaleString('en-IN'));
+  useEffect(() => {
+    const c = animate(v, 50000, { duration: 1.6, ease: [0.16, 1, 0.3, 1] });
+    return () => c.stop();
+  }, []);
+  return (
+    <div className="demo demo--budget">
+      <motion.div className="demo__bignum">{text}</motion.div>
+      <div className="demo__row">
+        {[...Array(10)].map((_, i) => (
+          <motion.span
+            key={i}
+            className="demo__coin"
+            initial={{ y: -10, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: i * 0.08, type: 'spring', stiffness: 240, damping: 18 }}
+          >
+            🪙
+          </motion.span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ReserveDemo() {
+  return (
+    <div className="demo demo--reserve">
+      <div className="demo__vault">
+        <motion.div
+          className="demo__vault-door"
+          initial={{ rotateY: -85 }}
+          animate={{ rotateY: 0 }}
+          transition={{ delay: 0.6, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
         >
-          {s.cta} <ChevronRight size={16} />
-        </motion.button>
+          <span className="demo__vault-lock">🔒</span>
+        </motion.div>
+        <motion.div
+          className="demo__vault-bill"
+          initial={{ opacity: 0, x: -40, scale: 0.9 }}
+          animate={{ opacity: 1, x: 0, scale: 1 }}
+          transition={{ delay: 0.15, type: 'spring', stiffness: 220, damping: 22 }}
+        >
+          ₹2,000
+        </motion.div>
+      </div>
+      <div className="demo__caption">safely locked away</div>
+    </div>
+  );
+}
+
+function NeedsFirstDemo() {
+  return (
+    <div className="demo demo--needs">
+      <div className="demo__items">
+        {[
+          { icon: '🛏️', label: 'Bed',      kind: 'need', delay: 0.1 },
+          { icon: '🚪', label: 'Wardrobe', kind: 'need', delay: 0.3 },
+          { icon: '💡', label: 'Lamp',     kind: 'need', delay: 0.5 },
+          { icon: '🎮', label: 'Gaming',   kind: 'want', delay: 0.8 },
+          { icon: '🔊', label: 'Speaker',  kind: 'want', delay: 1.0 },
+        ].map((it) => (
+          <motion.div
+            key={it.label}
+            className={`demo__item demo__item--${it.kind}`}
+            initial={{ opacity: 0, y: 8, scale: 0.85 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ delay: it.delay, type: 'spring', stiffness: 220, damping: 22 }}
+          >
+            <span className="demo__item-icon">{it.icon}</span>
+            <span className="demo__item-label">{it.label}</span>
+            <span className={`demo__item-badge demo__item-badge--${it.kind}`}>
+              {it.kind === 'need' ? '✓' : '🔒'}
+            </span>
+          </motion.div>
+        ))}
+      </div>
+      <motion.div
+        className="demo__caption"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.2 }}
+      >
+        Wants unlock <strong>after</strong> 3 Needs ✓
       </motion.div>
-    </>
+    </div>
+  );
+}
+
+function OverbudgetDemo() {
+  const [phase, setPhase] = useState(0);
+  // phase 0: bar normal, phase 1: bar red overflow, phase 2: item flies out, bar back to green
+  useEffect(() => {
+    const t1 = setTimeout(() => setPhase(1), 600);
+    const t2 = setTimeout(() => setPhase(2), 1900);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, []);
+  const fill = phase === 0 ? '85%' : phase === 1 ? '108%' : '72%';
+  const color = phase === 1 ? '#EF4444' : phase === 2 ? '#10B981' : '#FACC15';
+  return (
+    <div className="demo demo--overbudget">
+      <div className="demo__bar">
+        <motion.div
+          className="demo__bar-fill"
+          animate={{ width: fill, background: color }}
+          transition={{ type: 'spring', stiffness: 160, damping: 22 }}
+        />
+        <div className="demo__bar-label" style={{ color }}>
+          {phase === 1 ? 'over budget!' : phase === 2 ? 'back on track' : 'on budget'}
+        </div>
+      </div>
+      <div className="demo__items demo__items--inline">
+        {['🛏️', '🚪', '🎮'].map((g, i) => (
+          <motion.span
+            key={i}
+            className={`demo__chip ${phase === 2 && i === 2 ? 'demo__chip--gone' : ''}`}
+            animate={phase === 2 && i === 2
+              ? { x: 60, y: -30, opacity: 0, rotate: 25 }
+              : {}}
+            transition={{ duration: 0.5 }}
+          >
+            {g}
+          </motion.span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------ Tracker Preview ------------------ */
+function TrackerPreview() {
+  const spent = useMotionValue(0);
+  const remaining = useMotionValue(48000);
+  const furniture = useMotionValue(0);
+  const remText = useTransform(remaining, (n) => '₹' + Math.round(n).toLocaleString('en-IN'));
+  const spentText = useTransform(spent, (n) => '₹' + Math.round(n).toLocaleString('en-IN'));
+  const furnText = useTransform(furniture, (n) => '₹' + Math.round(n).toLocaleString('en-IN'));
+
+  // Sample-value demo: pulse to ₹12,000, hold, then back to ₹0
+  useEffect(() => {
+    const seq = async () => {
+      await new Promise((r) => setTimeout(r, 1100));
+      const a = animate(spent, 12000, { duration: 1.0, ease: 'easeOut' });
+      const b = animate(remaining, 36000, { duration: 1.0, ease: 'easeOut' });
+      const c = animate(furniture, 12000, { duration: 1.0, ease: 'easeOut' });
+      await Promise.all([a.finished, b.finished, c.finished].map((p) => p.catch?.(() => {}) || p));
+      await new Promise((r) => setTimeout(r, 1300));
+      animate(spent, 0,     { duration: 0.8 });
+      animate(remaining, 48000, { duration: 0.8 });
+      animate(furniture, 0, { duration: 0.8 });
+    };
+    seq();
+  }, []);
+
+  // Width transform must be created outside .map() (Rules of Hooks).
+  const furnWidth = useTransform(furniture, (v) => `${Math.min(100, (v / 48000) * 100)}%`);
+  const CATS = [
+    { id: 'furniture', label: 'Furniture & Bed',  icon: '🛏️', val: furnText, width: furnWidth },
+    { id: 'seating',   label: 'Seating & Desk',   icon: '🪑', val: null, width: null },
+    { id: 'storage',   label: 'Storage',          icon: '📦', val: null, width: null },
+    { id: 'lighting',  label: 'Lighting',         icon: '💡', val: null, width: null },
+    { id: 'decor',     label: 'Décor & Tech',     icon: '🎨', val: null, width: null },
+  ];
+
+  return (
+    <motion.aside
+      className="trackpreview"
+      initial={{ opacity: 0, x: 60 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 60 }}
+      transition={{ type: 'spring', stiffness: 180, damping: 24 }}
+    >
+      <div className="trackpreview__head">
+        <div className="trackpreview__title">Expense Tracker</div>
+        <div className="trackpreview__sub">your live game companion</div>
+      </div>
+
+      <div className="trackpreview__hero">
+        <div className="trackpreview__hero-label">Remaining</div>
+        <motion.div className="trackpreview__hero-num">{remText}</motion.div>
+        <div className="trackpreview__hero-meta">of ₹48,000 spendable</div>
+      </div>
+
+      <div className="trackpreview__stats">
+        <div className="trackpreview__stat">
+          <span>Total Budget</span><strong>₹50,000</strong>
+        </div>
+        <div className="trackpreview__stat trackpreview__stat--lock">
+          <span>🔒 Reserve</span><strong>₹2,000</strong>
+        </div>
+        <div className="trackpreview__stat">
+          <span>Spent</span><motion.strong>{spentText}</motion.strong>
+        </div>
+      </div>
+
+      <div className="trackpreview__catbreak">
+        <div className="trackpreview__catbreak-title">Category breakdown</div>
+        {CATS.map((c) => (
+          <div key={c.id} className="trackpreview__cat">
+            <div className="trackpreview__cat-row">
+              <span>{c.icon} {c.label}</span>
+              {c.val
+                ? <motion.strong>{c.val}</motion.strong>
+                : <strong>₹0</strong>}
+            </div>
+            <div className="trackpreview__cat-bar">
+              {c.width
+                ? <motion.div className="trackpreview__cat-fill" style={{ width: c.width }} />
+                : null}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="trackpreview__chart">
+        <DonutPreview liveSpent={spent} />
+      </div>
+
+      <div className="trackpreview__caption">
+        Watch your tracker update as you shop. It'll show you exactly where your money is going.
+      </div>
+    </motion.aside>
+  );
+}
+
+/* Simple SVG donut chart that fills as spent rises. */
+function DonutPreview({ liveSpent }) {
+  const dashOffset = useTransform(liveSpent, (n) => {
+    const pct = Math.min(1, n / 48000);
+    const total = 2 * Math.PI * 36;
+    return total * (1 - pct);
+  });
+  return (
+    <svg className="donut" viewBox="0 0 96 96">
+      <circle cx="48" cy="48" r="36" stroke="rgba(255,255,255,0.10)" strokeWidth="10" fill="none" />
+      <motion.circle
+        cx="48" cy="48" r="36"
+        stroke="#FACC15"
+        strokeWidth="10"
+        fill="none"
+        strokeLinecap="round"
+        strokeDasharray={2 * Math.PI * 36}
+        style={{ strokeDashoffset: dashOffset }}
+        transform="rotate(-90 48 48)"
+      />
+      <text x="48" y="52" textAnchor="middle" fontSize="13" fontWeight="800" fill="#fff">spend %</text>
+    </svg>
   );
 }
 

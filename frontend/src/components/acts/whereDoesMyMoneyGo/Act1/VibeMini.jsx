@@ -87,13 +87,62 @@ function CosyMini({ hovered }) {
         </mesh>
         <pointLight position={[0, 0.10, 0]} intensity={hovered ? 1.6 : 0.9} distance={2.2} color={t.light} />
       </group>
-      {/* Floating leaf for warmth */}
-      <Float speed={1.2} floatIntensity={0.2}>
-        <mesh position={[0.9, 1.15, -0.7]}>
-          <torusKnotGeometry args={[0.05, 0.02, 24, 4]} />
-          <meshStandardMaterial color={t.accent} emissive={t.accent} emissiveIntensity={0.5} toneMapped={false} />
+      {/* Throw rug under bed */}
+      <mesh position={[-0.4, 0.005, 0.55]} rotation={[-Math.PI / 2, 0, 0.1]}>
+        <planeGeometry args={[1.7, 0.65]} />
+        <meshStandardMaterial color="#8B4513" roughness={0.95} />
+      </mesh>
+      <mesh position={[-0.4, 0.006, 0.55]} rotation={[-Math.PI / 2, 0, 0.1]}>
+        <ringGeometry args={[0.18, 0.22, 32]} />
+        <meshStandardMaterial color={t.accent} roughness={0.9} />
+      </mesh>
+      {/* Throw blanket on bed */}
+      <RoundedBox args={[1.0, 0.04, 0.30]} radius={0.04} position={[-0.4, 0.40, 0.30]}>
+        <meshStandardMaterial color="#B45309" roughness={0.95} />
+      </RoundedBox>
+      {/* Two candles on nightstand */}
+      <group position={[0.50, 0.42, -0.05]}>
+        <mesh>
+          <cylinderGeometry args={[0.025, 0.025, 0.08, 8]} />
+          <meshStandardMaterial color="#FEF3C7" roughness={0.9} />
         </mesh>
+        <mesh position={[0, 0.08, 0]}>
+          <coneGeometry args={[0.02, 0.05, 8]} />
+          <meshStandardMaterial color="#FACC15" emissive="#FACC15" emissiveIntensity={2.5} toneMapped={false} />
+        </mesh>
+      </group>
+      <group position={[0.62, 0.42, 0.05]}>
+        <mesh>
+          <cylinderGeometry args={[0.025, 0.025, 0.06, 8]} />
+          <meshStandardMaterial color="#FEF3C7" roughness={0.9} />
+        </mesh>
+        <mesh position={[0, 0.07, 0]}>
+          <coneGeometry args={[0.02, 0.05, 8]} />
+          <meshStandardMaterial color="#F59E0B" emissive="#F59E0B" emissiveIntensity={2.2} toneMapped={false} />
+        </mesh>
+      </group>
+      {/* Hanging plant */}
+      <Float speed={0.6} floatIntensity={0.08}>
+        <group position={[1.1, 1.3, -0.6]}>
+          <mesh>
+            <cylinderGeometry args={[0.10, 0.08, 0.10, 12]} />
+            <meshStandardMaterial color="#92400E" roughness={0.7} />
+          </mesh>
+          <mesh position={[0, -0.10, 0]}>
+            <sphereGeometry args={[0.13, 16, 16]} />
+            <meshStandardMaterial color="#10B981" roughness={0.6} />
+          </mesh>
+          <mesh position={[-0.05, -0.18, 0]}>
+            <sphereGeometry args={[0.08, 12, 12]} />
+            <meshStandardMaterial color="#059669" roughness={0.6} />
+          </mesh>
+        </group>
       </Float>
+      {/* Wall art behind bed */}
+      <mesh position={[-0.4, 1.15, -1.18]}>
+        <boxGeometry args={[0.45, 0.30, 0.02]} />
+        <meshStandardMaterial color={t.accent} roughness={0.5} emissive={t.accent} emissiveIntensity={0.15} />
+      </mesh>
     </group>
   );
 }
@@ -158,6 +207,57 @@ function StudyMini({ hovered }) {
         <sphereGeometry args={[0.18, 16, 16]} />
         <meshStandardMaterial color={t.accent} roughness={0.7} />
       </mesh>
+      {/* Coffee mug on desk */}
+      <group position={[-0.55, 0.86, 0]}>
+        <mesh>
+          <cylinderGeometry args={[0.04, 0.035, 0.08, 16]} />
+          <meshStandardMaterial color="#FFFFFF" roughness={0.6} />
+        </mesh>
+        <mesh position={[0.05, 0, 0]}>
+          <torusGeometry args={[0.018, 0.006, 8, 16, Math.PI]} />
+          <meshStandardMaterial color="#FFFFFF" roughness={0.6} />
+        </mesh>
+        {/* Coffee top */}
+        <mesh position={[0, 0.025, 0]}>
+          <cylinderGeometry args={[0.035, 0.035, 0.005, 16]} />
+          <meshStandardMaterial color="#4B2E1C" roughness={0.8} />
+        </mesh>
+      </group>
+      {/* Open notebook on desk */}
+      <RoundedBox args={[0.22, 0.01, 0.16]} radius={0.005} position={[0.05, 0.81, 0]}>
+        <meshStandardMaterial color="#F8FAFC" roughness={0.85} />
+      </RoundedBox>
+      {/* Tiny pencil */}
+      <mesh position={[0.18, 0.815, 0.04]} rotation={[0, 0, Math.PI / 8]}>
+        <cylinderGeometry args={[0.006, 0.006, 0.10, 8]} />
+        <meshStandardMaterial color="#F59E0B" />
+      </mesh>
+      {/* Stacked books on shelf top */}
+      <mesh position={[1.20, 1.30, 0.10]}>
+        <boxGeometry args={[0.15, 0.04, 0.30]} />
+        <meshStandardMaterial color="#7C3AED" />
+      </mesh>
+      <mesh position={[1.20, 1.36, 0.10]}>
+        <boxGeometry args={[0.15, 0.04, 0.28]} />
+        <meshStandardMaterial color="#EC4899" />
+      </mesh>
+      {/* Wall clock */}
+      <mesh position={[0.50, 1.40, -1.18]}>
+        <cylinderGeometry args={[0.13, 0.13, 0.02, 24]} rotation={[Math.PI / 2, 0, 0]} />
+        <meshStandardMaterial color="#FFFFFF" roughness={0.4} />
+      </mesh>
+      <mesh position={[0.50, 1.40, -1.16]}>
+        <cylinderGeometry args={[0.11, 0.11, 0.005, 24]} />
+        <meshStandardMaterial color="#F8FAFC" />
+      </mesh>
+      <mesh position={[0.50, 1.46, -1.155]}>
+        <boxGeometry args={[0.008, 0.05, 0.005]} />
+        <meshStandardMaterial color="#0F172A" />
+      </mesh>
+      <mesh position={[0.50, 1.40, -1.155]} rotation={[0, 0, Math.PI / 4]}>
+        <boxGeometry args={[0.06, 0.006, 0.005]} />
+        <meshStandardMaterial color={t.accent} />
+      </mesh>
     </group>
   );
 }
@@ -217,7 +317,46 @@ function GamerMini({ hovered }) {
         <boxGeometry args={[3.6, 0.05, 0.04]} />
         <meshStandardMaterial color={t.accent} emissive={t.accent} emissiveIntensity={4} toneMapped={false} />
       </mesh>
+      {/* RGB keyboard on desk */}
+      <RoundedBox args={[0.55, 0.04, 0.18]} radius={0.015} position={[-0.10, 0.80, 0.05]}>
+        <meshStandardMaterial color="#0a0c14" roughness={0.5} />
+      </RoundedBox>
+      {/* Keyboard underglow */}
+      <mesh position={[-0.10, 0.78, 0.05]}>
+        <boxGeometry args={[0.56, 0.005, 0.19]} />
+        <meshStandardMaterial color="#EC4899" emissive="#EC4899" emissiveIntensity={3.5} toneMapped={false} />
+      </mesh>
+      {/* Mouse on desk */}
+      <RoundedBox args={[0.07, 0.025, 0.10]} radius={0.012} position={[0.30, 0.79, 0.05]}>
+        <meshStandardMaterial color="#0a0c14" roughness={0.6} />
+      </RoundedBox>
+      {/* Headphones hanging on monitor */}
+      <group position={[0.45, 1.40, -0.27]}>
+        <mesh rotation={[0, 0, Math.PI / 6]}>
+          <torusGeometry args={[0.10, 0.018, 8, 16, Math.PI]} />
+          <meshStandardMaterial color="#0a0c14" roughness={0.6} />
+        </mesh>
+        <mesh position={[-0.08, -0.05, 0]}>
+          <sphereGeometry args={[0.06, 12, 12]} />
+          <meshStandardMaterial color="#1A1A1A" roughness={0.6} />
+        </mesh>
+        <mesh position={[0.04, -0.10, 0]}>
+          <sphereGeometry args={[0.06, 12, 12]} />
+          <meshStandardMaterial color="#1A1A1A" roughness={0.6} />
+        </mesh>
+      </group>
+      {/* Soda can */}
+      <mesh position={[-0.70, 0.85, 0.05]}>
+        <cylinderGeometry args={[0.04, 0.04, 0.13, 16]} />
+        <meshStandardMaterial color="#EF4444" roughness={0.4} metalness={0.4} />
+      </mesh>
+      {/* Pulsing floor LED ring */}
+      <mesh position={[-0.10, 0.012, 0.55]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.55, 0.60, 48]} />
+        <meshStandardMaterial color={t.accent} emissive={t.accent} emissiveIntensity={2.2} transparent opacity={0.7} toneMapped={false} />
+      </mesh>
       <pointLight position={[0, 1.1, -0.6]} intensity={hovered ? 1.6 : 0.9} distance={2.5} color={t.accent} />
+      <pointLight position={[-0.10, 0.4, 0.4]} intensity={hovered ? 0.9 : 0.5} distance={1.8} color="#EC4899" />
     </group>
   );
 }
@@ -257,7 +396,35 @@ function MinimalMini({ hovered }) {
           <meshStandardMaterial color={t.accent} roughness={0.6} />
         </mesh>
       </Float>
+      {/* Floor lamp — tall thin */}
+      <group position={[-1.30, 0, 0.3]}>
+        <mesh position={[0, 0.05, 0]}>
+          <cylinderGeometry args={[0.10, 0.10, 0.04, 16]} />
+          <meshStandardMaterial color="#FFFFFF" />
+        </mesh>
+        <mesh position={[0, 0.70, 0]}>
+          <cylinderGeometry args={[0.012, 0.012, 1.30, 8]} />
+          <meshStandardMaterial color="#FFFFFF" />
+        </mesh>
+        <mesh position={[0, 1.42, 0]}>
+          <cylinderGeometry args={[0.16, 0.08, 0.18, 16]} />
+          <meshStandardMaterial color={t.accent} emissive={t.accent} emissiveIntensity={0.7} toneMapped={false} />
+        </mesh>
+      </group>
+      {/* Geometric sculpture on the floor */}
+      <Float speed={0.5} rotationIntensity={0.4}>
+        <mesh position={[0.30, 0.18, 0.70]}>
+          <icosahedronGeometry args={[0.12, 0]} />
+          <meshStandardMaterial color="#E5E7EB" roughness={0.5} metalness={0.2} />
+        </mesh>
+      </Float>
+      {/* Simple round rug */}
+      <mesh position={[-0.2, 0.005, 0.6]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[0.6, 32]} />
+        <meshStandardMaterial color="#E2E8F0" roughness={0.95} />
+      </mesh>
       <pointLight position={[0.5, 1.4, 0.5]} intensity={hovered ? 0.9 : 0.6} distance={3} color="#FFFFFF" />
+      <pointLight position={[-1.30, 1.42, 0.3]} intensity={hovered ? 1.2 : 0.7} distance={2.4} color={t.accent} />
     </group>
   );
 }

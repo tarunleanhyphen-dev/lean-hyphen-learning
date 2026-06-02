@@ -24,11 +24,13 @@ import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { Character3D } from './Character3D.jsx';
 
+/* Walls and floor are pulled slightly warmer + more desaturated so the
+ * room reads as "lived in" / a little dusty rather than freshly painted. */
 const VIBES = {
-  cosy:    { wall: '#F5E1C8', floor: '#A57B5B', accent: '#F59E0B', sky: 'apartment', bg: '#FFE8C5' },
-  study:   { wall: '#E6EBE0', floor: '#B6926A', accent: '#10B981', sky: 'studio',    bg: '#E8F7EE' },
-  gamer:   { wall: '#161A2C', floor: '#0A0E1E', accent: '#8B5CF6', sky: 'night',     bg: '#070912' },
-  minimal: { wall: '#F8FAFC', floor: '#D6CCC2', accent: '#06B6D4', sky: 'dawn',      bg: '#F1F5F9' },
+  cosy:    { wall: '#ECD2B2', floor: '#90694B', accent: '#F59E0B', sky: 'apartment', bg: '#F4D9B0' },
+  study:   { wall: '#D8DDD2', floor: '#A07F5C', accent: '#10B981', sky: 'studio',    bg: '#DDE9DC' },
+  gamer:   { wall: '#13162A', floor: '#080B19', accent: '#8B5CF6', sky: 'night',     bg: '#050710' },
+  minimal: { wall: '#EEF1F5', floor: '#C7BDB2', accent: '#06B6D4', sky: 'dawn',      bg: '#E5EBEF' },
 };
 
 /* ============================================================
@@ -493,25 +495,55 @@ function FurnitureSpawn({ itemId, vibe }) {
  * ROOM SHELL — floor with subtle grain, walls, baseboards, window
  * ============================================================ */
 function RoomShell({ vibe }) {
-  const wallMat = useMemo(() => new THREE.MeshStandardMaterial({ color: vibe.wall, roughness: 0.95 }), [vibe.wall]);
-  const floorMat = useMemo(() => new THREE.MeshStandardMaterial({ color: vibe.floor, roughness: 0.6, metalness: 0.05 }), [vibe.floor]);
+  const wallMat = useMemo(() => new THREE.MeshStandardMaterial({ color: vibe.wall, roughness: 0.98 }), [vibe.wall]);
+  const floorMat = useMemo(() => new THREE.MeshStandardMaterial({ color: vibe.floor, roughness: 0.85, metalness: 0.0 }), [vibe.floor]);
+  /* Random dust/scuff splotches on the floor — lazily generated once. */
+  const scuffs = useMemo(() => {
+    // deterministic-ish layout so they don't change on re-render
+    const pts = [
+      [-2.6, 1.4], [-1.8, -0.7], [0.5, -1.2], [1.9, 0.6], [2.4, -1.5], [-3.1, -0.3],
+      [-0.8, 1.8], [0.2, 0.4], [1.2, -0.5], [-2.0, 0.9], [3.0, 0.0], [-1.2, -1.6],
+    ];
+    return pts.map(([x, z]) => ({ x, z, size: 0.18 + Math.abs(Math.sin(x * z)) * 0.32 }));
+  }, []);
+
   return (
     <group>
+      {/* Floor */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow position={[0, 0, 0]}>
         <planeGeometry args={[10, 8]} />
         <primitive object={floorMat} attach="material" />
       </mesh>
+      {/* Dust + scuff splotches — soft dark blobs at floor level */}
+      {scuffs.map((s, i) => (
+        <mesh key={i} rotation={[-Math.PI / 2, 0, 0]} position={[s.x, 0.005, s.z]}>
+          <circleGeometry args={[s.size, 24]} />
+          <meshStandardMaterial color="#000000" transparent opacity={0.10} depthWrite={false} />
+        </mesh>
+      ))}
+      {/* Faint wall patina/stains — two large soft blobs on the back wall */}
+      <mesh position={[-1.8, 1.4, -1.99]}>
+        <planeGeometry args={[1.6, 1.2]} />
+        <meshStandardMaterial color="#000000" transparent opacity={0.06} depthWrite={false} />
+      </mesh>
+      <mesh position={[2.2, 0.8, -1.99]}>
+        <planeGeometry args={[1.2, 1.6]} />
+        <meshStandardMaterial color="#000000" transparent opacity={0.05} depthWrite={false} />
+      </mesh>
+      {/* Back wall */}
       <mesh position={[0, 1.6, -2]} receiveShadow>
         <planeGeometry args={[8, 3.2]} />
         <primitive object={wallMat} attach="material" />
       </mesh>
+      {/* Right wall */}
       <mesh position={[4, 1.6, 0]} rotation={[0, -Math.PI / 2, 0]} receiveShadow>
         <planeGeometry args={[6, 3.2]} />
         <primitive object={wallMat} attach="material" />
       </mesh>
+      {/* Baseboard — slightly off-white so it reads as old paint */}
       <mesh position={[0, 0.08, -1.98]}>
         <boxGeometry args={[8, 0.16, 0.04]} />
-        <meshStandardMaterial color="#FFFFFF" />
+        <meshStandardMaterial color="#F5EDD8" />
       </mesh>
       {/* Window pane (glows softly to suggest daylight) */}
       <mesh position={[1.0, 1.7, -1.985]}>
@@ -521,11 +553,16 @@ function RoomShell({ vibe }) {
       {/* Window frame cross */}
       <mesh position={[1.0, 1.7, -1.98]}>
         <boxGeometry args={[0.04, 1.0, 0.02]} />
-        <meshStandardMaterial color="#FFFFFF" />
+        <meshStandardMaterial color="#F5EDD8" />
       </mesh>
       <mesh position={[1.0, 1.7, -1.98]}>
         <boxGeometry args={[1.4, 0.04, 0.02]} />
-        <meshStandardMaterial color="#FFFFFF" />
+        <meshStandardMaterial color="#F5EDD8" />
+      </mesh>
+      {/* Crack hint on the wall — single thin dark line */}
+      <mesh position={[-2.4, 2.2, -1.99]} rotation={[0, 0, 0.18]}>
+        <boxGeometry args={[0.012, 0.55, 0.001]} />
+        <meshStandardMaterial color="#000000" transparent opacity={0.35} />
       </mesh>
     </group>
   );
@@ -557,7 +594,7 @@ export function Room3D({
       <SoftShadows samples={8} size={32} focus={0} />
 
       {/* Lights */}
-      <ambientLight intensity={0.50} />
+      <ambientLight intensity={0.40} />
       <directionalLight
         position={[6, 8, 4]}
         intensity={1.1}
@@ -581,12 +618,12 @@ export function Room3D({
       <ContactShadows position={[0, 0.015, 0]} opacity={0.35} scale={12} blur={2.8} far={4} />
 
       {/* Drifting dust motes — ambient room motion */}
-      <DustMotes count={70} vibe={vibe} />
+      <DustMotes count={140} vibe={vibe} />
 
       {/* In-room character — Maya the architect, scaled up + accent spotlight */}
       {showCharacter && (
         <>
-          <group position={[-2.4, 0, 1.6]} scale={1.18}>
+          <group position={[-2.4, 0, 1.6]} scale={1.0}>
             <Character3D position={[0, 0, 0]} pose={pose} vibe={vibe} speaking={speaking} />
           </group>
           {/* Soft accent spotlight pinned on Maya — anchors the eye */}

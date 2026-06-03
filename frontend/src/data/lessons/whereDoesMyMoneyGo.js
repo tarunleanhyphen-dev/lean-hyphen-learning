@@ -22,6 +22,8 @@ export const lesson = {
   module: 'Smart Spending & Money Choices',
   title: 'Where Does My Money Go?',
   totalMinutes: 12,
+  // Every live act is openable from the start — no "finish Act 1 to unlock Act 2" gate.
+  freeNavigation: true,
   hero: {
     tagline:
       'Renovate your dream bedroom on a ₹50,000 budget — and discover where your money actually goes.',
@@ -193,7 +195,7 @@ export const lesson = {
         },
       ],
     },
-    act2: { id: 'act2', title: 'Act 2 — TBD', minutes: 3, kind: 'interactive', status: 'coming-soon', scenes: [] },
+    act2: { id: 'act2', title: 'Act 2 — The 50/30/20 Rule', minutes: 5, kind: 'concept', status: 'live', scenes: [] },
     act3: { id: 'act3', title: 'Act 3 — TBD', minutes: 3, kind: 'scenarios',   status: 'coming-soon', scenes: [] },
     act4: { id: 'act4', title: 'Act 4 — TBD', minutes: 3, kind: 'reflection',  status: 'coming-soon', scenes: [] },
   },

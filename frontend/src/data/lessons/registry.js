@@ -17,13 +17,17 @@ import ThinkAct2 from '../../components/acts/Act2/Act2.jsx';
 import ThinkAct3 from '../../components/acts/Act3/Act3.jsx';
 import ThinkAct4 from '../../components/acts/Act4/Act4.jsx';
 
-import WhereAct1 from '../../components/acts/whereDoesMyMoneyGo/Act1/Act1.jsx';
+// "Where Does My Money Go?" · Act 1 = the new Dream Bedroom Makeover build.
+// (The earlier whereDoesMyMoneyGo/Act1 implementation is kept on disk for
+// history but is no longer wired in.)
+import DreamBedroomAct1 from '../../components/acts/dreamBedroomMakeover/Act1/Act1.jsx';
+import DreamBedroomAct2 from '../../components/acts/dreamBedroomMakeover/Act2/Act2.jsx';
 
 export const LESSONS = [
   {
     data: whereDoesMyMoneyGo,
     featured: true,
-    acts: { act1: WhereAct1 },
+    acts: { act1: DreamBedroomAct1, act2: DreamBedroomAct2 },
   },
   {
     data: thinkBeforeYouSpend,

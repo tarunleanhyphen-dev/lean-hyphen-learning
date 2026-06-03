@@ -9,3 +9,4 @@ dist
 
 # Backend file-store fallback (regenerable, never commit)
 backend/data/
+.vercel

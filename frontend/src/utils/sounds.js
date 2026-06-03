@@ -158,6 +158,34 @@ const CHORDS = {
   Em9:    { notes: [164.81, 196.00, 246.94, 293.66, 369.99], bass:  82.41 }, // E G B D F#
 };
 
+/* ============== Real background music tracks ==============
+ * When a mood has a URL here we stream the track and silence the
+ * Web-Audio synth for that mood. When the URL is null we fall back to
+ * the synth (preserves the existing behaviour for moods we don't have
+ * a real track for yet).
+ *
+ * Why streaming and not download:
+ *   • Pixabay CDN serves these files reliably to <audio> elements
+ *     (same CDN we already use for the Act 3 reel's lo-fi bed).
+ *   • Means we don't bundle ~3 MB of MP3 with the app for every page
+ *     load — only the moods that actually play in a session fetch.
+ *
+ * Adding a new mood: drop a stable URL here, no other changes
+ * needed. Falls back to synth automatically if the URL fails to load. */
+const MUSIC_TRACKS = {
+  calm:        null,                 // synth — warm intro pad fits Act 1
+  'app-tempo': null,                 // synth — shopping energy needs the
+                                     // pluck + sub-kick the synth provides
+  reflective:  'https://cdn.pixabay.com/audio/2022/10/30/audio_347111d654.mp3',
+  thinking:    'https://cdn.pixabay.com/audio/2022/10/30/audio_347111d654.mp3',
+  lofi:        'https://cdn.pixabay.com/audio/2022/10/30/audio_347111d654.mp3',
+  hit:         null,                 // synth — impact swell needs synth precision
+  silent:      null,
+};
+/* Volume the real audio plays at. Deliberately lower than the synth
+ * mood gain so the music sits CLEARLY under the narrator. */
+const BG_MUSIC_VOLUME = 0.08;
+
 // Mood definitions tuned so transitions are *audible*, not subtle. The big
 // dimensions of contrast: bus volume, presence of percussion, low-pass cutoff
 // (brightness), and whether the bell melody is present.
@@ -571,8 +599,105 @@ function scheduleBar(barIdx, startTime) {
   }
 }
 
+/* ============== Real-track player ==============
+ *
+ * Persistent <audio> element for streaming the per-mood track. We use
+ * a single element and either swap its src (when transitioning between
+ * two URL-backed moods) or fade it out (when transitioning to a synth
+ * mood or to silent). Cross-fade between *different* URL-backed moods
+ * runs both an old and a new element in parallel for ~1.2 s.
+ *
+ * Why not Web Audio routing for music: simpler. We don't need the
+ * music in the analyser graph (lip-sync only cares about the speech
+ * <audio> elements), and HTMLAudioElement.volume is already smooth
+ * enough at the timescales we ramp over.
+ */
+let bgAudio = null;       // currently-playing <audio>
+let bgAudioMood = null;   // the MUSIC_TRACKS key the bgAudio represents
+let bgFadeRaf = 0;
+
+function cancelBgFade() {
+  if (bgFadeRaf) {
+    cancelAnimationFrame(bgFadeRaf);
+    bgFadeRaf = 0;
+  }
+}
+
+function fadeAudioTo(audio, targetVol, durationMs, onDone) {
+  if (!audio) { onDone?.(); return; }
+  const startVol = audio.volume;
+  const startAt = performance.now();
+  const tick = (now) => {
+    const t = Math.min(1, (now - startAt) / durationMs);
+    audio.volume = Math.max(0, Math.min(1, startVol + (targetVol - startVol) * t));
+    if (t < 1) bgFadeRaf = requestAnimationFrame(tick);
+    else onDone?.();
+  };
+  bgFadeRaf = requestAnimationFrame(tick);
+}
+
+function startBgTrack(mood) {
+  const url = MUSIC_TRACKS[mood];
+  if (!url || muted) return;
+  if (bgAudio && bgAudioMood === mood) {
+    // Same track already playing — just make sure it's audible.
+    cancelBgFade();
+    if (bgAudio.paused) bgAudio.play().catch(() => {});
+    fadeAudioTo(bgAudio, BG_MUSIC_VOLUME, 800);
+    return;
+  }
+  // New track — build it and cross-fade against the previous one (if any).
+  const next = new Audio(url);
+  next.loop = true;
+  next.volume = 0;
+  next.crossOrigin = 'anonymous';
+  next.preload = 'auto';
+  next.play().catch(() => { /* autoplay may need a gesture; we'll retry on the next unlock */ });
+  const prev = bgAudio;
+  const prevMood = bgAudioMood;
+  bgAudio = next;
+  bgAudioMood = mood;
+  cancelBgFade();
+  // Sequenced fade: ramp the new track up; once that's underway, ramp
+  // the previous track out and dispose of it.
+  fadeAudioTo(next, BG_MUSIC_VOLUME, 1200);
+  if (prev) {
+    // Run the prev fade-out on its own RAF chain so it doesn't fight
+    // the bgFadeRaf used by the new track. Direct setInterval is fine.
+    const startVol = prev.volume;
+    const startAt = performance.now();
+    const dur = 1200;
+    const id = setInterval(() => {
+      const t = Math.min(1, (performance.now() - startAt) / dur);
+      prev.volume = Math.max(0, startVol * (1 - t));
+      if (t >= 1) {
+        clearInterval(id);
+        try { prev.pause(); } catch {}
+        prev.src = '';
+      }
+    }, 33);
+    // Side-note: prevMood unused except for debug breadcrumbs.
+    void prevMood;
+  }
+}
+
+function stopBgTrack(fadeMs = 800) {
+  if (!bgAudio) return;
+  const a = bgAudio;
+  bgAudio = null;
+  bgAudioMood = null;
+  cancelBgFade();
+  fadeAudioTo(a, 0, fadeMs, () => {
+    try { a.pause(); } catch {}
+    a.src = '';
+  });
+}
+
 export function startMusic() {
-  if (musicTimer || muted || !ensureCtx()) return;
+  if (muted || !ensureCtx()) return;
+  // Real-track moods bypass the synth scheduler entirely.
+  if (MUSIC_TRACKS[activeMood]) { startBgTrack(activeMood); return; }
+  if (musicTimer) return;
   if (!musicGain) {
     musicGain = ctx.createGain();
     musicGain.gain.value = 0;
@@ -616,20 +741,40 @@ export function stopMusic() {
     musicGain.gain.setValueAtTime(musicGain.gain.value, t);
     musicGain.gain.linearRampToValueAtTime(0, t + 0.8);
   }
+  // Also stop any real-track that's playing.
+  stopBgTrack(800);
 }
 
 /** Soft duck — used when the sequencer pauses. Keeps the loop scheduled but mutes the bus. */
 export function pauseMusic() {
-  if (!musicGain || !ctx) return;
-  const t = ctx.currentTime;
-  musicGain.gain.cancelScheduledValues(t);
-  musicGain.gain.setValueAtTime(musicGain.gain.value, t);
-  musicGain.gain.linearRampToValueAtTime(0, t + 0.25);
+  if (musicGain && ctx) {
+    const t = ctx.currentTime;
+    musicGain.gain.cancelScheduledValues(t);
+    musicGain.gain.setValueAtTime(musicGain.gain.value, t);
+    musicGain.gain.linearRampToValueAtTime(0, t + 0.25);
+  }
+  // Pause the real track too if one is playing.
+  if (bgAudio && !bgAudio.paused) {
+    cancelBgFade();
+    fadeAudioTo(bgAudio, 0, 250, () => { try { bgAudio?.pause(); } catch {} });
+  }
 }
 
 /** Counterpart to pauseMusic — fades the bus back to current mood volume. */
 export function resumeMusic() {
   if (muted) return;
+  // Real-track mood: rewind the audio to active, fade back up.
+  if (MUSIC_TRACKS[activeMood]) {
+    if (bgAudio) {
+      cancelBgFade();
+      bgAudio.play().catch(() => {});
+      fadeAudioTo(bgAudio, BG_MUSIC_VOLUME, 600);
+    } else {
+      startBgTrack(activeMood);
+    }
+    return;
+  }
+  // Synth mood: ramp the synth bus back up.
   if (!musicGain || !ctx) { startMusic(); return; }
   const mood = MOODS[activeMood] || MOODS.calm;
   const t = ctx.currentTime;
@@ -650,6 +795,31 @@ export function setMusicMood(mood) {
 
   // If we just entered 'hit', schedule a one-shot impact immediately.
   if (next === 'hit' && prev !== 'hit') playImpactSwell();
+
+  // Decide which engine owns the new mood.
+  const nextHasTrack = !!MUSIC_TRACKS[next];
+  const prevHadTrack = !!MUSIC_TRACKS[prev];
+
+  if (nextHasTrack) {
+    // Cross-fade into the real track (start it if needed; same-URL
+    // moods will no-op inside startBgTrack).
+    startBgTrack(next);
+    // Silence the synth bus so it doesn't double with the audio.
+    if (musicGain && ctx) {
+      const t = ctx.currentTime;
+      musicGain.gain.cancelScheduledValues(t);
+      musicGain.gain.setValueAtTime(musicGain.gain.value, t);
+      musicGain.gain.linearRampToValueAtTime(0, t + 1.0);
+    }
+    return;
+  }
+
+  // Synth mood — fade out the real track if one was playing.
+  if (prevHadTrack) stopBgTrack(1000);
+
+  // Make sure the synth scheduler is running (it'd be idle if the
+  // previous mood was a real track).
+  if (!musicTimer && !muted) startMusic();
 
   if (!lowPassFilter || !ctx || !musicGain) return;
   const m = MOODS[next];
@@ -946,23 +1116,21 @@ function playChunkSequence(chunks, i, who, volume, onFinished) {
     return;
   }
   // The `v` query param cache-busts when we change voices on the backend.
-  // Without it, browsers that cached the old Google Translate MP3 (under
-  // Cache-Control: immutable) would keep replaying the old voice for the
-  // same phrase, even after a backend deploy. Bump this when voices change.
-  const url = `${CLOUD_TTS_BASE}/api/tts?voice=${encodeURIComponent(who)}&v=11&text=${encodeURIComponent(chunks[i])}`;
+  // Bumped to 12 with the ElevenLabs voice swap so any cached Edge MP3s
+  // are evicted in browsers that already heard the old voices.
+  const url = `${CLOUD_TTS_BASE}/api/tts?voice=${encodeURIComponent(who)}&v=12&text=${encodeURIComponent(chunks[i])}`;
   const audio = new Audio(url);
   currentCloudAudio = audio;
   audio.volume = volume;
   // preservesPitch must be TRUE so changing playbackRate doesn't shift pitch
-  // — otherwise the en-IN voice gets squeaky and stops sounding Indian.
+  // — otherwise the voice gets squeaky and stops sounding natural.
   audio.preservesPitch = true;
-  // Both voices use the same en-IN locale on the backend; prosody is what
-  // makes them distinct on the client side.
-  //   shanaya  → 1.0  : natural Indian-English female (hi-IN-Swara)
-  //   narrator → 1.3  : Per QA — pushes the male voice into a younger
-  //                     17-18 year-old read. preservesPitch is TRUE so
-  //                     the Indian accent is preserved.
-  audio.playbackRate = who === 'shanaya' ? 1.0 : 1.3;
+  // With ElevenLabs we pick voices that already match the target age,
+  // so no client-side rate boost is needed. Both roles play at native
+  // 1.0× — the natural cadence of the source voice carries the scene.
+  // (Edge fallback still works fine at 1.0× too; the 1.3× narrator
+  // boost was a stop-gap to push the only en-IN male voice younger.)
+  audio.playbackRate = 1.0;
   audio.crossOrigin = 'anonymous';
 
   // Route this chunk through the Web Audio analyser so the avatar can

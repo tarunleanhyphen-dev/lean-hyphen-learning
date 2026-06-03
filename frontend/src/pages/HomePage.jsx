@@ -79,7 +79,7 @@ export default function HomePage() {
               lessonId={lesson.id}
               act={act}
               index={i}
-              unlocked={!!unlocked[act.id] && !!featured.acts[act.id]}
+              unlocked={(lesson.freeNavigation || !!unlocked[act.id]) && !!featured.acts[act.id]}
               completed={!!completed[act.id]}
               hasComponent={!!featured.acts[act.id]}
             />

@@ -20,6 +20,13 @@ export default function LessonReport({ sessionId, lessonId, onContinue }) {
   const [report, setReport] = useState(null);
   const [error, setError] = useState(null);
 
+  // Track the loading state independently of `report`. We need a third
+  // bucket — "we tried, the backend returned null/empty" — so the modal
+  // doesn't spin forever when the backend can't persist events (e.g.
+  // serverless cold start losing /tmp data between the POST and the
+  // GET). Without this the LessonReport hangs on "Computing your
+  // score…" indefinitely.
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     let cancelled = false;
     async function load() {
@@ -32,6 +39,8 @@ export default function LessonReport({ sessionId, lessonId, onContinue }) {
         if (!cancelled) setReport(j.report ?? null);
       } catch (err) {
         if (!cancelled) setError(err.message || 'failed to load report');
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     }
     load();
@@ -66,7 +75,7 @@ export default function LessonReport({ sessionId, lessonId, onContinue }) {
           <Trophy className="h-10 w-10 text-saffron-500" strokeWidth={2.2} />
         </header>
 
-        {!report && !error && (
+        {loading && !report && !error && (
           <div className="mt-8 grid place-items-center py-12 text-ink-500">
             <motion.div
               animate={{ rotate: 360 }}
@@ -80,6 +89,23 @@ export default function LessonReport({ sessionId, lessonId, onContinue }) {
         {error && (
           <div className="mt-6 rounded-2xl bg-coral-500/10 p-4 text-[13px] text-coral-700 ring-1 ring-coral-500/20">
             We couldn't load your report ({error}). Your progress is saved — try again later.
+          </div>
+        )}
+
+        {/* Fetch finished, no error, but the backend returned an empty
+            report. This happens when the analytics events landed on a
+            different serverless instance than the one serving this read
+            (the in-memory + /tmp store is per-instance). Better than
+            spinning forever: tell the learner the lesson is done and
+            give them the way home. */}
+        {!loading && !report && !error && (
+          <div className="mt-6 rounded-2xl bg-cream-100 p-5 text-center ring-1 ring-ink-300/15">
+            <Sparkles className="mx-auto h-8 w-8 text-saffron-500" />
+            <h3 className="mt-2 text-lg font-extrabold text-ink-900">Lesson complete!</h3>
+            <p className="mt-1 text-[13px] text-ink-700">
+              You walked through all four Acts. Your score sync is still catching up — refresh the
+              home page in a moment to see the full report.
+            </p>
           </div>
         )}
 

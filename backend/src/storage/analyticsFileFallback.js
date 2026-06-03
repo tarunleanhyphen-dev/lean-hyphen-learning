@@ -13,7 +13,18 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DATA_PATH = path.resolve(__dirname, '..', '..', 'data', 'analytics.json');
+// Vercel's serverless filesystem is read-only EXCEPT for /tmp, which
+// is writable but ephemeral (lives ~minutes per warm instance). For
+// local dev we keep the durable `backend/data/analytics.json` so the
+// file survives backend restarts. On Vercel we transparently fall over
+// to /tmp; data lasts as long as the warm instance does. Production-
+// grade durable storage is the Postgres backend (migration 004 ships
+// with this commit — run `npm run migrate` against Supabase to enable,
+// then flip `usingPg()` in routes/analytics.js).
+const isServerlessRO = !!(process.env.VERCEL || process.env.VERCEL_ENV);
+const DATA_PATH = isServerlessRO
+  ? '/tmp/lh-analytics.json'
+  : path.resolve(__dirname, '..', '..', 'data', 'analytics.json');
 
 function readStore() {
   if (!fs.existsSync(DATA_PATH)) return blank();

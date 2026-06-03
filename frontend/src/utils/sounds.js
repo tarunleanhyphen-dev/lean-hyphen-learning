@@ -1116,9 +1116,12 @@ function playChunkSequence(chunks, i, who, volume, onFinished) {
     return;
   }
   // The `v` query param cache-busts when we change voices on the backend.
-  // Bumped to 12 with the ElevenLabs voice swap so any cached Edge MP3s
-  // are evicted in browsers that already heard the old voices.
-  const url = `${CLOUD_TTS_BASE}/api/tts?voice=${encodeURIComponent(who)}&v=12&text=${encodeURIComponent(chunks[i])}`;
+  // Bumped to 13 because v=12 went live BEFORE the Vercel ElevenLabs env
+  // vars were set, so the first few prod requests under v=12 cached Edge
+  // MP3s in browsers + the CDN under Cache-Control: immutable. Bumping
+  // forces every client to re-fetch under a brand-new key, this time
+  // hitting the now-configured ElevenLabs path.
+  const url = `${CLOUD_TTS_BASE}/api/tts?voice=${encodeURIComponent(who)}&v=13&text=${encodeURIComponent(chunks[i])}`;
   const audio = new Audio(url);
   currentCloudAudio = audio;
   audio.volume = volume;

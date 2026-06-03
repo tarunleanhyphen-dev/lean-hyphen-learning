@@ -7,6 +7,7 @@ import reflectionsRouter from './routes/reflections.js';
 import progressRouter from './routes/progress.js';
 import lessonsRouter from './routes/lessons.js';
 import ttsRouter from './routes/tts.js';
+import analyticsRouter from './routes/analytics.js';
 import { notFound, errorHandler } from './middleware/error.js';
 
 const app = express();
@@ -36,6 +37,7 @@ app.use('/api/reflections', reflectionsRouter);
 app.use('/api/progress', progressRouter);
 app.use('/api/lessons', lessonsRouter);
 app.use('/api/tts', ttsRouter);
+app.use('/api/analytics', analyticsRouter);
 
 app.use(notFound);
 app.use(errorHandler);

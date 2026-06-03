@@ -13,6 +13,8 @@ import { lesson, act4Activities } from '../../../data/lessons/thinkBeforeYouSpen
 import EndOfActCelebration from '../../shared/EndOfActCelebration.jsx';
 import { useSequencer } from '../../../hooks/useSequencer.js';
 import { useLesson } from '../../../context/LessonContext.jsx';
+import { useAnalytics } from '../../../hooks/useAnalytics.js';
+import LessonReport from '../../shared/LessonReport.jsx';
 import { api } from '../../../utils/api.js';
 import {
   sounds, unlockAudio, startMusic, stopMusic, pauseMusic, resumeMusic, setMusicMood,
@@ -63,6 +65,19 @@ export default function Act4({ onComplete }) {
 
   const { sessionId, audioEnabled, setAudioEnabled, setActStatus } = useLesson();
 
+  // Analytics — Act 4 also fires `lesson_completed` on finish so the
+  // backend can stamp the final score/badges and append to attempt
+  // history.
+  const analytics = useAnalytics({
+    sessionId,
+    lessonId: lesson.id,
+    actId: 'act4',
+  });
+
+  // After the act ends, swap the celebration card for the full
+  // lesson report — fetched live from the analytics API.
+  const [showReport, setShowReport] = useState(false);
+
   /* -------- Audio: lo-fi mood throughout (matches Act 2 / Act 3) -------- */
   useEffect(() => {
     setSpeechCallbacks({
@@ -73,6 +88,28 @@ export default function Act4({ onComplete }) {
     });
     return () => setSpeechCallbacks(null);
   }, []);
+
+  // Analytics lifecycle.
+  useEffect(() => {
+    analytics.actStarted();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const sceneEnterRef = useRef({ sceneId: null, enteredAt: 0 });
+  useEffect(() => {
+    const sceneId = scene?.id;
+    if (!sceneId) return undefined;
+    const prev = sceneEnterRef.current;
+    if (prev.sceneId && prev.sceneId !== sceneId) {
+      analytics.sceneCompleted(prev.sceneId, {
+        payload: { timeMs: Date.now() - prev.enteredAt },
+      });
+    }
+    sceneEnterRef.current = { sceneId, enteredAt: Date.now() };
+    analytics.sceneEntered(sceneId);
+    return undefined;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scene?.id]);
 
   const lastCuePhaseId = useRef(null);
   useEffect(() => {
@@ -144,11 +181,19 @@ export default function Act4({ onComplete }) {
   const advanceOrFinish = useCallback(() => {
     if (seq.isLast) {
       setActStatus(lesson.id, 'act4', 'completed');
-      setShowCelebration(true);
+      // Act 4 is the last act — fire act_completed AND lesson_completed
+      // so the backend stamps the final score and writes attempt history.
+      // We then flush the analytics queue + show the live report.
+      const timeMs = Date.now() - startTimeRef.current;
+      analytics.actCompleted({ timeMs });
+      analytics.lessonCompleted({ totalTimeMs: timeMs });
+      // Wait for the queue to drain so the report fetched on the next
+      // screen reflects the final events, not the pre-completion state.
+      analytics.flush().finally(() => setShowReport(true));
     } else {
       seq.advance();
     }
-  }, [seq, setActStatus]);
+  }, [seq, setActStatus, analytics]);
 
   const finishAct = useCallback(() => {
     setShowCelebration(false);
@@ -183,10 +228,29 @@ export default function Act4({ onComplete }) {
         sessionId,
       });
     } catch { /* non-blocking */ }
+    // Analytics — the two activities in Act 4:
+    //   impulse-meter   → engagement-only; any zone earns the full
+    //                     points (zoneId carries the pick).
+    //   takeaways-grid  → score scales with how many of the 5 cards
+    //                     have been revealed.
+    if (kind === 'impulse-meter') {
+      analytics.activityCompleted('meter', {
+        sceneId: scene?.id,
+        payload: { kind: 'meter', detail: { zoneId: payload?.zoneId } },
+      });
+    } else if (kind === 'takeaways-grid') {
+      analytics.activityCompleted('takeaways', {
+        sceneId: scene?.id,
+        payload: {
+          kind: 'takeaways-grid',
+          detail: { revealed: payload?.revealed ?? 5, total: 5 },
+        },
+      });
+    }
     if (kind === 'impulse-meter' && payload.zoneId) setMeterPick(payload.zoneId);
     markHoldDone(phase.id);
     advanceOrFinish();
-  }, [phase, sessionId, markHoldDone, advanceOrFinish]);
+  }, [phase, scene?.id, sessionId, markHoldDone, advanceOrFinish, analytics]);
 
   const replayScene = () => {
     let first = 0;
@@ -376,6 +440,13 @@ export default function Act4({ onComplete }) {
             stats={celebrationStats}
             takeaway="You walked through the same trap Shanaya did, named the four mind traps, spotted the influencer pull, and just gave yourself five rules you can take into the next reel, the next sale, the next group-chat drop. That's the muscle."
             continueLabel="Back to home →"
+            onContinue={finishAct}
+          />
+        )}
+        {showReport && (
+          <LessonReport
+            sessionId={sessionId}
+            lessonId={lesson.id}
             onContinue={finishAct}
           />
         )}

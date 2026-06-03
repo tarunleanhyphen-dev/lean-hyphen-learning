@@ -44,6 +44,77 @@ const VOICES = {
   narrator: { neural: 'te-IN-MohanNeural',    googleTl: 'en-IN', pitch: '+18%', rate: 1.0 },
 };
 
+/* Per-role ElevenLabs settings. Only consulted when the env vars are
+ * set; falls back to safe defaults if not specified.
+ *
+ *   model_id           — eleven_turbo_v2_5 is the cheapest fast model
+ *                        (~50% credit cost vs multilingual) and sounds
+ *                        excellent for short conversational lines. Use
+ *                        eleven_multilingual_v2 only if a specific role
+ *                        needs richer emotion at 2× the cost.
+ *   stability          — 0 = expressive (more variation), 1 = monotone.
+ *                        Shanaya is a teen so a bit lower (more energy);
+ *                        narrator stays mid for measured cadence.
+ *   similarity_boost   — how closely to match the source voice (0–1).
+ *                        Higher is more faithful; lower lets the model
+ *                        diverge for more natural prosody.
+ *   style              — 0 by default. Raising it amplifies the source
+ *                        voice's style (good with cloned voices, can
+ *                        over-act on stock library voices).
+ *   use_speaker_boost  — true sharpens the speaker's identity at a tiny
+ *                        latency cost. Worth keeping on. */
+const ELEVEN_PROFILES = {
+  shanaya: {
+    model_id: 'eleven_turbo_v2_5',
+    voice_settings: {
+      stability: 0.42,
+      similarity_boost: 0.78,
+      style: 0.20,
+      use_speaker_boost: true,
+    },
+  },
+  narrator: {
+    model_id: 'eleven_turbo_v2_5',
+    voice_settings: {
+      stability: 0.55,
+      similarity_boost: 0.78,
+      style: 0.10,
+      use_speaker_boost: true,
+    },
+  },
+};
+
+/* ------------------------------------------------------------------ */
+/* TTS cache                                                          */
+/* ------------------------------------------------------------------ */
+/* Small in-memory LRU keyed on (engine, voice, text). The narration  */
+/* across the lesson is fixed, so every learner replaying Act 1       */
+/* would otherwise re-bill ElevenLabs for the same line. With this    */
+/* cache we synthesise each line once and serve every subsequent      */
+/* request from the buffer — ~95% credit savings on retakes.          */
+/*                                                                    */
+/* Cap is set to a generous 400 entries (~20 MB at our bitrate); on   */
+/* overflow we drop the oldest entry. The whole lesson fits in well   */
+/* under that ceiling.                                                */
+/* ------------------------------------------------------------------ */
+const TTS_CACHE = new Map();          // Map<key, Buffer> in insertion order
+const TTS_CACHE_MAX = 400;
+function cacheGet(key) {
+  const buf = TTS_CACHE.get(key);
+  if (!buf) return null;
+  // Refresh LRU position so popular lines stay warm.
+  TTS_CACHE.delete(key);
+  TTS_CACHE.set(key, buf);
+  return buf;
+}
+function cacheSet(key, buf) {
+  if (TTS_CACHE.size >= TTS_CACHE_MAX) {
+    const oldest = TTS_CACHE.keys().next().value;
+    if (oldest != null) TTS_CACHE.delete(oldest);
+  }
+  TTS_CACHE.set(key, buf);
+}
+
 router.get('/', async (req, res, next) => {
   try {
     const text = (req.query.text || '').toString().slice(0, 400);
@@ -55,19 +126,36 @@ router.get('/', async (req, res, next) => {
     }
 
     const voice = VOICES[voiceKey] || VOICES.shanaya;
-
-    let buf;
-    // ElevenLabs override — if the API key is set, use ElevenLabs first
-    // for whichever voice keys have an env-configured voice ID. That
-    // gives a real human-sounding Indian tutor voice when configured,
-    // and silently falls through to Edge/Google if not set or fails.
     const elevenKey = process.env.ELEVENLABS_API_KEY;
     const elevenVoiceId = voiceKey === 'narrator'
       ? process.env.ELEVENLABS_VOICE_NARRATOR
       : process.env.ELEVENLABS_VOICE_SHANAYA;
+    const elevenProfile = ELEVEN_PROFILES[voiceKey] || ELEVEN_PROFILES.shanaya;
+
+    // Cache key: prefer the engine that will actually serve this request
+    // so a config change (e.g. switching ElevenLabs voice id) automatically
+    // invalidates only the affected entries.
+    const engine = elevenKey && elevenVoiceId ? `el:${elevenVoiceId}:${elevenProfile.model_id}` : `edge:${voice.neural}`;
+    const cacheKey = `${engine}|${text}`;
+    const cached = cacheGet(cacheKey);
+    if (cached) {
+      res.set('Content-Type', 'audio/mpeg');
+      res.set('Cache-Control', 'public, max-age=86400, immutable');
+      res.set('X-TTS-Source', 'cache');
+      res.send(cached);
+      return;
+    }
+
+    let buf;
+    let source = null;
+    // ElevenLabs override — if the API key is set, use ElevenLabs first
+    // for whichever voice keys have an env-configured voice ID. Falls
+    // silently through to Edge/Google if not set or fails (rate limit,
+    // network, etc.) so the lesson never breaks.
     if (elevenKey && elevenVoiceId) {
       try {
-        buf = await synthEleven(elevenKey, elevenVoiceId, text);
+        buf = await synthEleven(elevenKey, elevenVoiceId, text, elevenProfile);
+        source = 'elevenlabs';
       } catch (elevenErr) {
         // eslint-disable-next-line no-console
         console.warn('[tts] elevenlabs failed, falling back to edge:', elevenErr?.message);
@@ -76,12 +164,17 @@ router.get('/', async (req, res, next) => {
     if (!buf) {
       try {
         buf = await synthEdge(voice.neural, text, { pitch: voice.pitch, rate: voice.rate });
+        source = source || 'edge';
       } catch (edgeErr) {
         // eslint-disable-next-line no-console
         console.warn('[tts] edge failed, falling back to google:', edgeErr?.message);
         buf = await synthGoogle(voice.googleTl, text);
+        source = source || 'google';
       }
     }
+
+    cacheSet(cacheKey, buf);
+    res.set('X-TTS-Source', source || 'unknown');
 
     res.set('Content-Type', 'audio/mpeg');
     res.set('Cache-Control', 'public, max-age=86400, immutable');
@@ -144,7 +237,9 @@ async function synthEdge(voiceName, text, prosody = {}) {
 /* Uses the cheapest/fastest model (eleven_turbo_v2_5) and MP3 22kHz  */
 /* 32kbps output to keep latency low.                                 */
 /* ------------------------------------------------------------------ */
-async function synthEleven(apiKey, voiceId, text) {
+async function synthEleven(apiKey, voiceId, text, profile = ELEVEN_PROFILES.shanaya) {
+  // 22 kHz / 32 kbps is plenty for speech, half the credit cost of the
+  // 44 kHz tier, and indistinguishable on phone speakers / laptops.
   const upstream = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_22050_32`;
   const r = await fetch(upstream, {
     method: 'POST',
@@ -155,13 +250,8 @@ async function synthEleven(apiKey, voiceId, text) {
     },
     body: JSON.stringify({
       text,
-      model_id: 'eleven_turbo_v2_5',
-      voice_settings: {
-        stability: 0.5,
-        similarity_boost: 0.75,
-        style: 0.0,
-        use_speaker_boost: true,
-      },
+      model_id: profile.model_id,
+      voice_settings: profile.voice_settings,
     }),
   });
   if (!r.ok) {

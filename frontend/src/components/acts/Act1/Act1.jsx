@@ -20,6 +20,7 @@ import MockShoppingApp from '../../phone/MockShoppingApp.jsx';
 import { lesson, intendedBudget, products } from '../../../data/lessons/thinkBeforeYouSpend.js';
 import { useSequencer } from '../../../hooks/useSequencer.js';
 import { useLesson } from '../../../context/LessonContext.jsx';
+import { useAnalytics } from '../../../hooks/useAnalytics.js';
 import { api } from '../../../utils/api.js';
 import {
   sounds, unlockAudio, startMusic, stopMusic, pauseMusic, resumeMusic, setMusicMood,
@@ -97,6 +98,15 @@ export default function Act1({ onComplete, onGoHome }) {
   const [tricksCount, setTricksCount] = useState(0);
 
   const { sessionId, audioEnabled, setAudioEnabled, setAudioDismissed, setReflection, setActStatus, state: lessonState } = useLesson();
+
+  // Analytics — fires structured events to /api/analytics/events for the
+  // backend's scoring/reporting pipeline. Fire-and-forget; the underlying
+  // client batches + retries so caller code stays clean.
+  const analytics = useAnalytics({
+    sessionId,
+    lessonId: lesson.id,
+    actId: 'act1',
+  });
   // Hold the very first phase until the user has decided about audio —
   // otherwise the opening narration ("It is a quiet afternoon…") can fly past
   // before they click "Enable Audio", and the line never gets read aloud.
@@ -150,6 +160,36 @@ export default function Act1({ onComplete, onGoHome }) {
     });
     return () => setSpeechCallbacks(null);
   }, []);
+
+  // Fire `act_started` exactly once on mount. (Re-entries that pass
+  // through the home page will create a new lesson session attempt
+  // server-side; see the analytics readme for the attempt model.)
+  useEffect(() => {
+    analytics.actStarted();
+    // The act-mount effect intentionally runs once. analytics is a
+    // freshly-built object every render but each method just calls
+    // the module-level track() so identity doesn't matter.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Scene-enter / scene-complete tracking — fires on every scene boundary
+  // so the backend can compute dwell time and completion-rate per scene.
+  const sceneEnterRef = useRef({ sceneId: null, enteredAt: 0 });
+  useEffect(() => {
+    const sceneId = scene?.id;
+    if (!sceneId) return undefined;
+    // Close out the previous scene before opening the new one.
+    const prev = sceneEnterRef.current;
+    if (prev.sceneId && prev.sceneId !== sceneId) {
+      analytics.sceneCompleted(prev.sceneId, {
+        payload: { timeMs: Date.now() - prev.enteredAt },
+      });
+    }
+    sceneEnterRef.current = { sceneId, enteredAt: Date.now() };
+    analytics.sceneEntered(sceneId);
+    return undefined;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scene?.id]);
 
   const lastCuePhaseId = useRef(null);
   useEffect(() => {
@@ -300,11 +340,16 @@ export default function Act1({ onComplete, onGoHome }) {
   const advanceOrFinish = useCallback(() => {
     if (seq.isLast) {
       setActStatus(lesson.id, 'act1', 'completed');
+      // Analytics: act completed. payload carries the wall-clock dwell
+      // time so the backend doesn't need to derive it from event deltas.
+      analytics.actCompleted({
+        timeMs: Date.now() - startTimeRef.current,
+      });
       setShowCelebration(true);
     } else {
       seq.advance();
     }
-  }, [seq, setActStatus]);
+  }, [seq, setActStatus, analytics]);
 
   const finishAct = useCallback(() => {
     setShowCelebration(false);
@@ -354,9 +399,19 @@ export default function Act1({ onComplete, onGoHome }) {
   const handlePromptClick = useCallback(() => {
     if (!phase?.prompt) return;
     if (sounds.tap) sounds.tap();
+    // Analytics: each Add-to-Cart prompt is an "activity_completed" of
+    // kind 'add-to-cart'. The activity id maps to the product so the
+    // scoring engine can attribute points to the right cart step.
+    const productId = phase.prompt.productId;
+    if (productId) {
+      analytics.activityCompleted(`add-${productId}`, {
+        sceneId: scene?.id,
+        payload: { kind: 'add-to-cart', detail: { productId } },
+      });
+    }
     markHoldDone(phase.id);
     advanceOrFinish({ kind: 'prompt', phaseId: phase.id, productId: phase.prompt.productId });
-  }, [phase, markHoldDone, advanceOrFinish]);
+  }, [phase, scene?.id, markHoldDone, advanceOrFinish, analytics]);
 
   const replayScene = () => {
     // "Replay" restarts the whole act from phase 0 (scene 1) — used to

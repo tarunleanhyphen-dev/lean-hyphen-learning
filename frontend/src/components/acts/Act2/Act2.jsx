@@ -13,6 +13,7 @@ import { lesson, act2Activities } from '../../../data/lessons/thinkBeforeYouSpen
 import EndOfActCelebration from '../../shared/EndOfActCelebration.jsx';
 import { useSequencer } from '../../../hooks/useSequencer.js';
 import { useLesson } from '../../../context/LessonContext.jsx';
+import { useAnalytics } from '../../../hooks/useAnalytics.js';
 import { api } from '../../../utils/api.js';
 import {
   sounds, unlockAudio, startMusic, stopMusic, pauseMusic, resumeMusic, setMusicMood,
@@ -54,6 +55,15 @@ export default function Act2({ onComplete, onGoHome }) {
 
   const { sessionId, audioEnabled, setAudioEnabled, setActStatus } = useLesson();
 
+  // Analytics — fires structured events into /api/analytics/events for
+  // scoring + reporting. Fire-and-forget; the underlying client batches
+  // and retries so call sites can stay clean.
+  const analytics = useAnalytics({
+    sessionId,
+    lessonId: lesson.id,
+    actId: 'act2',
+  });
+
   /* -------- Audio: music + cues + TTS w/ mouth events -------- */
 
   useEffect(() => {
@@ -67,6 +77,29 @@ export default function Act2({ onComplete, onGoHome }) {
     });
     return () => setSpeechCallbacks(null);
   }, []);
+
+  // Analytics lifecycle — act_started once on mount; scene_entered /
+  // scene_completed as the learner crosses scene boundaries.
+  useEffect(() => {
+    analytics.actStarted();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const sceneEnterRef = useRef({ sceneId: null, enteredAt: 0 });
+  useEffect(() => {
+    const sceneId = scene?.id;
+    if (!sceneId) return undefined;
+    const prev = sceneEnterRef.current;
+    if (prev.sceneId && prev.sceneId !== sceneId) {
+      analytics.sceneCompleted(prev.sceneId, {
+        payload: { timeMs: Date.now() - prev.enteredAt },
+      });
+    }
+    sceneEnterRef.current = { sceneId, enteredAt: Date.now() };
+    analytics.sceneEntered(sceneId);
+    return undefined;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scene?.id]);
 
   const lastCuePhaseId = useRef(null);
   useEffect(() => {
@@ -154,11 +187,12 @@ export default function Act2({ onComplete, onGoHome }) {
   const advanceOrFinish = useCallback(() => {
     if (seq.isLast) {
       setActStatus(lesson.id, 'act2', 'completed');
+      analytics.actCompleted({ timeMs: Date.now() - startTimeRef.current });
       setShowCelebration(true);
     } else {
       seq.advance();
     }
-  }, [seq, setActStatus]);
+  }, [seq, setActStatus, analytics]);
 
   const finishAct = useCallback(() => {
     setShowCelebration(false);
@@ -185,9 +219,33 @@ export default function Act2({ onComplete, onGoHome }) {
         sessionId,
       });
     } catch { /* non-blocking */ }
+    // Analytics — map the in-component "kind" to the canonical
+    // activity_id the scoring config knows about. The drag game emits
+    // `{ correct, total }` (12/12 on success); flashcards emit
+    // `{ seen, total }` (3/3 once every card has been tapped).
+    if (kind === 'mind-trap') {
+      analytics.activityCompleted('thought-spiral', {
+        sceneId: scene?.id,
+        payload: {
+          kind: 'drag-drop',
+          detail: {
+            correct: payload?.correct ?? 12,
+            total: payload?.total ?? 12,
+          },
+        },
+      });
+    } else if (kind === 'flash-cards') {
+      analytics.activityCompleted('impulse-cards', {
+        sceneId: scene?.id,
+        payload: {
+          kind: 'flash-cards',
+          detail: { seen: payload?.seen ?? 3, total: 3 },
+        },
+      });
+    }
     markHoldDone(phase.id);
     advanceOrFinish({ kind: 'activity', phaseId: phase.id, ...payload });
-  }, [phase, sessionId, markHoldDone, advanceOrFinish]);
+  }, [phase, scene?.id, sessionId, markHoldDone, advanceOrFinish, analytics]);
 
   const replayScene = () => {
     let first = 0;

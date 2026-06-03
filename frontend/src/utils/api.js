@@ -27,8 +27,44 @@ export const api = {
   health: () => request('/api/health'),
 };
 
+/**
+ * Resolve the session id used for analytics + progress.
+ *
+ *   1. If the page was launched from an LMS with `?learnerId=…`,
+ *      use that as the session id. The LMS owns the identifier; we
+ *      persist it in localStorage so refreshes / route changes keep
+ *      the same learner attached. The LMS-supplied id is also kept
+ *      in `lh.lmsLearnerId` so it survives if the user later clears
+ *      the canonical key but not the LMS one (useful in iframes).
+ *   2. Otherwise fall back to a self-generated UUID — the existing
+ *      anonymous-friendly behaviour.
+ *
+ * Format expectation for LMS-supplied ids (recommended, not enforced):
+ *   `lms-<tenant>-<student-id>` e.g. `lms-canvas-stu-42`.
+ * Any string is accepted today; the prefix convention lets us cleanly
+ * separate LMS-owned sessions from anonymous ones server-side when we
+ * wire per-tenant auth.
+ */
 export function getSessionId() {
   const KEY = 'lh.sessionId';
+  const LMS_KEY = 'lh.lmsLearnerId';
+
+  // Query-string override — only honoured on first read so the LMS
+  // can't accidentally remap the learner mid-session by changing the
+  // iframe src.
+  if (typeof window !== 'undefined' && window.location?.search) {
+    const params = new URLSearchParams(window.location.search);
+    const fromLms = params.get('learnerId');
+    if (fromLms) {
+      const stored = localStorage.getItem(LMS_KEY);
+      if (stored !== fromLms) {
+        localStorage.setItem(LMS_KEY, fromLms);
+        localStorage.setItem(KEY, fromLms);
+      }
+      return fromLms;
+    }
+  }
+
   let id = localStorage.getItem(KEY);
   if (!id) {
     id =

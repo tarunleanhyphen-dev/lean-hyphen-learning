@@ -13,6 +13,7 @@ import { lesson, act3Scenarios } from '../../../data/lessons/thinkBeforeYouSpend
 import EndOfActCelebration from '../../shared/EndOfActCelebration.jsx';
 import { useSequencer } from '../../../hooks/useSequencer.js';
 import { useLesson } from '../../../context/LessonContext.jsx';
+import { useAnalytics } from '../../../hooks/useAnalytics.js';
 import { api } from '../../../utils/api.js';
 import {
   sounds, unlockAudio, startMusic, stopMusic, pauseMusic, resumeMusic, setMusicMood,
@@ -62,6 +63,13 @@ export default function Act3({ onComplete, onGoHome }) {
 
   const { sessionId, audioEnabled, setAudioEnabled, setActStatus } = useLesson();
 
+  // Analytics — wired same as Acts 1/2.
+  const analytics = useAnalytics({
+    sessionId,
+    lessonId: lesson.id,
+    actId: 'act3',
+  });
+
   /* -------- Audio: lo-fi music for Act 3 (same vibe as Act 2) -------- */
   useEffect(() => {
     setSpeechCallbacks({
@@ -72,6 +80,28 @@ export default function Act3({ onComplete, onGoHome }) {
     });
     return () => setSpeechCallbacks(null);
   }, []);
+
+  // Analytics lifecycle.
+  useEffect(() => {
+    analytics.actStarted();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const sceneEnterRef = useRef({ sceneId: null, enteredAt: 0 });
+  useEffect(() => {
+    const sceneId = scene?.id;
+    if (!sceneId) return undefined;
+    const prev = sceneEnterRef.current;
+    if (prev.sceneId && prev.sceneId !== sceneId) {
+      analytics.sceneCompleted(prev.sceneId, {
+        payload: { timeMs: Date.now() - prev.enteredAt },
+      });
+    }
+    sceneEnterRef.current = { sceneId, enteredAt: Date.now() };
+    analytics.sceneEntered(sceneId);
+    return undefined;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scene?.id]);
 
   const lastCuePhaseId = useRef(null);
   useEffect(() => {
@@ -145,11 +175,12 @@ export default function Act3({ onComplete, onGoHome }) {
   const advanceOrFinish = useCallback(() => {
     if (seq.isLast) {
       setActStatus(lesson.id, 'act3', 'completed');
+      analytics.actCompleted({ timeMs: Date.now() - startTimeRef.current });
       setShowCelebration(true);
     } else {
       seq.advance();
     }
-  }, [seq, setActStatus]);
+  }, [seq, setActStatus, analytics]);
 
   const finishAct = useCallback(() => {
     setShowCelebration(false);
@@ -177,6 +208,26 @@ export default function Act3({ onComplete, onGoHome }) {
         sessionId,
       });
     } catch { /* non-blocking */ }
+    // Analytics — the Act 3 pick-3 challenge emits the canonical
+    // activity id `s1-pick3` regardless of the in-component "kind"
+    // string. payload.attempts carries the number of submission tries
+    // (1 = perfect on first try → full marks).
+    if (kind === 'simulation-challenge') {
+      const correct = payload?.correct ?? 3;
+      const total   = payload?.total ?? 3;
+      const attempts = payload?.attempts ?? 1;
+      analytics.activityCompleted('s1-pick3', {
+        sceneId: scene?.id,
+        attemptNo: attempts,
+        payload: {
+          kind: 'simulation-pick3',
+          detail: {
+            correct, total, attempts,
+            accuracyPct: total ? Math.round((correct / total) * 100) : null,
+          },
+        },
+      });
+    }
     if (scenario) {
       setScoreboard((prev) => {
         const next = new Set(prev);
@@ -186,7 +237,7 @@ export default function Act3({ onComplete, onGoHome }) {
     }
     markHoldDone(phase.id);
     advanceOrFinish();
-  }, [phase, sessionId, markHoldDone, advanceOrFinish, scenario]);
+  }, [phase, scene?.id, sessionId, markHoldDone, advanceOrFinish, scenario, analytics]);
 
   const replayScene = () => {
     let first = 0;

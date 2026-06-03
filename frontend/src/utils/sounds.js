@@ -179,14 +179,21 @@ const CHORDS = {
  *
  * Adding a new mood: drop a stable URL here, no other changes
  * needed. Falls back to synth automatically if the URL fails to load. */
+/* Per QA: the Pixabay CDN stream was unreliable in Acts 2-4 (autoplay
+ * blocks + intermittent CDN failures). Reverting to synth across all
+ * moods — same engine Act 1 already uses, runs in-browser via Web
+ * Audio so it can never be blocked by browser autoplay policy and
+ * has no network dependency. The lofi mood's synth profile (Cmaj9 →
+ * Am9 → Fmaj9 → G13 jazz progression, Rhodes-style detuned pad,
+ * half-time brushed hat, syncopated plucks, vinyl-crackle texture)
+ * is what Acts 2-4 now play — soft, chill, ambient. */
 const MUSIC_TRACKS = {
-  calm:        null,                 // synth — warm intro pad fits Act 1
-  'app-tempo': null,                 // synth — shopping energy needs the
-                                     // pluck + sub-kick the synth provides
-  reflective:  'https://cdn.pixabay.com/audio/2022/10/30/audio_347111d654.mp3',
-  thinking:    'https://cdn.pixabay.com/audio/2022/10/30/audio_347111d654.mp3',
-  lofi:        'https://cdn.pixabay.com/audio/2022/10/30/audio_347111d654.mp3',
-  hit:         null,                 // synth — impact swell needs synth precision
+  calm:        null,
+  'app-tempo': null,
+  reflective:  null,
+  thinking:    null,
+  lofi:        null,
+  hit:         null,
   silent:      null,
 };
 /* Volume the real audio plays at. Soft so it sits under the narrator

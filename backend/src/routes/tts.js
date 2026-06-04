@@ -130,6 +130,10 @@ function cacheSet(key, buf) {
 
 router.get('/', async (req, res, next) => {
   try {
+    // Public, non-credentialed audio — allow any origin so the cross-origin
+    // <audio crossorigin="anonymous"> element can load it from any frontend
+    // deployment (preview URLs, the lesson project, prod, etc.).
+    res.set('Access-Control-Allow-Origin', '*');
     const text = (req.query.text || '').toString().slice(0, 400);
     const voiceKey = (req.query.voice || 'shanaya').toString();
     if (!text) {

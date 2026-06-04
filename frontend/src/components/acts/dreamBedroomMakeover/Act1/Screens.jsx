@@ -15,6 +15,7 @@ import { lesson, sortItems, catalogue, surpriseEvents } from '../../../../data/l
 import { sounds, isAudioReady } from '../../../../utils/sounds.js';
 import { Room3D } from './Room3D.jsx';
 import { IsoRoom2D } from './IsoRoom2D.jsx';
+import { DustyRoom3D } from './DustyRoom3D.jsx';
 import { ItemArt } from './ItemArt.jsx';
 import { Tracker, Donut, fmt, useCount } from './Tracker.jsx';
 import { NarratorCard } from './NarratorCard.jsx';
@@ -91,7 +92,7 @@ export function Screen1Intro({ mk, narration, accent }) {
           <motion.h1 className="dbm-intro__title" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
             Dream Bedroom <span style={{ color: accent }}>Makeover</span>
           </motion.h1>
-          <NarratorCard narration={narration} lines={s.narration} accent={accent} done={n.done} onReplay={n.replay} onSkip={n.skip} />
+          <NarratorCard narration={narration} lines={s.narration} accent={accent} done={n.done} onReplay={n.replay} onSkip={n.skip} hideAvatar />
           <div className="dbm-intro__cta">
             <CTA accent={accent} disabled={!n.done} onClick={() => mk.setScreen('screen-2-vibe')} big>
               {n.done ? s.cta : 'Listen first…'}
@@ -100,20 +101,20 @@ export function Screen1Intro({ mk, narration, accent }) {
         </div>
 
         <div className="dbm-intro__right">
-          <BudgetHero accent={accent} />
+          <BudgetHero accent={accent} narration={narration} />
         </div>
       </div>
     </div>
   );
 }
 
-function BudgetHero({ accent }) {
+function BudgetHero({ accent, narration }) {
   const val = useCount(50000, 1400);
   return (
-    <motion.div className="dbm-budgethero" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}>
+    <motion.div className="dbm-budgethero" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
       <div className="dbm-budgethero__glow" style={{ background: accent }} />
       <div className="dbm-budgethero__room">
-        <IsoRoom2D vibe={lesson.vibes[0]} cart={['bed-budget', 'study-desk', 'wardrobe-budget', 'desk-lamp', 'posters']} />
+        <DustyRoom3D narration={narration} />
       </div>
       <div className="dbm-budgethero__chip">
         <span>Your budget</span>

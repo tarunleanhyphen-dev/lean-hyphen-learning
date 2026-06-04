@@ -42,6 +42,10 @@ const router = Router();
 const VOICES = {
   shanaya:  { neural: 'hi-IN-SwaraNeural',    googleTl: 'en-IN' },
   narrator: { neural: 'te-IN-MohanNeural',    googleTl: 'en-IN', pitch: '+18%', rate: 1.0 },
+  // Kabir — host of the "Where Does My Money Go?" lesson. Uses a dedicated
+  // ElevenLabs voice so it stays distinct from the shared narrator. Edge
+  // fallback mirrors the narrator if ElevenLabs is unavailable.
+  kabir:    { neural: 'te-IN-MohanNeural',    googleTl: 'en-IN', pitch: '+12%', rate: 1.0 },
 };
 
 /* Per-role ElevenLabs settings. Only consulted when the env vars are
@@ -79,6 +83,15 @@ const ELEVEN_PROFILES = {
       stability: 0.55,
       similarity_boost: 0.78,
       style: 0.10,
+      use_speaker_boost: true,
+    },
+  },
+  kabir: {
+    model_id: 'eleven_turbo_v2_5',
+    voice_settings: {
+      stability: 0.45,
+      similarity_boost: 0.80,
+      style: 0.15,
       use_speaker_boost: true,
     },
   },
@@ -127,9 +140,13 @@ router.get('/', async (req, res, next) => {
 
     const voice = VOICES[voiceKey] || VOICES.shanaya;
     const elevenKey = process.env.ELEVENLABS_API_KEY;
-    const elevenVoiceId = voiceKey === 'narrator'
-      ? process.env.ELEVENLABS_VOICE_NARRATOR
-      : process.env.ELEVENLABS_VOICE_SHANAYA;
+    const elevenVoiceId = ({
+      narrator: process.env.ELEVENLABS_VOICE_NARRATOR,
+      // Kabir's voice — lesson-scoped. Env override wins; otherwise the id
+      // supplied for the bedroom lesson.
+      kabir: process.env.ELEVENLABS_VOICE_KABIR || 'iae6jJUCSBOtTkBXKD65',
+      shanaya: process.env.ELEVENLABS_VOICE_SHANAYA,
+    })[voiceKey] || process.env.ELEVENLABS_VOICE_SHANAYA;
     const elevenProfile = ELEVEN_PROFILES[voiceKey] || ELEVEN_PROFILES.shanaya;
 
     // Cache key: prefer the engine that will actually serve this request

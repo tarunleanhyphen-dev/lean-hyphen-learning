@@ -15,7 +15,7 @@
  * speaking + amplitude drive Kabir's mouth + a soundwave indicator.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { speak, cancelSpeech, setSpeechCallbacks, isAudioReady } from '../../../../utils/sounds.js';
+import { speak, cancelSpeech, setSpeechCallbacks, isAudioEnabled } from '../../../../utils/sounds.js';
 
 function readMs(line) {
   const words = String(line).trim().split(/\s+/).filter(Boolean).length;
@@ -31,6 +31,7 @@ export function useNarration() {
   const lineRef   = useRef(-1);     // running index for voice mode
   const timersRef  = useRef([]);    // pending fallback timers
   const safetyRef  = useRef(null);  // backstop timer in voice mode
+  const lastRef    = useRef(null);  // {lines, onDone} of the most recent narrate()
 
   const clearTimers = () => {
     timersRef.current.forEach(clearTimeout);
@@ -60,6 +61,7 @@ export function useNarration() {
 
   const narrate = useCallback((lines, onDone) => {
     const arr = (Array.isArray(lines) ? lines : [lines]).filter(Boolean);
+    lastRef.current = { lines: arr, onDone };
     // Reset any in-flight run WITHOUT triggering its onDone.
     doneRef.current = null;
     clearTimers();
@@ -70,10 +72,10 @@ export function useNarration() {
 
     if (!arr.length) { finish(); return; }
 
-    const voice = isAudioReady();
+    const voice = isAudioEnabled();
     if (voice) {
       setSpeaking(true);
-      arr.forEach((l) => speak(l, { who: 'narrator', voice: 'narrator' }));
+      arr.forEach((l) => speak(l, { who: 'kabir', voice: 'kabir' }));
       // Backstop: if onEnd never arrives (network error), resolve anyway.
       const total = arr.reduce((s, l) => s + readMs(l), 0) + 8000;
       safetyRef.current = setTimeout(() => finish(), total);
@@ -97,9 +99,9 @@ export function useNarration() {
     lineRef.current = -1;
     setCurrentLine(-1);
     if (!arr.length) return;
-    if (isAudioReady()) {
+    if (isAudioEnabled()) {
       setSpeaking(true);
-      arr.forEach((l) => speak(l, { who: 'narrator', voice: 'narrator' }));
+      arr.forEach((l) => speak(l, { who: 'kabir', voice: 'kabir' }));
     } else {
       setSpeaking(true);
       let acc = 0;
@@ -108,11 +110,19 @@ export function useNarration() {
     }
   }, []);
 
+  /** Re-run the most recent narrate() (same lines + gating). Used when audio
+   *  is unlocked after a scene already mounted in silent mode, so the current
+   *  scene actually reads aloud. */
+  const restart = useCallback(() => {
+    const last = lastRef.current;
+    if (last) narrate(last.lines, last.onDone);
+  }, [narrate]);
+
   const skip = useCallback(() => { cancelSpeech(); finish(); }, [finish]);
   const stop = useCallback(() => { doneRef.current = null; cancelSpeech(); clearTimers(); setSpeaking(false); setCurrentLine(-1); }, []);
 
   /** One-off line (feedback, toasts) that doesn't gate progression. */
-  const say = useCallback((line) => { if (line && isAudioReady()) speak(line, { who: 'narrator', voice: 'narrator' }); }, []);
+  const say = useCallback((line) => { if (line && isAudioEnabled()) speak(line, { who: 'kabir', voice: 'kabir' }); }, []);
 
-  return { speaking, amplitude, currentLine, narrate, replay, skip, stop, say };
+  return { speaking, amplitude, currentLine, narrate, replay, restart, skip, stop, say };
 }

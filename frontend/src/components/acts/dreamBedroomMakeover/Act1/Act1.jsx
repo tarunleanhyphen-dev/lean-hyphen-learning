@@ -8,7 +8,7 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Volume2, X, Home } from 'lucide-react';
+import { Volume2, VolumeX, Home } from 'lucide-react';
 import { lesson } from '../../../../data/lessons/dreamBedroomMakeover.js';
 import { useMakeover } from './useMakeover.js';
 import { useNarration } from './useNarration.js';
@@ -16,7 +16,7 @@ import {
   Screen1Intro, Screen2Vibe, Screen2Rules, Screen3Sort,
   Screen4Shop, Screen5Events, Screen6Snapshot,
 } from './Screens.jsx';
-import { unlockAudio } from '../../../../utils/sounds.js';
+import { unlockAudio, isAudioReady } from '../../../../utils/sounds.js';
 import './makeover.css';
 
 const AUDIO_KEY = 'lh.dbm.audio.v1';
@@ -38,10 +38,8 @@ export default function DreamBedroomAct1({ onComplete, onGoHome }) {
   const vibe = VIBE_BY_ID[mk.state.vibe] || lesson.vibes[0];
   const accent = vibe.accent;
 
-  const [audioAsked, setAudioAsked] = useState(() => {
-    try { return localStorage.getItem(AUDIO_KEY) !== null; } catch { return false; }
-  });
-  const [showCard, setShowCard] = useState(false);
+  const initialPref = (() => { try { return localStorage.getItem(AUDIO_KEY); } catch { return null; } })();
+  const [voiceOn, setVoiceOn] = useState(false); // audio actually unlocked + unmuted
 
   /* DEV-only: ?dev= adds .dbm-reveal so headless screenshots show framer's
    * initial opacity:0 content. Seeding happens in useMakeover. No-op in prod. */
@@ -52,27 +50,46 @@ export default function DreamBedroomAct1({ onComplete, onGoHome }) {
     }
   }, []);
 
+  /* Auto-start Kabir's voice on entry. Arriving via an in-app click (Start
+   * Act 1 / the Act card) gives a transient user-activation, so the AudioContext
+   * can resume and the narration plays with no extra button. If the browser
+   * still blocks it (e.g. a direct page reload), the first interaction anywhere
+   * kicks it off. A previous explicit mute (pref 'off') is respected. */
   useEffect(() => {
-    if (audioAsked) return undefined;
-    const t = setTimeout(() => setShowCard(true), 900);
-    return () => clearTimeout(t);
-  }, [audioAsked]);
-
-  // Re-narrate the intro once audio unlocks so the first screen reads aloud.
-  const enableVoice = useCallback(async () => {
-    try { await unlockAudio(true); } catch { /* noop */ }
-    try { localStorage.setItem(AUDIO_KEY, 'on'); } catch { /* noop */ }
-    setAudioAsked(true); setShowCard(false);
-    // nudge the current screen to re-read now that TTS is live
-    const sc = lesson.scenes.find((x) => x.id === mk.state.screen);
-    if (sc?.narration) narration.replay(sc.narration);
-    else if (sc?.intro) narration.replay([sc.intro]);
-  }, [mk.state.screen, narration]);
-
-  const skipVoice = useCallback(() => {
-    try { localStorage.setItem(AUDIO_KEY, 'off'); } catch { /* noop */ }
-    setAudioAsked(true); setShowCard(false);
+    if (initialPref === 'off') return undefined;
+    let cancelled = false;
+    (async () => {
+      try { await unlockAudio(true); } catch { /* noop */ }
+      if (cancelled) return;
+      setVoiceOn(true);
+      try { localStorage.setItem(AUDIO_KEY, 'on'); } catch { /* noop */ }
+      narration.restart();
+    })();
+    const onGesture = async () => {
+      if (isAudioReady()) return; // autoplay already running — nothing to do
+      try { await unlockAudio(true); } catch { /* noop */ }
+      setVoiceOn(true);
+      narration.restart();       // autoplay was blocked → start on first interaction
+    };
+    window.addEventListener('pointerdown', onGesture, { once: true });
+    window.addEventListener('keydown', onGesture, { once: true });
+    return () => { cancelled = true; window.removeEventListener('pointerdown', onGesture); window.removeEventListener('keydown', onGesture); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /* Persistent speaker toggle in the top bar (mute / unmute + replay-on). */
+  const toggleVoice = useCallback(async () => {
+    if (voiceOn) {
+      try { await unlockAudio(false); } catch { /* noop */ }
+      try { localStorage.setItem(AUDIO_KEY, 'off'); } catch { /* noop */ }
+      setVoiceOn(false);
+    } else {
+      try { await unlockAudio(true); } catch { /* noop */ }
+      try { localStorage.setItem(AUDIO_KEY, 'on'); } catch { /* noop */ }
+      setVoiceOn(true);
+      narration.restart();
+    }
+  }, [voiceOn, narration]);
 
   const ScreenComp = SCREENS[mk.state.screen] || Screen1Intro;
   const stepIdx = lesson.scenes.findIndex((s) => s.id === mk.state.screen);
@@ -95,6 +112,9 @@ export default function DreamBedroomAct1({ onComplete, onGoHome }) {
           ))}
         </div>
         <div className="dbm__nowtitle">{lesson.scenes[stepIdx]?.title}</div>
+        <button className={`dbm__voice ${voiceOn ? 'is-on' : ''}`} onClick={toggleVoice} title={voiceOn ? "Mute Kabir's voice" : "Play Kabir's voice"}>
+          {voiceOn ? <Volume2 size={15} /> : <VolumeX size={15} />}
+        </button>
       </header>
 
       <main className="dbm__main">
@@ -111,22 +131,6 @@ export default function DreamBedroomAct1({ onComplete, onGoHome }) {
           </motion.div>
         </AnimatePresence>
       </main>
-
-      <AnimatePresence>
-        {!audioAsked && showCard && (
-          <motion.div className="dbm-audiocard" initial={{ opacity: 0, y: 20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20 }}>
-            <div className="dbm-audiocard__icon"><Volume2 size={20} /></div>
-            <div className="dbm-audiocard__body">
-              <strong>Turn on Kabir's voice?</strong>
-              <span>He'll narrate the whole makeover aloud. Each scene reads fully before it unlocks the next step.</span>
-            </div>
-            <div className="dbm-audiocard__actions">
-              <button className="dbm-audiocard__ghost" onClick={skipVoice}><X size={14} /> No, just text</button>
-              <button className="dbm-audiocard__primary" onClick={enableVoice}>Yes, narrate</button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

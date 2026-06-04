@@ -4,10 +4,10 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Volume2, X, Home } from 'lucide-react';
+import { Volume2, VolumeX, X, Home } from 'lucide-react';
 import { act2 } from '../../../../data/lessons/dreamBedroomMakeover.js';
 import { useNarration } from '../Act1/useNarration.js';
-import { unlockAudio } from '../../../../utils/sounds.js';
+import { unlockAudio, isAudioEnabled } from '../../../../utils/sounds.js';
 import { C1Reveal, C2Apply, C3Activity, C4Takeaway, loadAct1Spend } from './Screens2.jsx';
 import '../Act1/makeover.css';
 import './act2.css';
@@ -30,8 +30,10 @@ export default function DreamBedroomAct2({ onComplete, onGoHome }) {
   const [screen, setScreen] = useState(initial);
   const go = useCallback((id) => { narration.stop(); setScreen(id); }, [narration]);
 
-  const [audioAsked, setAudioAsked] = useState(() => { try { return localStorage.getItem(AUDIO_KEY) !== null; } catch { return false; } });
+  const initialPref = (() => { try { return localStorage.getItem(AUDIO_KEY); } catch { return null; } })();
+  const [audioAsked, setAudioAsked] = useState(initialPref !== null);
   const [showCard, setShowCard] = useState(false);
+  const [voiceOn, setVoiceOn] = useState(false);
   useEffect(() => {
     if (import.meta.env.DEV && new URLSearchParams(window.location.search).get('dev')) document.documentElement.classList.add('dbm-reveal');
     if (audioAsked) return undefined;
@@ -39,12 +41,37 @@ export default function DreamBedroomAct2({ onComplete, onGoHome }) {
     return () => clearTimeout(t);
   }, [audioAsked]);
 
+  // Returning opted-in visitors: unlock the suspended AudioContext on first gesture.
+  useEffect(() => {
+    if (initialPref !== 'on') return undefined;
+    const handler = async () => {
+      if (isAudioEnabled()) return;
+      try { await unlockAudio(true); } catch { /* noop */ }
+      setVoiceOn(true); narration.restart();
+    };
+    window.addEventListener('pointerdown', handler, { once: true });
+    window.addEventListener('keydown', handler, { once: true });
+    return () => { window.removeEventListener('pointerdown', handler); window.removeEventListener('keydown', handler); };
+  }, [initialPref, narration]);
+
   const enableVoice = useCallback(async () => {
     try { await unlockAudio(true); } catch { /* noop */ }
     try { localStorage.setItem(AUDIO_KEY, 'on'); } catch { /* noop */ }
-    setAudioAsked(true); setShowCard(false);
-  }, []);
-  const skipVoice = useCallback(() => { try { localStorage.setItem(AUDIO_KEY, 'off'); } catch { /* noop */ } setAudioAsked(true); setShowCard(false); }, []);
+    setAudioAsked(true); setShowCard(false); setVoiceOn(true);
+    narration.restart();
+  }, [narration]);
+  const skipVoice = useCallback(() => { try { localStorage.setItem(AUDIO_KEY, 'off'); } catch { /* noop */ } setAudioAsked(true); setShowCard(false); setVoiceOn(false); }, []);
+  const toggleVoice = useCallback(async () => {
+    if (voiceOn) {
+      try { await unlockAudio(false); } catch { /* noop */ }
+      try { localStorage.setItem(AUDIO_KEY, 'off'); } catch { /* noop */ }
+      setVoiceOn(false);
+    } else {
+      try { await unlockAudio(true); } catch { /* noop */ }
+      try { localStorage.setItem(AUDIO_KEY, 'on'); } catch { /* noop */ }
+      setVoiceOn(true); setAudioAsked(true); setShowCard(false); narration.restart();
+    }
+  }, [voiceOn, narration]);
 
   const stepIdx = ORDER.indexOf(screen);
 
@@ -62,6 +89,9 @@ export default function DreamBedroomAct2({ onComplete, onGoHome }) {
           {ORDER.map((id, i) => (<span key={id} className={`dbm__step ${i <= stepIdx ? 'is-on' : ''} ${i === stepIdx ? 'is-now' : ''}`} />))}
         </div>
         <div className="dbm__nowtitle">Act 2 · {act2.scenes[stepIdx]?.title}</div>
+        <button className={`dbm__voice ${voiceOn ? 'is-on' : ''}`} onClick={toggleVoice} title={voiceOn ? "Mute Kabir's voice" : "Play Kabir's voice"}>
+          {voiceOn ? <Volume2 size={15} /> : <VolumeX size={15} />}
+        </button>
       </header>
 
       <main className="dbm__main">

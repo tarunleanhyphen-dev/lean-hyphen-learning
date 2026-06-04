@@ -9,24 +9,31 @@ import { Kabir } from './Kabir.jsx';
 
 export function NarratorCard({
   narration, lines, mood = 'happy', accent = '#A855F7',
-  onReplay, onSkip, done = false, size = 124, compact = false,
+  onReplay, onSkip, done = false, size = 124, compact = false, hideAvatar = false,
 }) {
   const { speaking, amplitude, currentLine } = narration;
   const arr = Array.isArray(lines) ? lines : [lines];
 
   return (
-    <div className={`dbm-narrator ${compact ? 'dbm-narrator--compact' : ''}`} style={{ '--accent': accent }}>
-      <div className="dbm-narrator__avatar">
-        <Kabir mood={speaking ? 'happy' : mood} speaking={speaking} amplitude={amplitude} size={size} accent={accent} />
-        <div className="dbm-narrator__name">
-          Kabir
-          {speaking && (
-            <span className="dbm-narrator__wave"><i /><i /><i /><i /></span>
-          )}
+    <div className={`dbm-narrator ${compact ? 'dbm-narrator--compact' : ''} ${hideAvatar ? 'dbm-narrator--textonly' : ''}`} style={{ '--accent': accent }}>
+      {!hideAvatar && (
+        <div className="dbm-narrator__avatar">
+          <Kabir mood={speaking ? 'happy' : mood} speaking={speaking} amplitude={amplitude} size={size} accent={accent} />
+          <div className="dbm-narrator__name">
+            Kabir
+            {speaking && (
+              <span className="dbm-narrator__wave"><i /><i /><i /><i /></span>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="dbm-narrator__body">
+        {hideAvatar && (
+          <div className="dbm-narrator__name dbm-narrator__name--inline">
+            Kabir {speaking && <span className="dbm-narrator__wave"><i /><i /><i /><i /></span>}
+          </div>
+        )}
         <div className="dbm-narrator__lines">
           {arr.map((l, i) => (
             <motion.p

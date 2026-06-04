@@ -34,6 +34,14 @@ export function isAudioReady() {
   return ctx?.state === 'running' && !muted;
 }
 
+/* True once the user has enabled audio (unmuted). Unlike isAudioReady this
+ * does NOT require the AudioContext to be 'running' — cloud TTS plays through
+ * an <audio> element, which only needs us to be unmuted. Use this to decide
+ * whether to speak vs. fall back to silent timing. */
+export function isAudioEnabled() {
+  return !muted;
+}
+
 export async function unlockAudio(enabled) {
   ensureCtx();
   if (!ctx) return;

@@ -568,11 +568,22 @@ export function Screen4Shop({ mk, narration, vibe, accent }) {
   const [toast, setToast] = useState(null);
   const [shake, setShake] = useState(false);
   const [oppo, setOppo] = useState(null); // { oc, itemId }
+  const [midPause, setMidPause] = useState(false); // halfway reflection card
+  const midDone = useRef(false);
   const toastTimer = useRef(null);
 
   const { spent, spendable, needsCount, cartItems } = mk;
   const inCart = (id) => mk.state.cart.includes(id);
   const valid = needsCount >= s.gates.minNeeds && spent <= spendable;
+
+  // Mid-period review — fires once when half the budget (₹24,000) is spent.
+  useEffect(() => {
+    if (!midDone.current && spent >= 24000) {
+      midDone.current = true;
+      setMidPause(true);
+      narration.say('Half the budget is gone. Are your Needs covered? Anything essential still missing? Checking in halfway is a real habit — budgeters call it a mid-period review.');
+    }
+  }, [spent, narration]);
 
   const flashToast = (msg, tone = 'bad') => {
     sfx('alert');
@@ -678,6 +689,32 @@ export function Screen4Shop({ mk, narration, vibe, accent }) {
 
       <AnimatePresence>
         {oppo && <OpportunityModal oc={oppo.oc} mk={mk} accent={accent} onConfirm={confirmOppo} onCancel={() => { sfx('tap'); setOppo(null); }} />}
+      </AnimatePresence>
+
+      {/* halfway mid-period review pause */}
+      <AnimatePresence>
+        {midPause && (
+          <motion.div className="dbm-modal__scrim" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div
+              className="dbm-midpause"
+              initial={{ scale: 0.85, y: 24, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+            >
+              <motion.div className="dbm-midpause__ring" animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0.2, 0.5] }} transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }} />
+              <div className="dbm-midpause__icon">⏸️</div>
+              <div className="dbm-midpause__bar">
+                <span style={{ width: '50%' }} />
+              </div>
+              <h3 className="dbm-midpause__title">Halfway check-in</h3>
+              <p className="dbm-midpause__text">Half the budget is gone. Are your Needs covered? Anything essential still missing? Checking in halfway is a real habit — budgeters call it a <strong>mid-period review</strong>.</p>
+              <button className="dbm-midpause__btn" onClick={() => { sfx('tap'); setMidPause(false); }}>
+                Continue Shopping <ArrowRight size={16} />
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
       </AnimatePresence>
     </div>
   );

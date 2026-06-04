@@ -514,6 +514,26 @@
 .dbm-shopcard__add { font-size: 11px; font-weight: 700; color: var(--ink-faint); display: inline-flex; align-items: center; gap: 4px; margin-top: 2px; }
 .dbm-shopcard.is-selected .dbm-shopcard__add { color: var(--c); }
 
+/* halfway mid-period review card */
+.dbm-midpause {
+  position: relative; width: 100%; max-width: 420px; text-align: center; padding: 30px 28px 26px; border-radius: 26px;
+  background: linear-gradient(180deg, #ffffff, #f5f7fb); border: 1px solid rgba(255,255,255,.6);
+  box-shadow: 0 34px 80px -30px rgba(0,0,0,.65); display: flex; flex-direction: column; align-items: center; gap: 10px; overflow: hidden;
+}
+.dbm-midpause__ring { position: absolute; top: -40px; left: 50%; transform: translateX(-50%); width: 180px; height: 180px;
+  border-radius: 50%; background: radial-gradient(circle, rgba(245,180,11,.35), transparent 70%); pointer-events: none; }
+.dbm-midpause__icon { position: relative; font-size: 46px; line-height: 1; }
+.dbm-midpause__bar { position: relative; width: 200px; height: 8px; border-radius: 99px; background: rgba(0,0,0,.08); overflow: hidden; }
+.dbm-midpause__bar > span { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #ffce3a, #f0a90a); }
+.dbm-midpause__title { font-family: 'Sora', system-ui, sans-serif; font-weight: 800; font-size: 20px; color: var(--ink); margin: 2px 0 0; }
+.dbm-midpause__text { font-size: 14px; line-height: 1.55; color: var(--ink-dim); margin: 0; }
+.dbm-midpause__text strong { color: #b8860b; }
+.dbm-midpause__btn { margin-top: 6px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; border: none;
+  font-family: 'Sora', system-ui, sans-serif; font-weight: 700; font-size: 15px; color: #3a2a00;
+  background: linear-gradient(135deg, #ffce3a, #f0a90a); border-radius: 14px; padding: 12px 26px;
+  box-shadow: 0 14px 32px -12px rgba(240,169,10,.85); transition: transform .15s; }
+.dbm-midpause__btn:hover { transform: translateY(-2px); }
+
 .dbm-shop__action {
   position: fixed; left: 50%; transform: translateX(-50%); bottom: 14px; z-index: 40;
   display: flex; align-items: center; gap: 14px;
@@ -527,9 +547,10 @@
 .dbm-shop__remain { font-size: 11px; color: var(--ink-faint); }
 .dbm-shop__go[data-valid="false"] { opacity: .55; }
 @media (min-width: 1000px) {
-  .dbm-shop { grid-template-columns: minmax(360px, 42%) 1fr; align-items: start; }
-  .dbm-shop__left { position: sticky; top: 14px; }
-  .dbm-shop__room, .dbm-room3d { height: 340px; }
+  .dbm-shop { grid-template-columns: minmax(380px, 44%) 1fr; align-items: start; }
+  /* Showroom-style: the live 3D room stays pinned while you scroll the catalogue. */
+  .dbm-shop__left { position: sticky; top: 14px; align-self: start; }
+  .dbm-shop__room, .dbm-room3d { height: 440px; }
 }
 
 /* ===================== SCREEN 5 — events ===================== */

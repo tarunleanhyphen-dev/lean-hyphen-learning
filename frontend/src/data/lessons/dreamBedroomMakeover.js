@@ -42,21 +42,21 @@ export const lesson = {
       tagline: 'soft lighting · warm wood · pillows you sink into',
       sub: 'A room that hugs you back. Amber lamps, layered textures, gentle shadows.',
       accent: '#F59E0B',
-      wall: '#3a2a3e', wall2: '#4a3142', floor: '#7c5a3a', glow: '#ffb86b',
+      wall: '#d2ab87', wall2: '#e0bb98', floor: '#9c7350', glow: '#ffb86b',
     },
     {
       id: 'study', emoji: '📚', label: 'Study Mode',
       tagline: 'organised · minimal distractions · all about focus',
       sub: 'Built around the desk. Clean shelves, focused task light, books at eye level.',
       accent: '#10B981',
-      wall: '#1f3a34', wall2: '#244a40', floor: '#6b7280', glow: '#5eead4',
+      wall: '#bfe3c8', wall2: '#cdebd3', floor: '#9aa3ad', glow: '#5eead4',
     },
     {
       id: 'gamer', emoji: '🎮', label: 'Gamer Setup',
       tagline: 'RGB · tech · the room glows at night',
       sub: 'Battlestation energy. Tall gaming chair, LED strips, dark walls, neon accents.',
       accent: '#8B5CF6',
-      wall: '#181a2e', wall2: '#1e2140', floor: '#2a2d4a', glow: '#a78bfa',
+      wall: '#4e5278', wall2: '#565b88', floor: '#5c6191', glow: '#a78bfa',
     },
     {
       id: 'minimal', emoji: '🌿', label: 'Minimalist',
@@ -82,7 +82,7 @@ export const lesson = {
     {
       id: 'screen-2-vibe',
       title: 'Pick Your Style',
-      intro: "First — what's your style? Pick a vibe for the room.",
+      intro: "First — let's pick the design. What's your style? Pick a vibe for the room.",
       hint: 'This just sets the mood and colours. It does not change any prices.',
       confirmation: 'Nice choice! The room will glow in this style for the rest of the makeover.',
       cta: 'Continue',
@@ -90,7 +90,7 @@ export const lesson = {
     {
       id: 'screen-2-rules',
       title: 'Ground Rules',
-      intro: 'Before you spend a single rupee, here are the ground rules.',
+      intro: "Before you spend a single rupee, here are the ground rules. You have ₹50,000 — but ₹2,000 is locked away as your Emergency Reserve. Don't touch it. Buy at least 3 Need items before adding any Wants. And if you go over budget, you'll need to remove something before moving on.",
       rules: [
         { icon: '💰', title: '₹50,000 total', text: 'That is your entire budget for the room.' },
         { icon: '🔒', title: 'Keep ₹2,000 safe', text: 'An Emergency Reserve you must not touch.' },
@@ -104,7 +104,8 @@ export const lesson = {
       id: 'screen-3-sort',
       title: 'Sort It Out — Needs vs Wants',
       intro:
-        "Before you spend anything, let's think. Some things are NEEDS. Others are WANTS. Drop each item in the right bucket.",
+        "This step is the foundation of every budget ever made. If you can't separate what you need from what you want, you'll always struggle to make money last.",
+      prompt: 'Need or Want? Sort each item.',
       summaryHeading: "Nice work! Here's a quick look at what you found.",
       summaryOutro:
         "You've already started seeing where money goes — most of it tends to go toward Needs. That's normal. Now let's actually go shopping.",
@@ -113,7 +114,7 @@ export const lesson = {
     {
       id: 'screen-4-shop',
       title: 'Shop Smart',
-      intro: "Here's your full catalogue. Build your room — but stay within ₹48,000.",
+      intro: "Shop smart. Here's your full catalogue. Build your room — but stay within ₹48,000.",
       sub: 'Remember: ₹2,000 is locked as your Emergency Reserve.',
       tip: 'Some items have a Budget and a Premium version. Choose wisely.',
       gates: {

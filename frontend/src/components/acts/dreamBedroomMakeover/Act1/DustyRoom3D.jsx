@@ -154,7 +154,8 @@ function RoomScene({ ctrl, cine, kabirRef }) {
   return (
     <>
       <Rig ctrl={ctrl} cine={cine} />
-      <KabirAnchor elRef={kabirRef} anchor={[2.7, 0, -3.2]} />
+      {/* Kabir is pinned to a fixed screen corner via CSS (see .dbm-room-kabir),
+       * so he stays put while the room rotates during the cinematic sweep. */}
       {/* bright daytime light pouring through the window */}
       <ambientLight intensity={1.05} color="#eaf1ff" />
       <pointLight position={[0.4, 2.6, -4.2]} intensity={2.6} color="#fff6e6" distance={18} decay={1.0} />

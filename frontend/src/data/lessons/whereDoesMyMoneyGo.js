@@ -196,8 +196,7 @@ export const lesson = {
       ],
     },
     act2: { id: 'act2', title: 'Act 2 — The 50/30/20 Rule', minutes: 5, kind: 'concept', status: 'live', scenes: [] },
-    act3: { id: 'act3', title: 'Act 3 — TBD', minutes: 3, kind: 'scenarios',   status: 'coming-soon', scenes: [] },
-    act4: { id: 'act4', title: 'Act 4 — TBD', minutes: 3, kind: 'reflection',  status: 'coming-soon', scenes: [] },
+    act3: { id: 'act3', title: 'Act 3 — Prove It', minutes: 3, kind: 'quiz', status: 'coming-soon', scenes: [] },
   },
 };
 

@@ -9,13 +9,13 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowRight, Check, X, Lock, Sparkles, Mail, RotateCw, PartyPopper,
-  AlertTriangle, ShoppingBag, Trophy, Info,
+  AlertTriangle, ShoppingBag, Trophy, Info, ShieldCheck, Heart,
 } from 'lucide-react';
 import { lesson, sortItems, catalogue, surpriseEvents } from '../../../../data/lessons/dreamBedroomMakeover.js';
 import { sounds, isAudioReady } from '../../../../utils/sounds.js';
 import { Room3D } from './Room3D.jsx';
-import { IsoRoom2D } from './IsoRoom2D.jsx';
 import { DustyRoom3D } from './DustyRoom3D.jsx';
+import { VibeRoom3D } from './VibeRoom3D.jsx';
 import { ItemArt } from './ItemArt.jsx';
 import { Tracker, Donut, fmt, useCount } from './Tracker.jsx';
 import { NarratorCard } from './NarratorCard.jsx';
@@ -132,51 +132,96 @@ export function Screen2Vibe({ mk, narration, accent }) {
   const s = scene('screen-2-vibe');
   const n = useScreenNarration(narration, [s.intro, s.hint]);
   const [picked, setPicked] = useState(mk.state.vibe);
-
-  const pick = (id) => { sfx('add'); setPicked(id); mk.pickVibe(id); };
+  // Only show/read the confirmation after a fresh in-screen selection — NOT when
+  // arriving at Scene 2 with a vibe already chosen earlier.
+  const [confirmed, setConfirmed] = useState(false);
+  const pick = (id) => {
+    sfx('add');
+    setPicked(id);
+    mk.pickVibe(id);
+    // read the confirmation line aloud (Kabir) only on the FIRST pick — switching
+    // between rooms afterwards updates the choice silently (no repeated voice).
+    if (!confirmed) narration.say(s.confirmation);
+    setConfirmed(true);
+  };
 
   return (
     <div className="dbm-screen dbm-screen--vibe">
-      <h2 className="dbm-h2">Pick your style</h2>
-      <NarratorCard narration={narration} lines={[s.intro, s.hint]} accent={accent} done={n.done} onReplay={n.replay} onSkip={n.skip} mood="happy" compact />
-
-      <div className="dbm-vibes">
-        {lesson.vibes.map((v, i) => (
-          <motion.button
-            key={v.id}
-            className={`dbm-vibe ${picked === v.id ? 'is-picked' : ''}`}
-            style={{ '--accent': v.accent, '--wall': v.wall, '--floor': v.floor, '--glow': v.glow }}
-            onClick={() => pick(v.id)}
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.08 * i }}
-            whileHover={{ y: -6 }}
-          >
-            <div className="dbm-vibe__preview">
-              <IsoRoom2D vibe={v} cart={v.id === 'gamer' ? ['bed-budget', 'gaming-chair', 'led-strips', 'study-desk'] : v.id === 'study' ? ['study-desk', 'basic-chair', 'bookshelf', 'desk-lamp'] : v.id === 'minimal' ? ['bed-budget', 'study-desk'] : ['bed-budget', 'wardrobe-budget', 'posters', 'desk-lamp']} />
-            </div>
-            <div className="dbm-vibe__body">
-              <span className="dbm-vibe__emoji">{v.emoji}</span>
-              <div>
-                <div className="dbm-vibe__label">{v.label}</div>
-                <div className="dbm-vibe__tag">{v.tagline}</div>
-              </div>
-              {picked === v.id && <div className="dbm-vibe__check"><Check size={16} /></div>}
-            </div>
-          </motion.button>
-        ))}
-      </div>
-
+      {/* page-level confirmation banner — appears only after the user picks here */}
       <AnimatePresence>
-        {picked && (
-          <motion.div className="dbm-confirm" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+        {confirmed && (
+          <motion.div
+            key="banner"
+            className="dbm-vibe2__banner"
+            initial={{ opacity: 0, y: -14 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -14 }}
+          >
+            <span className="dbm-vibe2__banner-ic"><Check size={16} /></span>
             {s.confirmation}
           </motion.div>
         )}
       </AnimatePresence>
+      <div className="dbm-vibe2">
+        {/* LEFT — heading, narration, confirmation, CTA */}
+        <div className="dbm-vibe2__left">
+          <motion.div className="dbm-eyebrow" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
+            <Sparkles size={14} /> Step 2 · Your style
+          </motion.div>
+          <h2 className="dbm-h2 dbm-vibe2__title">Pick your <span style={{ color: accent }}>vibe</span></h2>
+          <NarratorCard narration={narration} lines={[s.intro, s.hint]} accent={accent} done={n.done} onReplay={n.replay} onSkip={n.skip} hideAvatar />
+          <div className="dbm-vibe2__hint"><Info size={13} /> Hover a room to see it in motion. This only sets the mood — prices don't change.</div>
 
-      <CTA accent={accent} disabled={!picked} onClick={() => mk.setScreen('screen-2-rules')}>{s.cta}</CTA>
+          <AnimatePresence mode="wait">
+            {!picked && (
+              <motion.div key="pickme" className="dbm-vibe2__pickme" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                Tap a room to choose your style →
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <CTA accent={accent} disabled={!picked} onClick={() => mk.setScreen('screen-2-rules')}>{s.cta}</CTA>
+        </div>
+
+        {/* RIGHT — 2×2 grid of live 3D rooms */}
+        <div className="dbm-vibe2__grid">
+          {lesson.vibes.map((v, i) => (
+            <VibeCard key={v.id} v={v} index={i} picked={picked === v.id} onPick={() => pick(v.id)} />
+          ))}
+        </div>
+      </div>
     </div>
+  );
+}
+
+function VibeCard({ v, index, picked, onPick }) {
+  const hoveredRef = useRef(false);
+  const [hovered, setHovered] = useState(false);
+  const enter = () => { hoveredRef.current = true; setHovered(true); };
+  const leave = () => { hoveredRef.current = false; setHovered(false); };
+  return (
+    <motion.button
+      type="button"
+      className={`dbm-vcard ${picked ? 'is-picked' : ''} ${hovered ? 'is-hover' : ''}`}
+      style={{ '--accent': v.accent, '--glow': v.glow }}
+      onClick={onPick}
+      onMouseEnter={enter} onMouseLeave={leave}
+      onFocus={enter} onBlur={leave}
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.07 * index }}
+      whileHover={{ y: -5 }}
+    >
+      <div className="dbm-vcard__room"><VibeRoom3D vibe={v} hoveredRef={hoveredRef} /></div>
+      <div className="dbm-vcard__body">
+        <span className="dbm-vcard__logo" aria-hidden>{v.emoji}</span>
+        <div className="dbm-vcard__text">
+          <div className="dbm-vcard__label">{v.label}</div>
+          <div className="dbm-vcard__tag">{v.tagline}</div>
+        </div>
+        <span className="dbm-vcard__check">{picked && <Check size={14} />}</span>
+      </div>
+    </motion.button>
   );
 }
 
@@ -185,24 +230,53 @@ export function Screen2Vibe({ mk, narration, accent }) {
  * ====================================================================== */
 export function Screen2Rules({ mk, narration, accent }) {
   const s = scene('screen-2-rules');
-  const n = useScreenNarration(narration, [s.intro, s.outro]);
+  const n = useScreenNarration(narration, [s.intro]);
 
   return (
     <div className="dbm-screen dbm-screen--rules">
-      <h2 className="dbm-h2">Ground rules</h2>
-      <NarratorCard narration={narration} lines={[s.intro, s.outro]} accent={accent} done={n.done} onReplay={n.replay} onSkip={n.skip} compact />
+      <motion.div className="dbm-eyebrow dbm-rules__eyebrow" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
+        <Sparkles size={14} /> Step 3 · The ground rules
+      </motion.div>
+      <motion.h2
+        className="dbm-h2 dbm-rules__title"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+      >
+        Four rules <span className="dbm-rules__title-accent">before you spend</span>
+      </motion.h2>
+      <NarratorCard narration={narration} lines={[s.intro]} accent={accent} done={n.done} onReplay={n.replay} onSkip={n.skip} compact />
 
       <div className="dbm-rules">
         {s.rules.map((r, i) => (
-          <motion.div key={i} className="dbm-rule" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 * i }}>
-            <div className="dbm-rule__icon">{r.icon}</div>
-            <div className="dbm-rule__title">{r.title}</div>
-            <div className="dbm-rule__text">{r.text}</div>
+          <motion.div
+            key={i}
+            className="dbm-rulecard"
+            initial={{ opacity: 0, y: 46, rotateY: -92, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, rotateY: 0, scale: 1 }}
+            transition={{ delay: 0.18 * i, type: 'spring', stiffness: 130, damping: 15 }}
+            whileHover={{ scale: 1.04, y: -6 }}
+          >
+            <div className="dbm-rulecard__float" style={{ animationDelay: `${i * 0.55}s` }}>
+              <div className="dbm-flip">
+                <div className="dbm-flip__face dbm-flip__front" style={{ '--accent': accent }}>
+                  <span className="dbm-rulecard__bar" />
+                  <span className="dbm-rulecard__no">{String(i + 1).padStart(2, '0')}</span>
+                  <span className="dbm-rulecard__icon">{r.icon}</span>
+                  <span className="dbm-rulecard__title">{r.title}</span>
+                  <span className="dbm-rulecard__fliphint">Hover to see why ↻</span>
+                </div>
+                <div className="dbm-flip__face dbm-flip__back" style={{ '--accent': accent }}>
+                  <span className="dbm-rulecard__backno">Rule {String(i + 1).padStart(2, '0')}</span>
+                  <span className="dbm-rulecard__text">{r.text}</span>
+                </div>
+              </div>
+            </div>
           </motion.div>
         ))}
       </div>
 
-      <div className="dbm-rules__hint"><Info size={14} /> The tracker stays on screen the whole time you shop — watch every rupee land in its bucket.</div>
+      <div className="dbm-rules__hint"><Info size={14} /> Hover any card to flip it and see why. The tracker stays on screen the whole time you shop.</div>
 
       <CTA accent={accent} disabled={!n.done} onClick={() => mk.setScreen('screen-3-sort')}>{s.cta}</CTA>
     </div>
@@ -210,8 +284,15 @@ export function Screen2Rules({ mk, narration, accent }) {
 }
 
 /* ======================================================================
- * SCREEN 3 — Sort It Out (Needs vs Wants)
+ * SCREEN 4 — Sort It Out (Needs vs Wants)
  * ====================================================================== */
+/* Big, fully-rendered item images (glossy emoji read as 3D on most platforms). */
+const ITEM_EMOJI = {
+  bed: '🛏️', desk: '🖥️', gchair: '🪑', wardrobe: '🚪', led: '🌈',
+  lamp: '🪔', speaker: '🔊', curtains: '🪟', shelf: '📚', fridge: '🧊',
+  chair: '🪑', poster: '🖼️', fan: '🌀', boxes: '📦', ceiling: '💡', mirror: '🪞',
+};
+
 export function Screen3Sort({ mk, narration, accent }) {
   const s = scene('screen-3-sort');
   useScreenNarration(narration, [s.intro]);
@@ -219,19 +300,22 @@ export function Screen3Sort({ mk, narration, accent }) {
   const [idx, setIdx] = useState(0);
   const [feedback, setFeedback] = useState(null); // { item, choice, text, grey }
   const [drop, setDrop] = useState(null); // 'need' | 'want' burst
+  const [fly, setFly] = useState(null);   // card flying into a bucket
 
   const item = sortItems[idx];
   const finished = idx >= sortItems.length;
 
   const choose = (choice) => {
-    if (!item || feedback) return;
+    if (!item || feedback || fly) return;
     sfx(choice === item.correct ? 'ding' : 'tap');
     mk.setSortAnswer(item.id, choice);
+    setFly(choice);
     setDrop(choice);
-    setTimeout(() => setDrop(null), 600);
+    setTimeout(() => setDrop(null), 650);
     const text = item.feedback[choice];
     narration.say(text);
-    setFeedback({ item, choice, text, grey: item.isGreyArea });
+    // let the card fly into the bucket, then reveal feedback
+    setTimeout(() => { setFeedback({ item, choice, text, grey: item.isGreyArea }); setFly(null); }, 470);
   };
 
   const next = () => {
@@ -246,7 +330,10 @@ export function Screen3Sort({ mk, narration, accent }) {
 
   return (
     <div className="dbm-screen dbm-screen--sort">
-      <h2 className="dbm-h2">Need it or want it?</h2>
+      <motion.div className="dbm-eyebrow" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
+        <Sparkles size={14} /> Step 4 · Needs vs Wants
+      </motion.div>
+      <h2 className="dbm-h2 dbm-sort__title">{s.prompt || 'Need or Want? Sort each item.'}</h2>
       <NarratorCard narration={narration} lines={[s.intro]} accent={accent} done compact size={92}
         onReplay={() => narration.replay([s.intro])} onSkip={() => narration.skip()} />
 
@@ -256,32 +343,45 @@ export function Screen3Sort({ mk, narration, accent }) {
       </div>
 
       <div className="dbm-sort__arena">
-        <Bucket kind="need" accent="#10B981" burst={drop === 'need'} label="NEED" sub="can't go without" />
+        <Bucket kind="need" accent="#10B981" burst={drop === 'need'} active={fly === 'need'} icon="🧺" label="NEED" sub="can't go without" />
 
         <div className="dbm-sort__cardzone">
           <AnimatePresence mode="wait">
-            <motion.div
-              key={item.id}
-              className="dbm-sortcard"
-              initial={{ opacity: 0, y: -24, rotateX: 20 }}
-              animate={{ opacity: 1, y: 0, rotateX: 0 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-            >
-              <div className="dbm-sortcard__art"><ItemArt art={item.art} size={88} /></div>
-              <div className="dbm-sortcard__name">{item.name}</div>
-              <div className="dbm-sortcard__price">{fmt(item.price)}</div>
-              {item.isGreyArea && <div className="dbm-sortcard__grey">🤔 grey area</div>}
-            </motion.div>
+            {!feedback && (
+              <motion.div
+                key={item.id}
+                className="dbm-sortcard"
+                initial={{ opacity: 0, y: -34, rotateX: 22, scale: 0.85 }}
+                animate={fly
+                  ? { x: fly === 'need' ? -300 : 300, y: 26, scale: 0.28, rotate: fly === 'need' ? -42 : 42, opacity: 0 }
+                  : { opacity: 1, y: 0, rotateX: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.7 }}
+                transition={{ type: 'spring', stiffness: 200, damping: 22 }}
+              >
+                <span className="dbm-sortcard__tag">Item {idx + 1}</span>
+                <motion.div
+                  className="dbm-sortcard__art"
+                  animate={{ y: [0, -10, 0], rotate: [-2.5, 2.5, -2.5] }}
+                  transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                  <span className="dbm-sortcard__emoji">{ITEM_EMOJI[item.art] || '📦'}</span>
+                </motion.div>
+                <div className="dbm-sortcard__shadow" />
+                <div className="dbm-sortcard__name">{item.name}</div>
+                <div className="dbm-sortcard__price">{fmt(item.price)}</div>
+                {item.isGreyArea && <div className="dbm-sortcard__grey">🤔 grey area</div>}
+              </motion.div>
+            )}
           </AnimatePresence>
         </div>
 
-        <Bucket kind="want" accent="#A855F7" burst={drop === 'want'} label="WANT" sub="nice to have" />
+        <Bucket kind="want" accent="#A855F7" burst={drop === 'want'} active={fly === 'want'} icon="🛍️" label="WANT" sub="nice to have" />
       </div>
 
       {!feedback ? (
         <div className="dbm-sort__buttons">
-          <button className="dbm-sortbtn dbm-sortbtn--need" onClick={() => choose('need')}>It's a Need</button>
-          <button className="dbm-sortbtn dbm-sortbtn--want" onClick={() => choose('want')}>It's a Want</button>
+          <button className="dbm-sortbtn dbm-sortbtn--need" onClick={() => choose('need')} disabled={!!fly}><ShieldCheck size={17} /> It's a Need</button>
+          <button className="dbm-sortbtn dbm-sortbtn--want" onClick={() => choose('want')} disabled={!!fly}><Heart size={16} /> It's a Want</button>
         </div>
       ) : (
         <motion.div className={`dbm-feedback ${feedback.choice === feedback.item.correct ? 'is-right' : 'is-soft'} ${feedback.grey ? 'is-grey' : ''}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
@@ -290,14 +390,73 @@ export function Screen3Sort({ mk, narration, accent }) {
           <button className="dbm-feedback__next" onClick={next}>Next <ArrowRight size={15} /></button>
         </motion.div>
       )}
+
+      <button className="dbm-sort__skip" onClick={() => { sfx('tap'); narration.skip(); mk.setScreen('screen-4-shop'); }}>
+        Skip activity <ArrowRight size={13} />
+      </button>
     </div>
   );
 }
 
-function Bucket({ kind, accent, burst, label, sub }) {
+const BUCKET_PAL = {
+  need: { light: '#5fe0b0', mid: '#10b981', dark: '#059669', rim: '#0b7a55', hi: '#bff3df' },
+  want: { light: '#c79bfb', mid: '#a855f7', dark: '#7c3aed', rim: '#6024c8', hi: '#ecdcff' },
+};
+
+/* A good-looking 2D pail/bucket drawn in SVG. */
+function BucketShape({ kind }) {
+  const p = BUCKET_PAL[kind] || BUCKET_PAL.need;
+  const g = `bkt-${kind}`;
   return (
-    <motion.div className={`dbm-bucket dbm-bucket--${kind}`} style={{ '--accent': accent }} animate={burst ? { scale: [1, 1.12, 1] } : {}}>
-      <div className="dbm-bucket__mouth" />
+    <svg viewBox="0 0 100 112" width="118" height="132" className="dbm-bucketsvg" aria-hidden>
+      <defs>
+        <linearGradient id={g} x1="0" y1="0" x2="0.3" y2="1">
+          <stop offset="0" stopColor={p.light} />
+          <stop offset="0.5" stopColor={p.mid} />
+          <stop offset="1" stopColor={p.dark} />
+        </linearGradient>
+        <radialGradient id={`${g}-in`} cx="0.5" cy="0.35" r="0.75">
+          <stop offset="0" stopColor={p.rim} />
+          <stop offset="1" stopColor={p.dark} />
+        </radialGradient>
+      </defs>
+      <ellipse cx="50" cy="106" rx="30" ry="5.5" fill="rgba(0,0,0,0.16)" />
+      {/* handle */}
+      <path d="M20 38 Q50 0 80 38" fill="none" stroke={p.dark} strokeWidth="5" strokeLinecap="round" />
+      <path d="M20 38 Q50 0 80 38" fill="none" stroke={p.hi} strokeWidth="1.6" strokeLinecap="round" opacity="0.5" />
+      {/* body */}
+      <path d="M19 39 L29 98 Q50 105 71 98 L81 39 Z" fill={`url(#${g})`} stroke={p.rim} strokeWidth="1.2" />
+      {/* highlight + ridge */}
+      <path d="M28 45 L36 94" stroke={p.hi} strokeWidth="4.5" strokeLinecap="round" opacity="0.42" />
+      <path d="M22 58 Q50 66 78 58" fill="none" stroke={p.rim} strokeWidth="2.5" opacity="0.5" />
+      {/* rim */}
+      <ellipse cx="50" cy="39" rx="31" ry="9" fill={p.dark} />
+      <ellipse cx="50" cy="38" rx="31" ry="8.4" fill={`url(#${g}-in)`} />
+      <ellipse cx="50" cy="37.5" rx="24" ry="5.8" fill={p.rim} opacity="0.85" />
+    </svg>
+  );
+}
+
+function Bucket({ kind, accent, burst, active, label, sub }) {
+  return (
+    <motion.div
+      className={`dbm-bucket dbm-bucket--${kind} ${active ? 'is-active' : ''}`}
+      style={{ '--accent': accent }}
+      initial={{ opacity: 0, y: 20, scale: 0.9 }}
+      animate={burst ? { opacity: 1, y: 0, scale: [1, 1.14, 1] } : { opacity: 1, y: 0, scale: 1 }}
+      transition={{ type: 'spring', stiffness: 240, damping: 18 }}
+    >
+      <motion.div
+        className="dbm-bucket__shape"
+        animate={active
+          ? { y: -8, scale: 1.12, rotate: [0, -7, 7, 0] }
+          : { y: [0, -7, 0], rotate: [-2.5, 2.5, -2.5] }}
+        transition={active
+          ? { duration: 0.5 }
+          : { duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+      >
+        <BucketShape kind={kind} />
+      </motion.div>
       <div className="dbm-bucket__label">{label}</div>
       <div className="dbm-bucket__sub">{sub}</div>
       <AnimatePresence>
@@ -314,23 +473,37 @@ function SortSummary({ mk, accent, narration }) {
   const answers = mk.state.sortAnswers;
   const needsVal = sortItems.filter((it) => answers[it.id] === 'need').reduce((a, it) => a + it.price, 0);
   const wantsVal = sortItems.filter((it) => answers[it.id] === 'want').reduce((a, it) => a + it.price, 0);
-  const n = useScreenNarration(narration, [s.summaryHeading, s.summaryOutro]);
-  useEffect(() => { sfx('reveal'); }, []);
   const total = needsVal + wantsVal || 1;
+  const needsPct = Math.round((needsVal / total) * 100);
+  const wantsPct = 100 - needsPct;
+  // Dynamic narration — fills in the learner's own Needs / Wants totals.
+  const summaryLine = `Your Needs cost ${fmt(needsVal)} — that money has to be spent, no choice. Your Wants are ${fmt(wantsVal)} — that's where your decisions actually matter. Every budget has these two zones: fixed costs you can't avoid, and flexible spending you can control.`;
+  const n = useScreenNarration(narration, [summaryLine]);
+  useEffect(() => { sfx('reveal'); }, []);
 
   return (
     <div className="dbm-screen dbm-screen--sortsum">
       <PartyPopper className="dbm-sortsum__pop" />
-      <h2 className="dbm-h2">{s.summaryHeading}</h2>
-      <div className="dbm-sortsum__grid">
-        <SummaryCard label="You marked as Needs" value={needsVal} color="#10B981" pct={Math.round((needsVal / total) * 100)} />
-        <div className="dbm-sortsum__donut">
-          <Donut categoryTotals={{}} spent={0} size={150} />
-          <DonutTwo needs={needsVal} wants={wantsVal} />
-        </div>
-        <SummaryCard label="You marked as Wants" value={wantsVal} color="#A855F7" pct={Math.round((wantsVal / total) * 100)} />
+      <motion.div className="dbm-eyebrow" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
+        <Sparkles size={14} /> Step 4 · The two zones of every budget
+      </motion.div>
+      <h2 className="dbm-h2 dbm-sort__title">{s.summaryHeading}</h2>
+
+      <div className="dbm-zonebar">
+        <motion.div className="dbm-zonebar__seg dbm-zonebar__seg--need" initial={{ width: 0 }} animate={{ width: `${needsPct}%` }} transition={{ duration: 0.9, ease: 'easeOut' }}>
+          {needsPct >= 12 && `${needsPct}%`}
+        </motion.div>
+        <motion.div className="dbm-zonebar__seg dbm-zonebar__seg--want" initial={{ width: 0 }} animate={{ width: `${wantsPct}%` }} transition={{ duration: 0.9, ease: 'easeOut', delay: 0.1 }}>
+          {wantsPct >= 12 && `${wantsPct}%`}
+        </motion.div>
       </div>
-      <NarratorCard narration={narration} lines={[s.summaryHeading, s.summaryOutro]} accent={accent} done={n.done} onReplay={n.replay} onSkip={n.skip} compact />
+
+      <div className="dbm-zones">
+        <ZoneCard kind="need" emoji="🧺" title="Needs · fixed costs" caption="Has to be spent — no choice." value={needsVal} pct={needsPct} color="#10B981" />
+        <ZoneCard kind="want" emoji="🛍️" title="Wants · flexible spending" caption="Where your decisions matter." value={wantsVal} pct={wantsPct} color="#A855F7" />
+      </div>
+
+      <NarratorCard narration={narration} lines={[summaryLine]} accent={accent} done={n.done} onReplay={n.replay} onSkip={n.skip} compact />
       <CTA accent={accent} disabled={!n.done} onClick={() => mk.setScreen('screen-4-shop')}><ShoppingBag size={17} /> {s.cta}</CTA>
     </div>
   );
@@ -343,6 +516,29 @@ function SummaryCard({ label, value, color, pct }) {
       <div className="dbm-sumcard__label">{label}</div>
       <div className="dbm-sumcard__val">{fmt(v)}</div>
       <div className="dbm-sumcard__pct">{pct}% of total</div>
+    </motion.div>
+  );
+}
+
+/* A 3D "zone" card for the sort summary — fixed-cost Needs vs flexible Wants. */
+function ZoneCard({ kind, emoji, title, caption, value, pct, color }) {
+  const v = useCount(value, 1000);
+  return (
+    <motion.div
+      className={`dbm-zone dbm-zone--${kind}`}
+      style={{ '--c': color }}
+      initial={{ opacity: 0, y: 34, rotateX: 18, scale: 0.92 }}
+      animate={{ opacity: 1, y: 0, rotateX: 0, scale: 1 }}
+      transition={{ type: 'spring', stiffness: 150, damping: 16, delay: kind === 'want' ? 0.12 : 0 }}
+      whileHover={{ y: -7, rotateX: 7, scale: 1.03 }}
+    >
+      <div className="dbm-zone__top">
+        <span className="dbm-zone__emoji">{emoji}</span>
+        <span className="dbm-zone__pct">{pct}%</span>
+      </div>
+      <div className="dbm-zone__val">{fmt(v)}</div>
+      <div className="dbm-zone__title">{title}</div>
+      <div className="dbm-zone__caption">{caption}</div>
     </motion.div>
   );
 }
@@ -366,7 +562,8 @@ function DonutTwo({ needs, wants }) {
  * ====================================================================== */
 export function Screen4Shop({ mk, narration, vibe, accent }) {
   const s = scene('screen-4-shop');
-  useScreenNarration(narration, [s.intro, s.sub, s.tip]);
+  // Read only the intro line aloud — not the sub / tip.
+  useScreenNarration(narration, [s.intro]);
 
   const [toast, setToast] = useState(null);
   const [shake, setShake] = useState(false);
@@ -487,9 +684,11 @@ export function Screen4Shop({ mk, narration, vibe, accent }) {
 }
 
 function ShopCard({ item, selected, wouldOver, color, onClick }) {
+  const emoji = ITEM_EMOJI[item.art] || '📦';
+  const premium = item.tier === 'premium';
   return (
     <motion.button
-      className={`dbm-shopcard ${selected ? 'is-selected' : ''} ${wouldOver ? 'is-over' : ''}`}
+      className={`dbm-shopcard ${selected ? 'is-selected' : ''} ${wouldOver ? 'is-over' : ''} ${premium ? 'is-premium' : ''} ${item.tier === 'budget' ? 'is-budget' : ''}`}
       style={{ '--c': color }}
       onClick={onClick}
       whileHover={{ y: -4 }}
@@ -498,7 +697,10 @@ function ShopCard({ item, selected, wouldOver, color, onClick }) {
     >
       <div className="dbm-shopcard__badge" data-type={item.type}>{item.type === 'need' ? 'Need' : 'Want'}</div>
       {item.tierLabel && <div className={`dbm-shopcard__tier dbm-shopcard__tier--${item.tier}`}>{item.tierLabel}</div>}
-      <div className="dbm-shopcard__art"><ItemArt art={item.art} size={62} /></div>
+      <div className="dbm-shopcard__art">
+        <span className="dbm-shopcard__emoji">{emoji}</span>
+        {premium && <span className="dbm-shopcard__crown">👑</span>}
+      </div>
       <div className="dbm-shopcard__name">{item.name}</div>
       <div className="dbm-shopcard__price">{fmt(item.price)}</div>
       <div className="dbm-shopcard__add">

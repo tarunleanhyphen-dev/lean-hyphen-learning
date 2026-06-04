@@ -150,6 +150,31 @@ const ART = {
   'bluetooth-speaker': () => <Speaker />, 'mini-fridge': () => <Fridge />, 'mirror': () => <Mirror />,
 };
 
+/* Ceiling fan — same build as Scene 1's room (hangs DOWN from its mount). */
+function CeilingFan() {
+  const blades = useRef();
+  useFrame((_, d) => { if (blades.current) blades.current.rotation.y += d * 1.5; });
+  return (
+    <group>
+      <mesh position={[0, -0.05, 0]}><cylinderGeometry args={[0.12, 0.14, 0.08, 16]} /><meshStandardMaterial color="#4a4034" /></mesh>
+      <mesh position={[0, -0.42, 0]}><cylinderGeometry args={[0.025, 0.025, 0.72, 10]} /><meshStandardMaterial color="#3a3a3a" metalness={0.4} roughness={0.5} /></mesh>
+      <mesh position={[0, -0.84, 0]}><cylinderGeometry args={[0.16, 0.19, 0.18, 20]} /><meshStandardMaterial color="#6a4a32" metalness={0.35} roughness={0.45} /></mesh>
+      <group ref={blades} position={[0, -0.86, 0]}>
+        {[0, 1, 2, 3].map((i) => {
+          const a = (i * Math.PI) / 2;
+          return (
+            <group key={i} rotation={[0, -a, 0]}>
+              <mesh position={[0.3, 0.02, 0]}><boxGeometry args={[0.32, 0.03, 0.06]} /><meshStandardMaterial color="#5a4632" metalness={0.4} /></mesh>
+              <mesh position={[0.78, -0.02, 0]} rotation={[0, 0, 0.07]}><boxGeometry args={[0.85, 0.02, 0.26]} /><meshStandardMaterial color="#8a6a44" roughness={0.6} /></mesh>
+            </group>
+          );
+        })}
+      </group>
+      <mesh position={[0, -1.0, 0]}><sphereGeometry args={[0.11, 18, 18]} /><meshStandardMaterial color="#fff6d8" emissive="#ffe9b0" emissiveIntensity={0.55} /></mesh>
+    </group>
+  );
+}
+
 function RoomScene({ vibe, cart, hasLed, hasCeiling }) {
   const groupRef = useRef();
   useFrame((state) => {
@@ -160,11 +185,15 @@ function RoomScene({ vibe, cart, hasLed, hasCeiling }) {
 
   const items = useMemo(() => cart.map((id) => ({ id, render: ART[id] })).filter((x) => x.render), [cart]);
 
+  // Same light, dusty palette as Scene 1's room (so it reads as the same bedroom).
+  const S1 = { wall: '#e7dcc6', wall2: '#ded2ba', floor: '#caa979', wood: '#8a6a45', woodD: '#6b5238' };
+
   return (
     <>
-      <ambientLight intensity={hasCeiling ? 0.85 : 0.5} />
-      <directionalLight position={[4, 6, 4]} intensity={1.1} />
-      <pointLight position={[0, 3.4, 0]} intensity={hasCeiling ? 1.2 : 0.4} color="#fff6e0" />
+      <ambientLight intensity={0.95} color="#f0ead9" />
+      <directionalLight position={[4, 6, 4]} intensity={1.15} color="#fff3df" />
+      <pointLight position={[1.4, 2.7, -2.4]} intensity={1.2} color="#eaf4ff" distance={11} />{/* daylight from the window */}
+      <pointLight position={[0, 3.4, 0]} intensity={hasCeiling ? 1.0 : 0.5} color="#fff6e0" />
       {hasLed && (
         <>
           <pointLight position={[-2.6, 1.8, 2]} intensity={1.6} color={vibe.glow} distance={9} />
@@ -176,17 +205,38 @@ function RoomScene({ vibe, cart, hasLed, hasCeiling }) {
         {/* Floor */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
           <planeGeometry args={[6, 6]} />
-          <meshStandardMaterial color={vibe.floor} roughness={0.95} />
+          <meshStandardMaterial color={S1.floor} roughness={0.95} />
         </mesh>
-        {/* Back + left walls */}
+        {/* Back + left walls (Scene 1 dusty palette) */}
         <mesh position={[0, 2, -3]}>
           <planeGeometry args={[6, 4]} />
-          <meshStandardMaterial color={vibe.wall} roughness={1} />
+          <meshStandardMaterial color={S1.wall} roughness={1} />
         </mesh>
         <mesh position={[-3, 2, 0]} rotation={[0, Math.PI / 2, 0]}>
           <planeGeometry args={[6, 4]} />
-          <meshStandardMaterial color={vibe.wall2} roughness={1} />
+          <meshStandardMaterial color={S1.wall2} roughness={1} />
         </mesh>
+
+        {/* curtained window on the back wall — like Scene 1 */}
+        <group position={[1.4, 2.5, -2.94]}>
+          <Box args={[1.9, 1.8, 0.12]} color={S1.wood} rough={0.8} metal={0} />
+          <Box args={[1.55, 1.5, 0.04]} color="#dff1ff" position={[0, 0, 0.06]} emissive="#cfe6ff" />
+          <Box args={[0.08, 1.5, 0.06]} color={S1.wood} position={[0, 0, 0.1]} metal={0} />
+          <Box args={[1.55, 0.08, 0.06]} color={S1.wood} position={[0, 0, 0.1]} metal={0} />
+          <Box args={[0.42, 1.74, 0.1]} color="#d8c4a0" position={[-0.86, 0, 0.14]} rough={1} metal={0} />
+          <Box args={[0.42, 1.74, 0.1]} color="#d8c4a0" position={[0.86, 0, 0.14]} rough={1} metal={0} />
+        </group>
+
+        {/* wooden + glass door on the left wall — like Scene 1 */}
+        <group position={[-2.94, 1.35, 1.1]} rotation={[0, Math.PI / 2, 0]}>
+          <Box args={[1.35, 2.6, 0.12]} color={S1.woodD} rough={0.8} metal={0} />
+          <Box args={[1.05, 2.3, 0.06]} color={S1.wood} position={[0, 0, 0.06]} rough={0.7} metal={0} />
+          <Box args={[0.72, 0.82, 0.02]} color="#dff1ff" position={[0, 0.58, 0.1]} emissive="#cfe6ff" />
+          <mesh position={[0.38, -0.05, 0.13]}><sphereGeometry args={[0.07, 12, 12]} /><meshStandardMaterial color="#caa84e" metalness={0.6} roughness={0.3} /></mesh>
+        </group>
+
+        {/* ceiling fan — same as Scene 1 */}
+        <group position={[0.2, 3.95, 0]}><CeilingFan /></group>
         {/* LED strip glow along the wall edges */}
         {hasLed && (
           <>
@@ -232,8 +282,8 @@ export function Room3D({ vibe, cart = [], className = '' }) {
           camera={{ position: [4.4, 3.6, 5.2], fov: 42 }}
           gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
         >
-          <color attach="background" args={['#0b0b16']} />
-          <fog attach="fog" args={['#0b0b16', 9, 18]} />
+          <color attach="background" args={['#1a140d']} />
+          <fog attach="fog" args={['#cdbfa6', 10, 22]} />
           <Suspense fallback={null}>
             <RoomScene vibe={vibe} cart={cart} hasLed={hasLed} hasCeiling={hasCeiling} />
           </Suspense>

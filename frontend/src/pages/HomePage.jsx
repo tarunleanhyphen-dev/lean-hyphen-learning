@@ -30,20 +30,29 @@ export default function HomePage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden">
-      <FloatingBubbles />
+      {/* Background matches Lesson 1: the clean dark-purple body gradient only.
+       * FloatingBubbles removed per request (the bright blobs read as too dark/busy). */}
       <div className="relative mx-auto flex min-h-screen w-full max-w-5xl flex-col px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
         <header className="flex items-center justify-between">
           <a href="/" aria-label="Lean Hyphen home" className="inline-flex shrink-0">
             <img src="/lean-hyphen-logo.svg" alt="Lean Hyphen" className="h-10 w-auto sm:h-12 md:h-14" draggable={false} />
           </a>
-          <a
-            href="https://lean-hyphen-user-web-4zrf.vercel.app/#home"
-            target="_blank"
-            rel="noreferrer"
-            className="text-xs text-white/60 underline-offset-4 hover:text-white hover:underline"
-          >
-            ← back to leanhyphen.com
-          </a>
+          <div className="flex items-center gap-4">
+            <Link
+              to="/lesson2"
+              className="text-xs font-semibold text-amber-300 underline-offset-4 hover:text-amber-200 hover:underline"
+            >
+              Where Does My Money Go? →
+            </Link>
+            <a
+              href="https://lean-hyphen-user-web-4zrf.vercel.app/#home"
+              target="_blank"
+              rel="noreferrer"
+              className="text-xs text-white/60 underline-offset-4 hover:text-white hover:underline"
+            >
+              ← back to leanhyphen.com
+            </a>
+          </div>
         </header>
 
         <main className="mt-6 flex flex-col items-start gap-6 sm:mt-8">

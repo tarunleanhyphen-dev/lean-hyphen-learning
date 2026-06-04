@@ -6,7 +6,7 @@
  * Robustness: wrapped in an error boundary that falls back to a 2D isometric
  * room if WebGL is unavailable (older devices / headless).
  */
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Suspense, useMemo, useRef, Component } from 'react';
 import { IsoRoom2D } from './IsoRoom2D.jsx';
 
@@ -182,18 +182,28 @@ const SR = 4.5;   // half-size → 9 × 9 room (same as Scene 1)
 const SH = 4.2;   // wall height (same as Scene 1)
 const SWALL = '#e7dcc6', SWALL2 = '#ded2ba', SFLOOR = '#caa979', SCEIL = '#f1ece0';
 
-function RoomScene({ vibe, cart, hasLed, hasCeiling }) {
-  const groupRef = useRef();
-  useFrame((state) => {
-    if (!groupRef.current) return;
-    const t = state.clock.elapsedTime;
-    groupRef.current.rotation.y = Math.sin(t * 0.14) * 0.32; // gentle sway, shows the room
+/* Orbit camera around the room — drag to rotate/inspect every corner, slow
+ * auto-rotate when idle. Camera stays OUTSIDE the room so the near walls
+ * back-face-cull and you see the full interior (dollhouse view). */
+function OrbitRig({ ctrl }) {
+  const { camera } = useThree();
+  useFrame((_, d) => {
+    const c = ctrl.current;
+    if (!c.dragging) c.yaw += d * 0.1; // gentle idle spin
+    const radius = 10.5;
+    const cp = Math.cos(c.pitch);
+    camera.position.set(Math.sin(c.yaw) * cp * radius, 2.0 + Math.sin(c.pitch) * radius, Math.cos(c.yaw) * cp * radius);
+    camera.lookAt(0, 1.7, 0);
   });
+  return null;
+}
 
+function RoomScene({ vibe, cart, hasLed, hasCeiling, ctrl }) {
   const items = useMemo(() => cart.map((id) => ({ id, render: ART[id] })).filter((x) => x.render), [cart]);
 
   return (
     <>
+      <OrbitRig ctrl={ctrl} />
       {/* bright daytime light pouring through the window — same as Scene 1 */}
       <ambientLight intensity={1.05} color="#eaf1ff" />
       <pointLight position={[0.4, 2.6, -4.2]} intensity={2.6} color="#fff6e6" distance={18} decay={1.0} />
@@ -206,7 +216,7 @@ function RoomScene({ vibe, cart, hasLed, hasCeiling }) {
         </>
       )}
 
-      <group ref={groupRef}>
+      <group>
         {/* floor + ceiling */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}><planeGeometry args={[2 * SR, 2 * SR]} /><meshStandardMaterial color={SFLOOR} roughness={1} /></mesh>
         <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, SH, 0]}><planeGeometry args={[2 * SR, 2 * SR]} /><meshStandardMaterial color={SCEIL} roughness={1} /></mesh>
@@ -295,23 +305,42 @@ export function Room3D({ vibe, cart = [], className = '' }) {
   const hasLed = cart.includes('led-strips');
   const hasCeiling = cart.includes('ceiling-light');
   const fallback = <IsoRoom2D vibe={vibe} cart={cart} className={className} />;
+  // Start at a corner angle that frames the whole room; drag to look around.
+  const ctrl = useRef({ yaw: 0.7, pitch: 0.42, dragging: false, lx: 0, ly: 0 });
+
+  const onDown = (e) => { const c = ctrl.current; c.dragging = true; c.lx = e.clientX; c.ly = e.clientY; e.currentTarget.setPointerCapture?.(e.pointerId); };
+  const onMove = (e) => {
+    const c = ctrl.current; if (!c.dragging) return;
+    c.yaw -= (e.clientX - c.lx) * 0.006;
+    c.pitch = Math.max(0.08, Math.min(1.25, c.pitch + (e.clientY - c.ly) * 0.005));
+    c.lx = e.clientX; c.ly = e.clientY;
+  };
+  const onUp = (e) => { ctrl.current.dragging = false; e.currentTarget.releasePointerCapture?.(e.pointerId); };
 
   return (
-    <div className={`dbm-room3d ${className}`}>
+    <div
+      className={`dbm-room3d ${className}`}
+      style={{ cursor: 'grab', touchAction: 'none' }}
+      onPointerDown={onDown}
+      onPointerMove={onMove}
+      onPointerUp={onUp}
+      onPointerLeave={onUp}
+    >
       <GLErrorBoundary fallback={fallback}>
         <Canvas
           shadows={false}
           dpr={[1, 1.8]}
-          camera={{ position: [0, 1.9, 1.3], fov: 76 }}
+          camera={{ position: [7, 4.5, 8], fov: 40 }}
           gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
         >
           <color attach="background" args={['#1a140d']} />
-          <fog attach="fog" args={['#cdbfa6', 14, 34]} />
+          <fog attach="fog" args={['#cdbfa6', 16, 40]} />
           <Suspense fallback={null}>
-            <RoomScene vibe={vibe} cart={cart} hasLed={hasLed} hasCeiling={hasCeiling} />
+            <RoomScene vibe={vibe} cart={cart} hasLed={hasLed} hasCeiling={hasCeiling} ctrl={ctrl} />
           </Suspense>
         </Canvas>
       </GLErrorBoundary>
+      <div className="dbm-room3d__hint">🖱️ Drag to look around</div>
     </div>
   );
 }

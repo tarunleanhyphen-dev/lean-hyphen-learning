@@ -473,6 +473,9 @@
 @keyframes dbm-shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-5px)} 80%{transform:translateX(5px)} }
 .dbm-shop__roomwrap { position: relative; border-radius: 20px; overflow: hidden; border: 1px solid var(--card-bd); }
 .dbm-shop__room, .dbm-room3d, .dbm-events__room { width: 100%; height: 300px; display: block; }
+.dbm-room3d { position: relative; }
+.dbm-room3d__hint { position: absolute; right: 12px; top: 12px; font-size: 11px; font-weight: 600;
+  background: rgba(0,0,0,.5); color: #fff; padding: 5px 10px; border-radius: 99px; backdrop-filter: blur(4px); pointer-events: none; }
 .dbm-shop__roomtag {
   position: absolute; left: 12px; bottom: 12px; font-size: 11px; font-weight: 600;
   background: rgba(0,0,0,.55); color: #fff; padding: 5px 10px; border-radius: 99px; backdrop-filter: blur(4px);

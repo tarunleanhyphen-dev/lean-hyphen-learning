@@ -28,6 +28,8 @@ If you're integrating an LMS dashboard, the only sections you strictly need are 
 14. [Versioning](#14-versioning)
 15. [Contact & support](#15-contact--support)
 
+> **Identity model in one paragraph:** a *student* has a stable `learnerId` you pass at iframe launch (`?learnerId=…`). Each *play* of the lesson by that student is a new *session* with its own `attemptNo`. The report endpoints show the **latest** session by default. The new `/sessions` endpoint lists every session that student ever had on this lesson — use it for session history, growth charts, leaderboards.
+
 ---
 
 ## 1. Overview & 5-minute quickstart
@@ -570,7 +572,95 @@ Returns `{ "history": null }` if the learner has never started.
 
 ---
 
-### 10.5 `POST /api/analytics/events` — write (internal use)
+### 10.5 `GET /api/analytics/sessions/:lessonId` — list every session
+
+Returns every play of this lesson by this learner, **latest first**. Each item is a mini-report (score, completion, time, badge count) — not the full report tree, just enough for a history strip / leaderboard / "session 3 vs 5" growth chart.
+
+| Param | Where | Required |
+|---|---|---|
+| `lessonId` | path | yes |
+| `sessionId` | query | yes — the learner id from the launch URL |
+
+```bash
+curl 'https://backend-ten-delta-54.vercel.app/api/analytics/sessions/think-before-you-spend?sessionId=lms-canvas-stu-42'
+```
+
+Sample response:
+
+```json
+{
+  "sessions": [
+    {
+      "attemptNo":       3,
+      "completed":       true,
+      "startedAt":       "2026-06-04T10:00:00.000Z",
+      "completedAt":     "2026-06-04T10:08:47.000Z",
+      "totalScore":      97,
+      "learningScore":   100,
+      "engagementScore": 69,
+      "completionPct":   100,
+      "timeMs":          527000,
+      "badgeCount":      7
+    },
+    {
+      "attemptNo":       2,
+      "completed":       true,
+      "startedAt":       "2026-06-02T18:30:00.000Z",
+      "completedAt":     "2026-06-02T18:42:11.000Z",
+      "totalScore":      84,
+      "learningScore":   72,
+      "engagementScore": 81,
+      "completionPct":   100,
+      "timeMs":          731000,
+      "badgeCount":      4
+    },
+    {
+      "attemptNo":       1,
+      "completed":       true,
+      "startedAt":       "2026-05-30T09:15:00.000Z",
+      "completedAt":     "2026-05-30T09:28:42.000Z",
+      "totalScore":      72,
+      "learningScore":   65,
+      "engagementScore": 78,
+      "completionPct":   100,
+      "timeMs":          822000,
+      "badgeCount":      3
+    }
+  ]
+}
+```
+
+| Field | What it is |
+|---|---|
+| `attemptNo` | 1-indexed session number for this (learner, lesson). |
+| `completed` | `true` if `lesson_completed` fired, `false` mid-session or abandoned. |
+| `startedAt` / `completedAt` | ISO timestamps. `completedAt` is `null` for in-progress sessions. |
+| `totalScore` / `learningScore` / `engagementScore` | 0–100, same semantics as `/lms-export`. |
+| `completionPct` | 0–100. |
+| `timeMs` | Active time for this session. |
+| `badgeCount` | Just the count, not the badge list. Drill into `/lesson?attempt=N` for the full set. |
+
+**To drill into a specific session's full report** pair this list with the existing `/lesson?attempt=N` endpoint:
+
+```bash
+curl 'https://backend-ten-delta-54.vercel.app/api/analytics/lesson/think-before-you-spend?sessionId=lms-canvas-stu-42&attempt=2'
+```
+
+Returns the same full-tree report shape as the default call but for that specific historical attempt.
+
+**Use cases:**
+
+- **Session-history strip** on the report page (the app now shows this automatically once a learner has 2+ sessions).
+- **Growth-over-time chart** — `attemptNo` on x-axis, `totalScore` on y-axis.
+- **Leaderboard "best of N"** — sort by `totalScore` desc, take row 0.
+- **"How long did session 2 take?"** — `timeMs` per attempt.
+- **Re-attempt cadence** — `completedAt - startedAt` deltas.
+
+Returns `{ "sessions": [] }` if the learner has never started.
+
+---
+
+### 10.6 `POST /api/analytics/events` — write (internal use)
 
 Used by **our frontend** to ingest events. You won't call this directly unless you're building a tooling integration. Documented here for completeness.
 
@@ -592,7 +682,7 @@ Validation failures are reported in `rejected[]`; the rest of the batch lands. A
 
 ---
 
-### 10.6 Common error responses
+### 10.7 Common error responses
 
 | Status | Body | Meaning |
 |---|---|---|
@@ -703,6 +793,8 @@ Poll every 5–10s while in flight:
 | Best score ever | `/attempts` | `history.best_score` |
 | Attempt count | `/attempts` | `history.attempts_count` |
 | Average across attempts | `/attempts` | `history.avg_score` |
+| **List every session** (history strip / leaderboard) | `/sessions` | `sessions[]` (latest first) |
+| Drill into a specific session | `/lesson?attempt=N` | full report tree for attempt N |
 | Per-scene drilldown | `/act/:actId` | `scenes[]` |
 | Per-attempt detail | `/act/:actId` | `attempts[]` |
 

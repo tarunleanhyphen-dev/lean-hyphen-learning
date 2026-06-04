@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, Trophy, Clock, Target, TrendingUp, Award, ArrowLeft } from 'lucide-react';
+import { Sparkles, Trophy, Clock, Target, TrendingUp, Award, ArrowLeft, History, ChevronRight } from 'lucide-react';
 import { BADGES, SCORING_CONFIG } from '../../config/scoringConfig.js';
 
 /**
@@ -33,6 +33,14 @@ export default function LessonReport({
   const isPage = mode === 'page';
   const [report, setReport] = useState(null);
   const [error, setError] = useState(null);
+  // Selected attempt number. `null` = latest (default). Bumped when the
+  // learner clicks a row in the "Your sessions" history strip so they
+  // can review an older attempt's full report.
+  const [selectedAttempt, setSelectedAttempt] = useState(null);
+  // All attempts on this lesson for this learner (latest first). Used
+  // for the history strip; the strip is only rendered on the standalone
+  // page (modal stays tight).
+  const [sessions, setSessions] = useState([]);
 
   // Track the loading state independently of `report`. We need a third
   // bucket — "we tried, the backend returned null/empty" — so the modal
@@ -41,12 +49,18 @@ export default function LessonReport({
   // GET). Without this the LessonReport hangs on "Computing your
   // score…" indefinitely.
   const [loading, setLoading] = useState(true);
+  // (Re-)fetch the report whenever the selected attempt changes. When
+  // selectedAttempt is null the backend returns the latest attempt; an
+  // explicit number drills into that historical attempt.
   useEffect(() => {
     let cancelled = false;
     async function load() {
+      setLoading(true);
       try {
+        const params = new URLSearchParams({ sessionId });
+        if (selectedAttempt != null) params.set('attempt', String(selectedAttempt));
         const r = await fetch(
-          `${API_BASE}/api/analytics/lesson/${encodeURIComponent(lessonId)}?sessionId=${encodeURIComponent(sessionId)}`,
+          `${API_BASE}/api/analytics/lesson/${encodeURIComponent(lessonId)}?${params}`,
         );
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const j = await r.json();
@@ -59,7 +73,20 @@ export default function LessonReport({
     }
     load();
     return () => { cancelled = true; };
-  }, [sessionId, lessonId]);
+  }, [sessionId, lessonId, selectedAttempt]);
+
+  // Fetch the attempt list once per (sessionId, lessonId). Only used
+  // on the standalone page — modal mode hides the strip to keep the
+  // celebration tight.
+  useEffect(() => {
+    if (!isPage) return undefined;
+    let cancelled = false;
+    fetch(`${API_BASE}/api/analytics/sessions/${encodeURIComponent(lessonId)}?sessionId=${encodeURIComponent(sessionId)}`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then((j) => { if (!cancelled) setSessions(j.sessions || []); })
+      .catch(() => { /* non-blocking; the rest of the report renders fine */ });
+    return () => { cancelled = true; };
+  }, [sessionId, lessonId, isPage]);
 
   // Outer + inner wrappers differ per mode. Same content inside.
   const OuterWrap = ({ children }) => isPage ? (
@@ -236,6 +263,62 @@ export default function LessonReport({
               </section>
             )}
 
+            {/* Your sessions — chronological list of every attempt by
+                this learner. Page mode only; the modal stays focused on
+                the immediate-win moment. Click a row to swap the report
+                above to that attempt's data. */}
+            {isPage && sessions.length > 1 && (
+              <section className="mt-6">
+                <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-ink-500">
+                  <History className="h-4 w-4" /> Your sessions · {sessions.length}
+                </h3>
+                <p className="mt-1 text-[12px] text-ink-500">
+                  Each time you play the lesson is a new session. Tap a row to view that session's report.
+                </p>
+                <div className="mt-3 space-y-1.5">
+                  {sessions.map((s) => {
+                    const isActive = (selectedAttempt ?? sessions[0].attemptNo) === s.attemptNo;
+                    return (
+                      <button
+                        key={s.attemptNo}
+                        type="button"
+                        onClick={() => setSelectedAttempt(s.attemptNo)}
+                        className={`flex w-full items-center justify-between gap-3 rounded-2xl p-3 text-left transition ${
+                          isActive
+                            ? 'bg-saffron-500/15 ring-1 ring-saffron-500/40'
+                            : 'bg-cream-100 ring-1 ring-ink-300/15 hover:bg-cream-50'
+                        }`}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[12.5px] font-bold ${isActive ? 'text-saffron-600' : 'text-ink-900'}`}>
+                              Session {s.attemptNo}
+                              {s.attemptNo === sessions[0].attemptNo && (
+                                <span className="ml-2 rounded-full bg-saffron-500/20 px-1.5 py-0.5 text-[9.5px] font-extrabold uppercase tracking-widest text-saffron-700">
+                                  Latest
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                          <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10.5px] text-ink-500">
+                            <span>{s.completed ? `Finished ${formatDate(s.completedAt)}` : `Started ${formatDate(s.startedAt)} · in progress`}</span>
+                            {s.badgeCount > 0 && <span>{s.badgeCount} badge{s.badgeCount === 1 ? '' : 's'}</span>}
+                            <span>{formatMs(s.timeMs)}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-extrabold tabular-nums text-saffron-600 ring-1 ring-saffron-500/30">
+                            {s.totalScore} / {SCORING_CONFIG.lessonMax}
+                          </span>
+                          <ChevronRight className={`h-4 w-4 ${isActive ? 'text-saffron-500' : 'text-ink-300'}`} />
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
             {/* Footer */}
             <footer className="mt-7 flex flex-wrap items-center justify-between gap-3">
               <div className="inline-flex items-center gap-1.5 text-[11.5px] text-ink-500">
@@ -304,4 +387,13 @@ function formatMs(ms) {
   const m = Math.floor(s / 60);
   const r = s % 60;
   return `${m}m ${r}s`;
+}
+
+function formatDate(iso) {
+  if (!iso) return '—';
+  try {
+    return new Date(iso).toLocaleDateString('en-IN', {
+      day: 'numeric', month: 'short', year: 'numeric',
+    });
+  } catch { return '—'; }
 }

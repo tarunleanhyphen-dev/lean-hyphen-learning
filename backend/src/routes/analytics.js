@@ -161,6 +161,35 @@ router.get('/act/:lessonId/:actId', async (req, res, next) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────
+// GET /api/analytics/sessions/:lessonId — list of attempts (latest first)
+//
+// Returns every attempt this learner has on this lesson as a mini-
+// report: attemptNo, score, completion, time, badge count, start +
+// end timestamps. Use for an "Attempt history" / "Your sessions"
+// strip in the report UI, or for an LMS leaderboard / growth-over-
+// time chart.
+//
+// To drill into one specific attempt, pair this with:
+//   GET /api/analytics/lesson/:lessonId?sessionId=X&attempt=N
+// (which returns the full report tree for that attempt).
+// ─────────────────────────────────────────────────────────────────────
+router.get('/sessions/:lessonId', async (req, res, next) => {
+  try {
+    const { lessonId } = req.params;
+    const { sessionId } = req.query;
+    if (!sessionId) {
+      const err = new Error('sessionId query param required');
+      err.status = 400;
+      throw err;
+    }
+    const sessions = store.listAttempts({ sessionId, lessonId });
+    res.json({ sessions, storage: usingPg() ? 'postgres' : 'file' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────
 // GET /api/analytics/attempts/:lessonId — attempt history roll-up
 // ─────────────────────────────────────────────────────────────────────
 router.get('/attempts/:lessonId', async (req, res, next) => {

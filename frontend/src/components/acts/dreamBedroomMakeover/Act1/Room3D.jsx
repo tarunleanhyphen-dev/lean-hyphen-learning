@@ -175,88 +175,111 @@ function CeilingFan() {
   );
 }
 
+/* EXACT same room shell as Scene 1 (DustyRoom3D): 9×9 room, same walls, floor,
+ * ceiling, window (back wall), door (front wall), ceiling fan and skirting. The
+ * purchased furniture is rendered inside it, scaled to fill the larger room. */
+const SR = 4.5;   // half-size → 9 × 9 room (same as Scene 1)
+const SH = 4.2;   // wall height (same as Scene 1)
+const SWALL = '#e7dcc6', SWALL2 = '#ded2ba', SFLOOR = '#caa979', SCEIL = '#f1ece0';
+
 function RoomScene({ vibe, cart, hasLed, hasCeiling }) {
   const groupRef = useRef();
   useFrame((state) => {
     if (!groupRef.current) return;
     const t = state.clock.elapsedTime;
-    groupRef.current.rotation.y = Math.sin(t * 0.18) * 0.22; // gentle sway
+    groupRef.current.rotation.y = Math.sin(t * 0.14) * 0.32; // gentle sway, shows the room
   });
 
   const items = useMemo(() => cart.map((id) => ({ id, render: ART[id] })).filter((x) => x.render), [cart]);
 
-  // Same light, dusty palette as Scene 1's room (so it reads as the same bedroom).
-  const S1 = { wall: '#e7dcc6', wall2: '#ded2ba', floor: '#caa979', wood: '#8a6a45', woodD: '#6b5238' };
-
   return (
     <>
-      <ambientLight intensity={0.95} color="#f0ead9" />
-      <directionalLight position={[4, 6, 4]} intensity={1.15} color="#fff3df" />
-      <pointLight position={[1.4, 2.7, -2.4]} intensity={1.2} color="#eaf4ff" distance={11} />{/* daylight from the window */}
-      <pointLight position={[0, 3.4, 0]} intensity={hasCeiling ? 1.0 : 0.5} color="#fff6e0" />
+      {/* bright daytime light pouring through the window — same as Scene 1 */}
+      <ambientLight intensity={1.05} color="#eaf1ff" />
+      <pointLight position={[0.4, 2.6, -4.2]} intensity={2.6} color="#fff6e6" distance={18} decay={1.0} />
+      <directionalLight position={[0.4, 3.2, -2]} intensity={0.95} color="#ffffff" />
+      <pointLight position={[0.2, 3.6, 0]} intensity={hasCeiling ? 0.7 : 0.4} color="#fffaf0" distance={11} />
       {hasLed && (
         <>
-          <pointLight position={[-2.6, 1.8, 2]} intensity={1.6} color={vibe.glow} distance={9} />
-          <pointLight position={[2.6, 1.8, -2]} intensity={1.6} color="#ff5fae" distance={9} />
+          <pointLight position={[-3.6, 2.6, 3]} intensity={1.6} color={vibe.glow} distance={12} />
+          <pointLight position={[3.6, 2.6, -3]} intensity={1.6} color="#ff5fae" distance={12} />
         </>
       )}
 
       <group ref={groupRef}>
-        {/* Floor */}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
-          <planeGeometry args={[6, 6]} />
-          <meshStandardMaterial color={S1.floor} roughness={0.95} />
-        </mesh>
-        {/* Back + left walls (Scene 1 dusty palette) */}
-        <mesh position={[0, 2, -3]}>
-          <planeGeometry args={[6, 4]} />
-          <meshStandardMaterial color={S1.wall} roughness={1} />
-        </mesh>
-        <mesh position={[-3, 2, 0]} rotation={[0, Math.PI / 2, 0]}>
-          <planeGeometry args={[6, 4]} />
-          <meshStandardMaterial color={S1.wall2} roughness={1} />
-        </mesh>
+        {/* floor + ceiling */}
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}><planeGeometry args={[2 * SR, 2 * SR]} /><meshStandardMaterial color={SFLOOR} roughness={1} /></mesh>
+        <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, SH, 0]}><planeGeometry args={[2 * SR, 2 * SR]} /><meshStandardMaterial color={SCEIL} roughness={1} /></mesh>
+        {[-3.6, -1.8, 0, 1.8, 3.6].map((x) => (<Box key={x} args={[0.02, 0.012, 2 * SR]} color="#332618" position={[x, 0.012, 0]} />))}
 
-        {/* curtained window on the back wall — like Scene 1 */}
-        <group position={[1.4, 2.5, -2.94]}>
-          <Box args={[1.9, 1.8, 0.12]} color={S1.wood} rough={0.8} metal={0} />
-          <Box args={[1.55, 1.5, 0.04]} color="#dff1ff" position={[0, 0, 0.06]} emissive="#cfe6ff" />
-          <Box args={[0.08, 1.5, 0.06]} color={S1.wood} position={[0, 0, 0.1]} metal={0} />
-          <Box args={[1.55, 0.08, 0.06]} color={S1.wood} position={[0, 0, 0.1]} metal={0} />
-          <Box args={[0.42, 1.74, 0.1]} color="#d8c4a0" position={[-0.86, 0, 0.14]} rough={1} metal={0} />
-          <Box args={[0.42, 1.74, 0.1]} color="#d8c4a0" position={[0.86, 0, 0.14]} rough={1} metal={0} />
+        {/* BACK wall — wooden window with crystal glass onto a bright day */}
+        <mesh position={[0, SH / 2, -SR]}><planeGeometry args={[2 * SR, SH]} /><meshStandardMaterial color={SWALL} roughness={1} /></mesh>
+        <group position={[0, 2.3, -SR + 0.08]}>
+          <mesh position={[0, 0.48, -0.05]}><boxGeometry args={[2.32, 0.96, 0.02]} /><meshStandardMaterial color="#bfe6ff" emissive="#a9ddff" emissiveIntensity={1.4} toneMapped={false} /></mesh>
+          <mesh position={[0, -0.44, -0.05]}><boxGeometry args={[2.32, 0.92, 0.02]} /><meshStandardMaterial color="#e8f5ff" emissive="#ddf1ff" emissiveIntensity={1.55} toneMapped={false} /></mesh>
+          <mesh position={[0.55, 0.4, -0.04]}><circleGeometry args={[0.5, 36]} /><meshBasicMaterial color="#fff6cf" transparent opacity={0.5} /></mesh>
+          <mesh position={[0.55, 0.4, -0.038]}><circleGeometry args={[0.26, 36]} /><meshBasicMaterial color="#fffbe8" /></mesh>
+          <mesh position={[-0.5, 0.48, -0.03]} scale={[1.7, 0.55, 1]}><circleGeometry args={[0.2, 22]} /><meshBasicMaterial color="#ffffff" transparent opacity={0.9} /></mesh>
+          <mesh position={[0.15, -0.22, -0.03]} scale={[1.5, 0.5, 1]}><circleGeometry args={[0.18, 22]} /><meshBasicMaterial color="#ffffff" transparent opacity={0.7} /></mesh>
+          <mesh position={[0, 0, 0.02]}><boxGeometry args={[2.3, 1.9, 0.02]} /><meshStandardMaterial color="#d4ecff" transparent opacity={0.2} roughness={0.04} metalness={0.15} /></mesh>
+          <mesh position={[-0.45, 0, 0.035]} rotation={[0, 0, 0.5]}><boxGeometry args={[0.16, 2.6, 0.01]} /><meshBasicMaterial color="#ffffff" transparent opacity={0.18} /></mesh>
+          <mesh position={[-0.06, 0, 0.035]} rotation={[0, 0, 0.5]}><boxGeometry args={[0.07, 2.6, 0.01]} /><meshBasicMaterial color="#ffffff" transparent opacity={0.13} /></mesh>
+          <Box args={[2.78, 0.24, 0.24]} color="#7a5836" position={[0, 1.08, 0.04]} rough={0.7} />
+          <Box args={[2.78, 0.34, 0.36]} color="#6a4a2c" position={[0, -1.14, 0.07]} rough={0.7} />
+          <Box args={[0.24, 2.46, 0.24]} color="#7a5836" position={[-1.3, 0, 0.04]} rough={0.7} />
+          <Box args={[0.24, 2.46, 0.24]} color="#7a5836" position={[1.3, 0, 0.04]} rough={0.7} />
+          <Box args={[0.12, 1.94, 0.2]} color="#6f5030" position={[0, 0, 0.06]} rough={0.7} />
+          <Box args={[2.4, 0.12, 0.2]} color="#6f5030" position={[0, 0, 0.06]} rough={0.7} />
+          <mesh position={[1.12, -0.06, 0.13]} rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[0.07, 0.07, 0.04, 16]} /><meshStandardMaterial color="#caa84e" metalness={0.65} roughness={0.3} /></mesh>
+          <mesh position={[1.12, -0.24, 0.15]}><boxGeometry args={[0.05, 0.28, 0.05]} /><meshStandardMaterial color="#caa84e" metalness={0.65} roughness={0.3} /></mesh>
+          <mesh position={[1.12, -0.4, 0.15]}><sphereGeometry args={[0.05, 14, 14]} /><meshStandardMaterial color="#caa84e" metalness={0.65} roughness={0.3} /></mesh>
         </group>
 
-        {/* wooden + glass door on the left wall — like Scene 1 */}
-        <group position={[-2.94, 1.35, 1.1]} rotation={[0, Math.PI / 2, 0]}>
-          <Box args={[1.35, 2.6, 0.12]} color={S1.woodD} rough={0.8} metal={0} />
-          <Box args={[1.05, 2.3, 0.06]} color={S1.wood} position={[0, 0, 0.06]} rough={0.7} metal={0} />
-          <Box args={[0.72, 0.82, 0.02]} color="#dff1ff" position={[0, 0.58, 0.1]} emissive="#cfe6ff" />
-          <mesh position={[0.38, -0.05, 0.13]}><sphereGeometry args={[0.07, 12, 12]} /><meshStandardMaterial color="#caa84e" metalness={0.6} roughness={0.3} /></mesh>
+        {/* FRONT wall — door */}
+        <mesh position={[0, SH / 2, SR]} rotation={[0, Math.PI, 0]}><planeGeometry args={[2 * SR, SH]} /><meshStandardMaterial color={SWALL} roughness={1} /></mesh>
+        <group position={[-0.5, 1.45, SR - 0.08]}>
+          <Box args={[1.62, 3.0, 0.1]} color="#5a4126" position={[0, 0, 0.06]} />
+          <Box args={[1.5, 2.9, 0.16]} color="#6a4a2c" rough={0.7} />
+          <Box args={[1.32, 2.72, 0.03]} color="#7a5836" position={[0, 0, -0.09]} rough={0.7} />
+          <Box args={[0.48, 0.98, 0.02]} color="#5a4126" position={[-0.33, 0.62, -0.11]} />
+          <Box args={[0.48, 0.98, 0.02]} color="#5a4126" position={[0.33, 0.62, -0.11]} />
+          <Box args={[0.48, 0.92, 0.02]} color="#5a4126" position={[-0.33, -0.58, -0.11]} />
+          <Box args={[0.48, 0.92, 0.02]} color="#5a4126" position={[0.33, -0.58, -0.11]} />
+          <mesh position={[0.56, 0, -0.12]} rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[0.08, 0.08, 0.03, 18]} /><meshStandardMaterial color="#caa84e" metalness={0.65} roughness={0.3} /></mesh>
+          <mesh position={[0.49, -0.02, -0.17]}><boxGeometry args={[0.22, 0.05, 0.05]} /><meshStandardMaterial color="#caa84e" metalness={0.65} roughness={0.3} /></mesh>
+          <mesh position={[-0.73, 0.95, -0.05]}><boxGeometry args={[0.05, 0.26, 0.13]} /><meshStandardMaterial color="#9a9a9a" metalness={0.55} roughness={0.4} /></mesh>
+          <mesh position={[-0.73, -0.95, -0.05]}><boxGeometry args={[0.05, 0.26, 0.13]} /><meshStandardMaterial color="#9a9a9a" metalness={0.55} roughness={0.4} /></mesh>
+          <Box args={[1.3, 0.26, 0.02]} color="#cfcfcf" position={[0, -1.28, -0.1]} metal={0.5} rough={0.4} />
         </group>
+
+        {/* LEFT + RIGHT plain walls */}
+        <mesh position={[-SR, SH / 2, 0]} rotation={[0, Math.PI / 2, 0]}><planeGeometry args={[2 * SR, SH]} /><meshStandardMaterial color={SWALL2} roughness={1} /></mesh>
+        <mesh position={[SR, SH / 2, 0]} rotation={[0, -Math.PI / 2, 0]}><planeGeometry args={[2 * SR, SH]} /><meshStandardMaterial color={SWALL2} roughness={1} /></mesh>
+
+        {/* skirting all round */}
+        <Box args={[2 * SR, 0.16, 0.04]} color="#2e2517" position={[0, 0.08, -SR + 0.03]} />
+        <Box args={[2 * SR, 0.16, 0.04]} color="#2e2517" position={[0, 0.08, SR - 0.03]} />
+        <Box args={[0.04, 0.16, 2 * SR]} color="#2e2517" position={[-SR + 0.03, 0.08, 0]} />
+        <Box args={[0.04, 0.16, 2 * SR]} color="#2e2517" position={[SR - 0.03, 0.08, 0]} />
 
         {/* ceiling fan — same as Scene 1 */}
-        <group position={[0.2, 3.95, 0]}><CeilingFan /></group>
-        {/* LED strip glow along the wall edges */}
+        <group position={[0.2, SH, 0]}><CeilingFan /></group>
+
+        {/* LED + ceiling-light add-ons (scaled to the 9×9 room) */}
         {hasLed && (
           <>
-            <Box args={[6, 0.08, 0.08]} color={vibe.glow} position={[0, 3.6, -2.95]} emissive={vibe.glow} />
-            <Box args={[0.08, 0.08, 6]} color="#ff5fae" position={[-2.95, 3.6, 0]} emissive="#ff5fae" />
+            <Box args={[2 * SR, 0.08, 0.08]} color={vibe.glow} position={[0, SH - 0.2, -SR + 0.05]} emissive={vibe.glow} />
+            <Box args={[0.08, 0.08, 2 * SR]} color="#ff5fae" position={[-SR + 0.05, SH - 0.2, 0]} emissive="#ff5fae" />
           </>
         )}
-        {hasCeiling && <Box args={[0.7, 0.12, 0.7]} color="#fffbe8" position={[0, 3.7, 0]} emissive="#fff3c4" />}
+        {hasCeiling && <Box args={[0.7, 0.12, 0.7]} color="#fffbe8" position={[0, SH - 0.12, 0]} emissive="#fff3c4" />}
 
-        {items.map(({ id, render }) => (
-          <group key={id}>{render()}</group>
-        ))}
-
-        {/* empty-room hint */}
-        {items.length === 0 && (
-          <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-            <ringGeometry args={[0.6, 0.75, 40]} />
-            <meshBasicMaterial color={vibe.glow} transparent opacity={0.5} />
-          </mesh>
-        )}
+        {/* purchased furniture — authored for a 6×6 layout, scaled to fill 9×9 */}
+        <group scale={[1.45, 1.35, 1.45]}>
+          {items.map(({ id, render }) => (
+            <group key={id}>{render()}</group>
+          ))}
+        </group>
       </group>
     </>
   );
@@ -279,11 +302,11 @@ export function Room3D({ vibe, cart = [], className = '' }) {
         <Canvas
           shadows={false}
           dpr={[1, 1.8]}
-          camera={{ position: [4.4, 3.6, 5.2], fov: 42 }}
+          camera={{ position: [0, 1.9, 1.3], fov: 76 }}
           gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
         >
           <color attach="background" args={['#1a140d']} />
-          <fog attach="fog" args={['#cdbfa6', 10, 22]} />
+          <fog attach="fog" args={['#cdbfa6', 14, 34]} />
           <Suspense fallback={null}>
             <RoomScene vibe={vibe} cart={cart} hasLed={hasLed} hasCeiling={hasCeiling} />
           </Suspense>

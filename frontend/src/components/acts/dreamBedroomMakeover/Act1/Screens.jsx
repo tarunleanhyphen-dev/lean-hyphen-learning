@@ -17,6 +17,7 @@ import { Room3D } from './Room3D.jsx';
 import { DustyRoom3D } from './DustyRoom3D.jsx';
 import { VibeRoom3D } from './VibeRoom3D.jsx';
 import { ItemArt } from './ItemArt.jsx';
+import { ItemArt2D } from './ItemArt2D.jsx';
 import { Tracker, Donut, fmt, useCount } from './Tracker.jsx';
 import { NarratorCard } from './NarratorCard.jsx';
 
@@ -131,9 +132,9 @@ function BudgetHero({ accent, narration }) {
 export function Screen2Vibe({ mk, narration, accent }) {
   const s = scene('screen-2-vibe');
   const n = useScreenNarration(narration, [s.intro, s.hint]);
-  const [picked, setPicked] = useState(mk.state.vibe);
-  // Only show/read the confirmation after a fresh in-screen selection — NOT when
-  // arriving at Scene 2 with a vibe already chosen earlier.
+  // Start with NO room selected — the check mark / selected styling only appears
+  // after the user clicks a card here (even if a vibe was chosen on a past visit).
+  const [picked, setPicked] = useState(null);
   const [confirmed, setConfirmed] = useState(false);
   const pick = (id) => {
     sfx('add');
@@ -343,7 +344,7 @@ export function Screen3Sort({ mk, narration, accent }) {
       </div>
 
       <div className="dbm-sort__arena">
-        <Bucket kind="need" accent="#10B981" burst={drop === 'need'} active={fly === 'need'} icon="🧺" label="NEED" sub="can't go without" />
+        <SortBox kind="need" label="Need" sub="can't go without" accent="#10B981" answers={mk.state.sortAnswers} active={fly === 'need'} />
 
         <div className="dbm-sort__cardzone">
           <AnimatePresence mode="wait">
@@ -351,22 +352,21 @@ export function Screen3Sort({ mk, narration, accent }) {
               <motion.div
                 key={item.id}
                 className="dbm-sortcard"
-                initial={{ opacity: 0, y: -34, rotateX: 22, scale: 0.85 }}
+                initial={{ opacity: 0, y: -34, scale: 0.85 }}
                 animate={fly
-                  ? { x: fly === 'need' ? -300 : 300, y: 26, scale: 0.28, rotate: fly === 'need' ? -42 : 42, opacity: 0 }
-                  : { opacity: 1, y: 0, rotateX: 0, scale: 1 }}
+                  ? { x: fly === 'need' ? -280 : 280, y: 40, scale: 0.22, rotate: fly === 'need' ? -30 : 30, opacity: 0 }
+                  : { opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.7 }}
                 transition={{ type: 'spring', stiffness: 200, damping: 22 }}
               >
                 <span className="dbm-sortcard__tag">Item {idx + 1}</span>
                 <motion.div
                   className="dbm-sortcard__art"
-                  animate={{ y: [0, -10, 0], rotate: [-2.5, 2.5, -2.5] }}
-                  transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
+                  animate={{ y: [0, -8, 0] }}
+                  transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
                 >
-                  <span className="dbm-sortcard__emoji">{ITEM_EMOJI[item.art] || '📦'}</span>
+                  <ItemArt2D art={item.art} size={132} />
                 </motion.div>
-                <div className="dbm-sortcard__shadow" />
                 <div className="dbm-sortcard__name">{item.name}</div>
                 <div className="dbm-sortcard__price">{fmt(item.price)}</div>
                 {item.isGreyArea && <div className="dbm-sortcard__grey">🤔 grey area</div>}
@@ -375,7 +375,7 @@ export function Screen3Sort({ mk, narration, accent }) {
           </AnimatePresence>
         </div>
 
-        <Bucket kind="want" accent="#A855F7" burst={drop === 'want'} active={fly === 'want'} icon="🛍️" label="WANT" sub="nice to have" />
+        <SortBox kind="want" label="Want" sub="nice to have" accent="#A855F7" answers={mk.state.sortAnswers} active={fly === 'want'} />
       </div>
 
       {!feedback ? (
@@ -398,72 +398,37 @@ export function Screen3Sort({ mk, narration, accent }) {
   );
 }
 
-const BUCKET_PAL = {
-  need: { light: '#5fe0b0', mid: '#10b981', dark: '#059669', rim: '#0b7a55', hi: '#bff3df' },
-  want: { light: '#c79bfb', mid: '#a855f7', dark: '#7c3aed', rim: '#6024c8', hi: '#ecdcff' },
-};
-
-/* A good-looking 2D pail/bucket drawn in SVG. */
-function BucketShape({ kind }) {
-  const p = BUCKET_PAL[kind] || BUCKET_PAL.need;
-  const g = `bkt-${kind}`;
-  return (
-    <svg viewBox="0 0 100 112" width="118" height="132" className="dbm-bucketsvg" aria-hidden>
-      <defs>
-        <linearGradient id={g} x1="0" y1="0" x2="0.3" y2="1">
-          <stop offset="0" stopColor={p.light} />
-          <stop offset="0.5" stopColor={p.mid} />
-          <stop offset="1" stopColor={p.dark} />
-        </linearGradient>
-        <radialGradient id={`${g}-in`} cx="0.5" cy="0.35" r="0.75">
-          <stop offset="0" stopColor={p.rim} />
-          <stop offset="1" stopColor={p.dark} />
-        </radialGradient>
-      </defs>
-      <ellipse cx="50" cy="106" rx="30" ry="5.5" fill="rgba(0,0,0,0.16)" />
-      {/* handle */}
-      <path d="M20 38 Q50 0 80 38" fill="none" stroke={p.dark} strokeWidth="5" strokeLinecap="round" />
-      <path d="M20 38 Q50 0 80 38" fill="none" stroke={p.hi} strokeWidth="1.6" strokeLinecap="round" opacity="0.5" />
-      {/* body */}
-      <path d="M19 39 L29 98 Q50 105 71 98 L81 39 Z" fill={`url(#${g})`} stroke={p.rim} strokeWidth="1.2" />
-      {/* highlight + ridge */}
-      <path d="M28 45 L36 94" stroke={p.hi} strokeWidth="4.5" strokeLinecap="round" opacity="0.42" />
-      <path d="M22 58 Q50 66 78 58" fill="none" stroke={p.rim} strokeWidth="2.5" opacity="0.5" />
-      {/* rim */}
-      <ellipse cx="50" cy="39" rx="31" ry="9" fill={p.dark} />
-      <ellipse cx="50" cy="38" rx="31" ry="8.4" fill={`url(#${g}-in)`} />
-      <ellipse cx="50" cy="37.5" rx="24" ry="5.8" fill={p.rim} opacity="0.85" />
-    </svg>
-  );
-}
-
-function Bucket({ kind, accent, burst, active, label, sub }) {
+/* A transparent, colour-tinted box labelled Need / Want. Items the learner has
+ * sorted into it appear (and stay) inside the box. */
+function SortBox({ kind, label, sub, accent, answers, active }) {
+  const items = sortItems.filter((it) => answers[it.id] === kind);
   return (
     <motion.div
-      className={`dbm-bucket dbm-bucket--${kind} ${active ? 'is-active' : ''}`}
+      className={`dbm-sortbox dbm-sortbox--${kind} ${active ? 'is-active' : ''}`}
       style={{ '--accent': accent }}
-      initial={{ opacity: 0, y: 20, scale: 0.9 }}
-      animate={burst ? { opacity: 1, y: 0, scale: [1, 1.14, 1] } : { opacity: 1, y: 0, scale: 1 }}
+      initial={{ opacity: 0, y: 18, scale: 0.94 }}
+      animate={{ opacity: 1, y: 0, scale: active ? 1.04 : 1 }}
       transition={{ type: 'spring', stiffness: 240, damping: 18 }}
     >
-      <motion.div
-        className="dbm-bucket__shape"
-        animate={active
-          ? { y: -8, scale: 1.12, rotate: [0, -7, 7, 0] }
-          : { y: [0, -7, 0], rotate: [-2.5, 2.5, -2.5] }}
-        transition={active
-          ? { duration: 0.5 }
-          : { duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-      >
-        <BucketShape kind={kind} />
-      </motion.div>
-      <div className="dbm-bucket__label">{label}</div>
-      <div className="dbm-bucket__sub">{sub}</div>
-      <AnimatePresence>
-        {burst && (
-          <motion.div className="dbm-bucket__burst" initial={{ scale: 0, opacity: 1 }} animate={{ scale: 2.2, opacity: 0 }} exit={{ opacity: 0 }} style={{ borderColor: accent }} />
-        )}
-      </AnimatePresence>
+      <div className="dbm-sortbox__label">{label}</div>
+      <div className="dbm-sortbox__sub">{sub}</div>
+      <div className="dbm-sortbox__items">
+        <AnimatePresence>
+          {items.map((it) => (
+            <motion.div
+              key={it.id}
+              className="dbm-sortbox__item"
+              initial={{ scale: 0, opacity: 0, y: -12 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              transition={{ type: 'spring', stiffness: 320, damping: 18 }}
+              title={it.name}
+            >
+              <ItemArt2D art={it.art} size={38} />
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+      <div className="dbm-sortbox__count">{items.length} item{items.length === 1 ? '' : 's'}</div>
     </motion.div>
   );
 }
@@ -499,8 +464,8 @@ function SortSummary({ mk, accent, narration }) {
       </div>
 
       <div className="dbm-zones">
-        <ZoneCard kind="need" emoji="🧺" title="Needs · fixed costs" caption="Has to be spent — no choice." value={needsVal} pct={needsPct} color="#10B981" />
-        <ZoneCard kind="want" emoji="🛍️" title="Wants · flexible spending" caption="Where your decisions matter." value={wantsVal} pct={wantsPct} color="#A855F7" />
+        <ZoneCard kind="need" emoji="🧺" title="Needs · fixed costs" caption="Has to be spent — no choice." value={needsVal} pct={needsPct} color="#10B981" answers={answers} />
+        <ZoneCard kind="want" emoji="🛍️" title="Wants · flexible spending" caption="Where your decisions matter." value={wantsVal} pct={wantsPct} color="#A855F7" answers={answers} />
       </div>
 
       <NarratorCard narration={narration} lines={[summaryLine]} accent={accent} done={n.done} onReplay={n.replay} onSkip={n.skip} compact />
@@ -520,17 +485,18 @@ function SummaryCard({ label, value, color, pct }) {
   );
 }
 
-/* A 3D "zone" card for the sort summary — fixed-cost Needs vs flexible Wants. */
-function ZoneCard({ kind, emoji, title, caption, value, pct, color }) {
+/* A "zone" card for the sort summary — fixed-cost Needs vs flexible Wants, with
+ * a transparent box showing every item the learner sorted into it. */
+function ZoneCard({ kind, emoji, title, caption, value, pct, color, answers }) {
   const v = useCount(value, 1000);
+  const items = sortItems.filter((it) => answers[it.id] === kind);
   return (
     <motion.div
       className={`dbm-zone dbm-zone--${kind}`}
       style={{ '--c': color }}
-      initial={{ opacity: 0, y: 34, rotateX: 18, scale: 0.92 }}
-      animate={{ opacity: 1, y: 0, rotateX: 0, scale: 1 }}
+      initial={{ opacity: 0, y: 34, scale: 0.92 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ type: 'spring', stiffness: 150, damping: 16, delay: kind === 'want' ? 0.12 : 0 }}
-      whileHover={{ y: -7, rotateX: 7, scale: 1.03 }}
     >
       <div className="dbm-zone__top">
         <span className="dbm-zone__emoji">{emoji}</span>
@@ -539,6 +505,11 @@ function ZoneCard({ kind, emoji, title, caption, value, pct, color }) {
       <div className="dbm-zone__val">{fmt(v)}</div>
       <div className="dbm-zone__title">{title}</div>
       <div className="dbm-zone__caption">{caption}</div>
+      <div className="dbm-zone__box">
+        {items.map((it) => (
+          <div key={it.id} className="dbm-zone__item" title={it.name}><ItemArt2D art={it.art} size={36} /></div>
+        ))}
+      </div>
     </motion.div>
   );
 }
@@ -721,7 +692,6 @@ export function Screen4Shop({ mk, narration, vibe, accent }) {
 }
 
 function ShopCard({ item, selected, wouldOver, color, onClick }) {
-  const emoji = ITEM_EMOJI[item.art] || '📦';
   const premium = item.tier === 'premium';
   return (
     <motion.button
@@ -735,7 +705,7 @@ function ShopCard({ item, selected, wouldOver, color, onClick }) {
       <div className="dbm-shopcard__badge" data-type={item.type}>{item.type === 'need' ? 'Need' : 'Want'}</div>
       {item.tierLabel && <div className={`dbm-shopcard__tier dbm-shopcard__tier--${item.tier}`}>{item.tierLabel}</div>}
       <div className="dbm-shopcard__art">
-        <span className="dbm-shopcard__emoji">{emoji}</span>
+        <ItemArt2D art={item.art} tier={item.tier} size={64} />
         {premium && <span className="dbm-shopcard__crown">👑</span>}
       </div>
       <div className="dbm-shopcard__name">{item.name}</div>

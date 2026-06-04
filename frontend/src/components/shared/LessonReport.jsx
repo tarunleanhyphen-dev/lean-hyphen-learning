@@ -1,22 +1,36 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, Trophy, Clock, Target, TrendingUp, Award } from 'lucide-react';
+import { Sparkles, Trophy, Clock, Target, TrendingUp, Award, ArrowLeft } from 'lucide-react';
 import { BADGES, SCORING_CONFIG } from '../../config/scoringConfig.js';
 
 /**
- * End-of-lesson dashboard. Rendered after Act 4 completes — the act
- * fires `act_completed` + `lesson_completed`, waits for the analytics
- * queue to flush, then mounts us. We fetch the live report from
- * `/api/analytics/lesson/:lessonId` so the numbers reflect the events
- * the backend just persisted.
+ * End-of-lesson dashboard. Two render modes:
+ *
+ *   • `mode="modal"` (default): floats over the page on a dark backdrop.
+ *      Used by Act 4's celebration — the act fires act_completed +
+ *      lesson_completed, waits for the analytics queue to flush, then
+ *      mounts us inline.
+ *
+ *   • `mode="page"`: fills the page (no backdrop, no fixed positioning).
+ *      Used by `/lesson/:lessonId/report` so the learner can revisit
+ *      the report any time from the home page, link to it from email,
+ *      etc. The LMS dashboard fetches the same JSON directly.
  *
  * Falls back to a "while we're still computing" placeholder so a slow
- * network can't leave the learner staring at a blank screen.
+ * network can't leave the learner staring at a blank screen, and to a
+ * "lesson complete!" empty state if the backend returns no report.
  */
 
 const API_BASE = import.meta.env?.VITE_API_BASE_URL || '';
 
-export default function LessonReport({ sessionId, lessonId, onContinue }) {
+export default function LessonReport({
+  sessionId,
+  lessonId,
+  onContinue,
+  mode = 'modal',
+  ctaLabel,
+}) {
+  const isPage = mode === 'page';
   const [report, setReport] = useState(null);
   const [error, setError] = useState(null);
 
@@ -47,23 +61,41 @@ export default function LessonReport({ sessionId, lessonId, onContinue }) {
     return () => { cancelled = true; };
   }, [sessionId, lessonId]);
 
-  return (
+  // Outer + inner wrappers differ per mode. Same content inside.
+  const OuterWrap = ({ children }) => isPage ? (
+    <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-10 lg:px-8">{children}</div>
+  ) : (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 grid place-items-center bg-ink-900/85 p-4 backdrop-blur-md"
     >
-      <motion.div
-        initial={{ y: 16, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.35, ease: 'easeOut' }}
-        className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-gradient-to-br from-cream-50 to-white p-6 shadow-2xl ring-1 ring-ink-300/15 sm:p-8"
-      >
+      {children}
+    </motion.div>
+  );
+  const InnerCard = ({ children }) => isPage ? (
+    <div className="rounded-3xl bg-gradient-to-br from-cream-50 to-white p-6 shadow-xl ring-1 ring-ink-300/15 sm:p-8">
+      {children}
+    </div>
+  ) : (
+    <motion.div
+      initial={{ y: 16, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.35, ease: 'easeOut' }}
+      className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-gradient-to-br from-cream-50 to-white p-6 shadow-2xl ring-1 ring-ink-300/15 sm:p-8"
+    >
+      {children}
+    </motion.div>
+  );
+
+  return (
+    <OuterWrap>
+      <InnerCard>
         <header className="flex items-center justify-between gap-3">
           <div>
             <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-saffron-500">
-              ✨ Lesson complete
+              {isPage ? '📊 Performance report' : '✨ Lesson complete'}
             </div>
             <h2 className="mt-1 text-2xl font-extrabold leading-tight text-ink-900 sm:text-3xl">
               Your Lesson Report
@@ -210,18 +242,21 @@ export default function LessonReport({ sessionId, lessonId, onContinue }) {
                 <Clock className="h-3.5 w-3.5" />
                 Total time: {formatMs(report.totalTimeMs)}
               </div>
-              <button
-                type="button"
-                onClick={onContinue}
-                className="inline-flex items-center gap-1.5 rounded-full bg-ink-900 px-5 py-2.5 text-[12.5px] font-bold text-white shadow-md transition hover:bg-ink-700 active:scale-[0.98]"
-              >
-                Back to home →
-              </button>
+              {onContinue && (
+                <button
+                  type="button"
+                  onClick={onContinue}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-ink-900 px-5 py-2.5 text-[12.5px] font-bold text-white shadow-md transition hover:bg-ink-700 active:scale-[0.98]"
+                >
+                  {isPage ? <><ArrowLeft className="h-4 w-4" /> Back to home</> :
+                    <>{ctaLabel || 'Back to home'} →</>}
+                </button>
+              )}
             </footer>
           </>
         )}
-      </motion.div>
-    </motion.div>
+      </InnerCard>
+    </OuterWrap>
   );
 }
 

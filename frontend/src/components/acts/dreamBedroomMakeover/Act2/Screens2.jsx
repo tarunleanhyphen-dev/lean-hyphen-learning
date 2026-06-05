@@ -75,8 +75,12 @@ export function C1Reveal({ go, narration, accent }) {
   useEffect(() => { if (allOpen) { sfx('reveal'); narration.say(d.outro); } /* eslint-disable-next-line */ }, [allOpen]);
 
   return (
-    <div className="dbm-screen dbm-a2">
-      <h2 className="dbm-h2">The 50/30/20 Rule</h2>
+    <div className="dbm-screen dbm-a2 dbm-a2--reveal">
+      <motion.div className="dbm-eyebrow" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
+        <Sparkles size={14} /> Act 2 · The money rule
+      </motion.div>
+      <h2 className="dbm-h2">The 50 / 30 / 20 Rule</h2>
+      <p className="a2-reveal__sub">One simple split that guides every rupee. Tap each slice to unlock it — and watch it play out on the screen.</p>
       <NarratorCard narration={narration} lines={[d.intro, d.prompt]} accent={accent} done={n.done} onReplay={n.replay} onSkip={n.skip} compact />
 
       <div className="a2-reveal2">
@@ -133,6 +137,21 @@ const TV_STAGES = [
   { key: 'wants',   icon: '🎮', title: '30% → Wants',      sub: 'Fun, outings, hobbies' },
   { key: 'savings', icon: '🐷', title: '20% → Savings',    sub: 'Your safety net & goals' },
 ];
+function CoinShower() {
+  // a few ₹ coins tumble down each stage for a "money moving" feel
+  const coins = [{ x: 24, d: 0 }, { x: 50, d: 0.18 }, { x: 74, d: 0.36 }];
+  return (
+    <div className="a2-tv__coins" aria-hidden>
+      {coins.map((c, i) => (
+        <motion.span key={i} className="a2-tv__coin" style={{ left: `${c.x}%` }}
+          initial={{ y: -30, opacity: 0, rotateY: 0 }}
+          animate={{ y: 96, opacity: [0, 1, 1, 0], rotateY: 540 }}
+          transition={{ duration: 1.5, delay: c.d, ease: 'easeIn' }}>₹</motion.span>
+      ))}
+    </div>
+  );
+}
+
 function RuleTV() {
   const [stage, setStage] = useState(0);
   // ~2.5s per stage → ~10s full loop.
@@ -143,17 +162,28 @@ function RuleTV() {
   const st = TV_STAGES[stage];
   const filledUpTo = stage; // 0 = none, 1 = needs, 2 = +wants, 3 = +savings
   const done = stage === TV_STAGES.length - 1;
+  const progress = ((stage + 1) / TV_STAGES.length) * 100;
 
   return (
     <div className="a2-tv">
+      {/* player chrome */}
+      <div className="a2-tv__bar">
+        <span className="a2-tv__rec" /> <span className="a2-tv__live">PLAYING</span>
+        <span className="a2-tv__clock">0:0{Math.min(9, stage * 3)} / 0:10</span>
+      </div>
+
       <div className="a2-tv__screen">
         <div className="a2-tv__scan" />
+        <div className="a2-tv__vignette" />
 
-        {/* changing caption */}
+        {/* coins tumble on every money-moving stage */}
+        <AnimatePresence>{stage > 0 && <CoinShower key={stage} />}</AnimatePresence>
+
+        {/* changing caption with a 3D-spinning icon */}
         <AnimatePresence mode="wait">
           <motion.div key={st.key} className="a2-tv__cap"
-            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.35 }}>
-            <motion.div className="a2-tv__bigico" animate={{ rotateY: [0, 360], y: [0, -6, 0] }} transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}>{st.icon}</motion.div>
+            initial={{ opacity: 0, y: 14, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -14, scale: 0.9 }} transition={{ duration: 0.4 }}>
+            <motion.div className="a2-tv__bigico" animate={{ rotateY: [0, 360], y: [0, -8, 0] }} transition={{ rotateY: { duration: 2.2, repeat: Infinity, ease: 'linear' }, y: { duration: 2.2, repeat: Infinity, ease: 'easeInOut' } }}>{st.icon}</motion.div>
             <div className="a2-tv__title">{st.title}</div>
             <div className="a2-tv__sub">{st.sub}</div>
           </motion.div>
@@ -164,7 +194,7 @@ function RuleTV() {
           {TV_ROWS.map((r, i) => {
             const active = filledUpTo >= i + 1;
             return (
-              <div className="a2-tv__row" key={r.label}>
+              <motion.div className={`a2-tv__row ${active ? 'is-active' : ''}`} key={r.label} animate={{ opacity: active ? 1 : 0.55 }}>
                 <span className="a2-tv__ico">{r.icon}</span>
                 <div className="a2-tv__track">
                   <motion.div className="a2-tv__fill" style={{ background: r.color }}
@@ -172,22 +202,26 @@ function RuleTV() {
                   <span className="a2-tv__pct" style={{ color: active ? r.color : 'rgba(255,255,255,.4)' }}>{r.pct}%</span>
                 </div>
                 <span className="a2-tv__lbl">{r.label}</span>
-              </div>
+              </motion.div>
             );
           })}
         </div>
 
         <AnimatePresence>
           {done && (
-            <motion.div className="a2-tv__badge" initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
+            <motion.div className="a2-tv__badge" initial={{ opacity: 0, scale: 0.5, y: 8 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ type: 'spring', stiffness: 200, damping: 14 }}>
               ✓ That's the 50/30/20 rule!
             </motion.div>
           )}
         </AnimatePresence>
       </div>
+
+      {/* video scrubber */}
+      <div className="a2-tv__scrub"><motion.div className="a2-tv__scrubfill" animate={{ width: `${progress}%` }} transition={{ duration: 0.4, ease: 'linear' }} /></div>
+
       <div className="a2-tv__neck" />
       <div className="a2-tv__base" />
-      <div className="a2-tv__caption">📺 The rule explained · on loop</div>
+      <div className="a2-tv__caption">📺 The 50/30/20 rule, explained · on loop</div>
     </div>
   );
 }

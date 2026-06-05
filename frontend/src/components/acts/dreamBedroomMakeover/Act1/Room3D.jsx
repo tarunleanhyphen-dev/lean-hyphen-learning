@@ -91,8 +91,10 @@ function Desk() {
 }
 function Chair({ gaming }) {
   if (gaming) {
+    // Lives on the RIGHT side of the room (so it never overlaps the basic
+    // study chair at the desk), angled to face the centre of the room.
     return (
-      <group position={[-1.6, 0, 0.6]} rotation={[0, -0.5, 0]}>
+      <group position={[2.1, 0, 0.1]} rotation={[0, -1.9, 0]}>
         <Box args={[0.58, 0.12, 0.58]} color="#e0444c" position={[0, 0.55, 0]} />
         <Box args={[0.58, 1.0, 0.1]} color="#2a2e38" position={[0, 1.1, -0.26]} />
         <Box args={[0.22, 0.62, 0.08]} color="#e0444c" position={[0, 1.1, -0.24]} />
@@ -248,7 +250,7 @@ export { ART };
 export const ITEM_POS = {
   'bed-budget': [-1.35, 0, -1.5], 'bed-premium': [-1.35, 0, -1.5],
   'wardrobe-budget': [2.5, 0, 2.3], 'wardrobe-premium': [2.0, 0, 2.2],
-  'study-desk': [-2.35, 0, 0.6], 'basic-chair': [-1.6, 0, 0.6], 'gaming-chair': [-1.6, 0, 0.6],
+  'study-desk': [-2.35, 0, 0.6], 'basic-chair': [-1.6, 0, 0.6], 'gaming-chair': [2.1, 0, 0.1],
   'bookshelf': [2.4, 0, -2.5], 'under-bed-box': [-1.35, 0, -0.2],
   'desk-lamp': [-2.05, 1.04, 0.9], 'curtains': [0, 1.7, -2.9], 'table-fan': [-2.35, 1.04, 0.4],
   'posters': [-1.7, 1.7, 2.92], 'bluetooth-speaker': [-2.35, 1.06, 0.45], 'mini-fridge': [2.4, 0, 1.3],

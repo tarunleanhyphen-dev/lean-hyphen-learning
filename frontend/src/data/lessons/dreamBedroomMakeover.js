@@ -310,8 +310,8 @@ export const catalogue = {
     label: 'Seating & Desk', icon: '🪑', color: '#10B981',
     items: [
       { id: 'study-desk',  name: 'Study Desk',        price: 7500, type: 'need', art: 'desk' },
-      { id: 'basic-chair', name: 'Basic Study Chair', price: 2500, type: 'need', art: 'chair',  siblings: ['gaming-chair'] },
-      { id: 'gaming-chair',name: 'Gaming Chair',      price: 9000, type: 'want', art: 'gchair', siblings: ['basic-chair'] },
+      { id: 'basic-chair', name: 'Basic Study Chair', price: 2500, type: 'need', art: 'chair' },
+      { id: 'gaming-chair',name: 'Gaming Chair',      price: 9000, type: 'want', art: 'gchair' },
     ],
   },
   storage: {

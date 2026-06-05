@@ -99,6 +99,12 @@ export function useMakeover() {
   const setSortAnswer = useCallback((itemId, choice) =>
     setState((s) => ({ ...s, sortAnswers: { ...s.sortAnswers, [itemId]: choice } })), []);
   const resetSort = useCallback(() => setState((s) => ({ ...s, sortAnswers: {} })), []);
+  // Clear surprise-event effects so shopping always starts from a clean ₹2,000
+  // reserve (events happen AFTER the shop and must not carry over between runs).
+  const resetEvents = useCallback(() => setState((s) => ({
+    ...s, reserve: RESERVE_INIT, savings: 0, budgetBonus: 0, removedByEvent: [],
+    fixedEventChoice: null, randomEvent: null, randomEventChoice: null, snapshotMcq: null,
+  })), []);
 
   const addItem = useCallback((itemId) => setState((s) => {
     const it = itemIndex[itemId];
@@ -171,7 +177,7 @@ export function useMakeover() {
     cartItems, spent, remaining, spendable,
     categoryTotals, needsTotal, wantsTotal, needsCount, wantsCount,
     budget: { total: budgetTotal, base: BUDGET_BASE, reserve: state.reserve, spendable, bonus: state.budgetBonus || 0 },
-    setScreen, pickVibe, setSortAnswer, resetSort,
+    setScreen, pickVibe, setSortAnswer, resetSort, resetEvents,
     addItem, removeItem, toggleItem,
     applyEventEffect, setRandomEvent, setSnapshotMcq, reset,
   };

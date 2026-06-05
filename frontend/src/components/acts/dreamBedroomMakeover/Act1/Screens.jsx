@@ -572,6 +572,9 @@ export function Screen4Shop({ mk, narration, vibe, accent }) {
   const s = scene('screen-4-shop');
   // Read only the intro line aloud — not the sub / tip.
   useScreenNarration(narration, [s.intro]);
+  // Shopping is before the surprise events — start from a clean ₹2,000 reserve
+  // (clears any event effects left over from a previous run).
+  useEffect(() => { mk.resetEvents(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [toast, setToast] = useState(null);
   const [shake, setShake] = useState(false);

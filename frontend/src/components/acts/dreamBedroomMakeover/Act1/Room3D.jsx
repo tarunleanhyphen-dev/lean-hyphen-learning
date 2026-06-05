@@ -165,9 +165,9 @@ function Mirror() {
 function Fan() {
   const r = useRef();
   useFrame((_, d) => { if (r.current) r.current.rotation.z -= d * 9; }); // clockwise
-  // compact table fan that sits ON the study desk
+  // compact table fan that sits ON the study desk, facing the chair (+x side)
   return (
-    <group position={[-2.35, 1.04, 0.4]}>
+    <group position={[-2.35, 1.04, 0.4]} rotation={[0, 1.3, 0]}>
       {/* small base + short stem */}
       <mesh position={[0, 0.03, 0]}><cylinderGeometry args={[0.13, 0.16, 0.06, 18]} /><meshStandardMaterial color="#3a3f48" /></mesh>
       <Box args={[0.06, 0.28, 0.06]} color="#5a626e" position={[0, 0.19, 0]} />

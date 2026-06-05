@@ -949,14 +949,18 @@ export function Screen6Snapshot({ mk, narration, accent, onComplete }) {
     if (mcq) return;
     sfx(id === biggest.id ? 'ding' : 'tap');
     setMcq(id); mk.setSnapshotMcq(id);
+    narration.say("You just felt what real budgeting is like. Now let's learn the rule that makes it easier — every time.");
   };
 
   return (
     <div className="dbm-screen dbm-screen--snapshot">
-      <h2 className="dbm-h2">Spending snapshot</h2>
+      <motion.div className="dbm-eyebrow" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
+        <Sparkles size={14} /> Your room is ready 🎉
+      </motion.div>
+      <h2 className="dbm-h2 dbm-snap__title">Here's your spending breakdown</h2>
       <NarratorCard narration={narration} lines={[s.intro]} accent={accent} done={n.done} onReplay={n.replay} onSkip={n.skip} compact />
 
-      <div className="dbm-snap__grid">
+      <div className="dbm-snap__grid dbm-snap__panel">
         <div className="dbm-snap__donut">
           <Donut categoryTotals={categoryTotals} spent={spent} size={180} />
         </div>

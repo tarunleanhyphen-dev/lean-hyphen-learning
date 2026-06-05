@@ -618,10 +618,12 @@
 .dbm-events__roomwrap { position: relative; }
 
 /* ===================== SCREEN 6 — snapshot ===================== */
+.dbm-screen--snapshot .dbm-h2, .dbm-snap__title { color: #fff; font-family: 'Sora', 'Plus Jakarta Sans', system-ui, sans-serif; }
 .dbm-snap__grid { display: grid; grid-template-columns: 1fr; gap: 18px; width: 100%; max-width: 980px; align-items: center; }
+.dbm-snap__panel { background: #fff; border: 1px solid var(--card-bd); border-radius: 22px; padding: 22px; box-shadow: 0 26px 60px -30px #000; }
 .dbm-snap__donut { display: grid; place-items: center; }
 .dbm-snap__stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.dbm-snapstat { background: var(--card); border: 1px solid var(--card-bd); border-radius: 14px; padding: 12px 14px; border-left: 3px solid var(--c); }
+.dbm-snapstat { background: #f4f7fb; border: 1px solid var(--card-bd); border-radius: 14px; padding: 12px 14px; border-left: 3px solid var(--c); }
 .dbm-snapstat__lbl { font-size: 12px; color: var(--ink-faint); display: block; }
 .dbm-snapstat__val { font-size: 22px; font-weight: 900; color: var(--c); }
 .dbm-snap__reserve { grid-column: 1 / -1; display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; border-radius: 12px; padding: 9px 14px; }
@@ -635,7 +637,8 @@
 .dbm-snap__catbar > div { height: 100%; border-radius: 99px; }
 .dbm-snap__catval { font-weight: 700; text-align: right; }
 .dbm-snap__insights { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 760px; }
-.dbm-insight { display: flex; gap: 9px; align-items: flex-start; font-size: 14px; color: var(--ink-dim); background: rgba(168,85,247,.08); border: 1px solid rgba(168,85,247,.2); border-radius: 12px; padding: 11px 14px; }
+.dbm-insight { display: flex; gap: 9px; align-items: flex-start; font-size: 14px; color: rgba(255,255,255,.9);
+  background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.16); border-radius: 12px; padding: 11px 14px; }
 .dbm-insight svg { flex: none; color: var(--glow); margin-top: 2px; }
 .dbm-mcq { width: 100%; max-width: 760px; background: var(--card); border: 1px solid var(--card-bd); border-radius: 18px; padding: 18px; }
 .dbm-mcq__q { font-weight: 800; font-size: 16px; margin-bottom: 12px; text-align: center; }

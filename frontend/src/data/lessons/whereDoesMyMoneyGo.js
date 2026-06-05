@@ -21,7 +21,7 @@ export const lesson = {
   slug: 'where-does-my-money-go',
   module: 'Smart Spending & Money Choices',
   title: 'Where Does My Money Go?',
-  totalMinutes: 12,
+  totalMinutes: 16,
   // Every live act is openable from the start — no "finish Act 1 to unlock Act 2" gate.
   freeNavigation: true,
   hero: {
@@ -195,7 +195,7 @@ export const lesson = {
         },
       ],
     },
-    act2: { id: 'act2', title: 'Act 2 — The 50/30/20 Rule', minutes: 5, kind: 'concept', status: 'live', scenes: [] },
+    act2: { id: 'act2', title: 'Act 2 — The 50/30/20 Rule', minutes: 4, kind: 'concept', status: 'live', scenes: [] },
     act3: { id: 'act3', title: 'Act 3 — Test Your Understanding', minutes: 4, kind: 'quiz', status: 'live', scenes: [] },
   },
 };

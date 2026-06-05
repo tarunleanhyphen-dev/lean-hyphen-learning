@@ -55,6 +55,9 @@ export async function unlockAudio(enabled) {
   if (!enabled) {
     stopMusic();
     cancelSpeech();
+  } else {
+    // Start the calm background music under the narration (idempotent).
+    try { startMusic(); } catch { /* noop */ }
   }
 }
 
@@ -188,12 +191,16 @@ const CHORDS = {
  * Am9 → Fmaj9 → G13 jazz progression, Rhodes-style detuned pad,
  * half-time brushed hat, syncopated plucks, vinyl-crackle texture)
  * is what Acts 2-4 now play — soft, chill, ambient. */
+// Calm background music = an ElevenLabs-generated loop served by the backend
+// (/api/music). If that 503s (no key / failure), startBgTrack falls back to the
+// built-in synth ambient engine, so calm music always plays.
+const MUSIC_BASE = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) || '';
 const MUSIC_TRACKS = {
-  calm:        null,
+  calm:        `${MUSIC_BASE}/api/music`,
   'app-tempo': null,
   reflective:  null,
   thinking:    null,
-  lofi:        null,
+  lofi:        `${MUSIC_BASE}/api/music`,
   hit:         null,
   silent:      null,
 };
@@ -667,6 +674,14 @@ function startBgTrack(mood) {
   next.volume = 0;
   next.crossOrigin = 'anonymous';
   next.preload = 'auto';
+  // If the real track can't load (e.g. /api/music 503 with no ElevenLabs key),
+  // fall back to the built-in synth ambient engine so calm music still plays.
+  next.addEventListener('error', () => {
+    if (bgAudio !== next) return;
+    MUSIC_TRACKS[mood] = null; // disable the URL so startMusic() uses the synth
+    bgAudio = null; bgAudioMood = null;
+    try { startMusic(); } catch { /* noop */ }
+  }, { once: true });
   next.play().catch(() => { /* autoplay may need a gesture; we'll retry on the next unlock */ });
   const prev = bgAudio;
   const prevMood = bgAudioMood;

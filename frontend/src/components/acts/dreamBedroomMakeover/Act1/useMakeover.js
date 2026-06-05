@@ -139,7 +139,13 @@ export function useMakeover() {
       else                       next.randomEventChoice = choiceId;
 
       if (effect.reserveSpent != null) next.reserve = Math.max(0, s.reserve - effect.reserveSpent);
-      if (effect.reserveBonus)         next.reserve = next.reserve + effect.reserveBonus;
+      // A gift to the reserve is EXTRA money: it grows both the reserve and the
+      // total pot, so spendable stays the same. e.g. uncle's ₹2,000 → reserve
+      // ₹2,000→₹4,000 and total ₹50,000→₹52,000 (spendable still ₹48,000).
+      if (effect.reserveBonus) {
+        next.reserve = next.reserve + effect.reserveBonus;
+        next.budgetBonus = (next.budgetBonus ?? s.budgetBonus ?? 0) + effect.reserveBonus;
+      }
       if (effect.savings)              next.savings = (s.savings || 0) + effect.savings;
       if (effect.budgetBonus)          next.budgetBonus = (s.budgetBonus || 0) + effect.budgetBonus;
 

@@ -50,6 +50,14 @@ export default function DreamBedroomAct1({ onComplete, onGoHome }) {
     }
   }, []);
 
+  /* Every screen should open at the top — otherwise the scroll position from a
+   * long previous screen (e.g. the Shop) carries over and Scene 6 looks like it
+   * jumped straight to the expense tracker. */
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+    document.querySelector('.dbm__main')?.scrollTo?.({ top: 0 });
+  }, [mk.state.screen]);
+
   /* Explicit Start gate. Clicking Start is a real user gesture, so the
    * AudioContext resumes reliably; we unlock audio, then reveal Scene 1, whose
    * narration begins automatically as the screen mounts (Kabir's voice plays). */

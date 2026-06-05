@@ -636,6 +636,18 @@
 .dbm-wheel3 { border-radius: 50%; filter: drop-shadow(0 18px 40px rgba(0,0,0,.5)); }
 .dbm-spin .dbm-h2 { margin-bottom: 0; }
 
+/* --- event illustration (3D-ish, animated) --- */
+.dbm-evis { display: grid; place-items: center; margin: -2px auto 8px; perspective: 600px; filter: drop-shadow(0 12px 18px rgba(0,0,0,.35)); }
+.dbm-evis svg { transform-style: preserve-3d; }
+.dbm-evis__emoji { font-size: 64px; line-height: 1; display: inline-block; transform-style: preserve-3d; }
+@keyframes dbm-evis-shake {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  15% { transform: translateX(-5px) rotate(-2deg); } 30% { transform: translateX(5px) rotate(2deg); }
+  45% { transform: translateX(-4px) rotate(-1.5deg); } 60% { transform: translateX(4px) rotate(1.5deg); }
+  75% { transform: translateX(-2px) rotate(-1deg); }
+}
+.dbm-evis--shake { animation: dbm-evis-shake 0.7s ease-in-out 0.25s 1; }
+
 /* --- richer envelope / event cards --- */
 .dbm-envelope { background: linear-gradient(170deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
   border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); border-radius: 22px; padding: 26px 28px;
@@ -738,6 +750,44 @@
 .dbm-split__legend { display: flex; justify-content: space-between; font-size: 11px; margin-top: 5px; }
 .dbm-split__n { color: #34d399; } .dbm-split__w { color: #c084fc; }
 .dbm-tracker--compact .dbm-grid { grid-template-columns: 1fr 1fr; }
+
+/* ---- Scene 6: premium expense-tracker styling ---- */
+.dbm-events__tracker { max-width: 860px; }
+.dbm-events__tracker .dbm-tracker {
+  background: linear-gradient(165deg, rgba(255,255,255,.10), rgba(255,255,255,.035));
+  border: 1px solid color-mix(in srgb, var(--accent) 26%, rgba(255,255,255,.12));
+  border-radius: 22px; padding: 20px 22px; gap: 16px;
+  box-shadow: 0 30px 70px -34px #000, inset 0 1px 0 rgba(255,255,255,.07);
+  backdrop-filter: blur(8px);
+}
+.dbm-events__tracker .dbm-tracker__head {
+  font-family: 'Sora', system-ui, sans-serif; font-size: 14px; letter-spacing: .02em; color: #fff;
+  padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,.1);
+}
+.dbm-events__tracker .dbm-tracker__head svg { color: var(--glow); }
+.dbm-events__tracker .dbm-tracker__hero {
+  background: linear-gradient(160deg, color-mix(in srgb, var(--band) 22%, transparent), color-mix(in srgb, var(--band) 8%, transparent));
+  border-color: color-mix(in srgb, var(--band) 45%, transparent); padding: 16px;
+}
+.dbm-events__tracker .dbm-tracker__hero-val {
+  font-size: 40px; background: linear-gradient(180deg, #fff, var(--band)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+.dbm-events__tracker .dbm-stat {
+  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08); border-radius: 12px; padding: 10px 12px;
+  transition: .2s;
+}
+.dbm-events__tracker .dbm-stat:hover { background: rgba(255,255,255,.1); transform: translateY(-1px); }
+.dbm-events__tracker .dbm-stat__lbl { color: rgba(255,255,255,.6); }
+.dbm-events__tracker .dbm-stat__val { color: #fff; }
+.dbm-events__tracker .dbm-donut__num { fill: #fff; }
+.dbm-events__tracker .dbm-cat__lbl { color: rgba(255,255,255,.82); }
+.dbm-events__tracker .dbm-cat__val { color: #fff; }
+/* roomier 2-column body on desktop: bar+stats beside donut+cats */
+@media (min-width: 720px) {
+  .dbm-events__tracker .dbm-tracker__donutwrap {
+    background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07); border-radius: 14px; padding: 12px;
+  }
+}
 
 /* ===================== iso2d room ===================== */
 .iso2d {

@@ -951,10 +951,57 @@ function SpinWheel({ events, accent, cta, onResult }) {
   );
 }
 
+/* A small animated, 3D-ish illustration shown atop each surprise-event card.
+ * `cracked-wardrobe` literally shows the wardrobe split with a jagged crack and
+ * tumbling debris; it shakes on entry so the "damaged on delivery" lands. */
+function EventVisual({ visual }) {
+  if (visual === 'cracked-wardrobe') {
+    return (
+      <motion.div className="dbm-evis dbm-evis--shake" initial={{ rotateX: 18, opacity: 0 }} animate={{ rotateX: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 120, damping: 12 }}>
+        <svg width="128" height="128" viewBox="0 0 128 128">
+          <defs>
+            <linearGradient id="wd" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stopColor="#a9794a" /><stop offset="1" stopColor="#7c5a32" />
+            </linearGradient>
+          </defs>
+          {/* shadow */}
+          <ellipse cx="64" cy="116" rx="40" ry="7" fill="rgba(0,0,0,.35)" />
+          {/* left half (tilted) */}
+          <g transform="rotate(-7 40 70)">
+            <rect x="22" y="26" width="34" height="80" rx="3" fill="url(#wd)" stroke="#5a4026" strokeWidth="2" />
+            <circle cx="50" cy="66" r="2.6" fill="#3a2a18" />
+          </g>
+          {/* right half */}
+          <g transform="rotate(5 88 70)">
+            <rect x="72" y="28" width="34" height="78" rx="3" fill="url(#wd)" stroke="#5a4026" strokeWidth="2" />
+            <circle cx="78" cy="66" r="2.6" fill="#3a2a18" />
+          </g>
+          {/* jagged crack down the middle */}
+          <polyline points="64,24 58,44 68,58 56,76 66,92 60,108" fill="none" stroke="#2b1d10" strokeWidth="3" strokeLinejoin="round" />
+          <polyline points="64,24 58,44 68,58 56,76 66,92 60,108" fill="none" stroke="#ffe9bd" strokeWidth="1" opacity=".5" />
+          {/* debris + impact spark */}
+          <motion.g animate={{ y: [0, -3, 0] }} transition={{ repeat: Infinity, duration: 1.4 }}>
+            <rect x="40" y="100" width="7" height="7" rx="1.5" fill="#8a6a45" transform="rotate(20 43 103)" />
+            <rect x="84" y="104" width="6" height="6" rx="1.5" fill="#8a6a45" transform="rotate(-15 87 107)" />
+          </motion.g>
+          <text x="98" y="34" fontSize="20">💥</text>
+        </svg>
+      </motion.div>
+    );
+  }
+  const emoji = { coupon: '🎟️', 'envelope-cash': '🧧', electric: '⚡', truck: '🚚' }[visual] || '🎁';
+  return (
+    <motion.div className="dbm-evis" initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 200, damping: 14 }}>
+      <motion.span className="dbm-evis__emoji" animate={{ rotateY: [0, 18, -18, 0], y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 2.6 }}>{emoji}</motion.span>
+    </motion.div>
+  );
+}
+
 function EventCard({ event, accent, onPick }) {
   const bad = event.bad;
   return (
     <motion.div className={`dbm-eventcard ${bad ? 'is-bad' : 'is-good'}`} initial={{ opacity: 0, y: 24, rotateX: 12 }} animate={{ opacity: 1, y: 0, rotateX: 0 }}>
+      {event.visual && <EventVisual visual={event.visual} />}
       <div className="dbm-eventcard__tag">{bad ? '⚠️ Surprise' : '🎁 Good news'}</div>
       <h3 className="dbm-eventcard__title">{event.title}</h3>
       <p className="dbm-eventcard__text">{event.text}</p>

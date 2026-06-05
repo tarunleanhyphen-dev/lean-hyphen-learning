@@ -13,7 +13,7 @@ import { Play, Clock, Sparkles, Lock, ArrowRight } from 'lucide-react';
 import { lesson } from '../data/lessons/whereDoesMyMoneyGo.js';
 import DreamBedroomAct1 from '../components/acts/dreamBedroomMakeover/Act1/Act1.jsx';
 import DreamBedroomAct2 from '../components/acts/dreamBedroomMakeover/Act2/Act2.jsx';
-import DreamBedroomAct3 from '../components/acts/dreamBedroomMakeover/Act3/Act3.jsx';
+import DreamBedroomAct3, { markActDone } from '../components/acts/dreamBedroomMakeover/Act3/Act3.jsx';
 
 const ACT_COMPONENTS = { act1: DreamBedroomAct1, act2: DreamBedroomAct2, act3: DreamBedroomAct3 };
 
@@ -38,7 +38,7 @@ export default function Lesson2Page() {
     const i = order.indexOf(actId);
     const next = order[i + 1];
     const goNext = next && ACT_COMPONENTS[next] ? `/lesson2/${next}` : '/lesson2';
-    return <Comp onGoHome={() => navigate('/lesson2')} onComplete={() => navigate(goNext)} />;
+    return <Comp onGoHome={() => navigate('/lesson2')} onComplete={() => { markActDone(actId); navigate(goNext); }} />;
   }
 
   return <Lesson2Home />;

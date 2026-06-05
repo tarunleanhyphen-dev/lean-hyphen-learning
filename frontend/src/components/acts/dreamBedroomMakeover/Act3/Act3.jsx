@@ -3,12 +3,16 @@
  * A 6-question knowledge check, then a score + badge screen with a personalised
  * closing (pulled from the Act 1 simulation) and a downloadable GST invoice.
  */
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Home, Check, X, ArrowRight, RotateCcw, Download, Trophy, Sparkles } from 'lucide-react';
+import { Home, Check, X, ArrowRight, RotateCcw, Download, Trophy, Sparkles, Volume2, VolumeX, SkipForward, Lock } from 'lucide-react';
 import { catalogue } from '../../../../data/lessons/dreamBedroomMakeover.js';
+import { useNarration } from '../Act1/useNarration.js';
+import { unlockAudio } from '../../../../utils/sounds.js';
 import '../Act1/makeover.css';
 import './act3.css';
+
+const AUDIO_KEY = 'lh.dbm.audio.v1';
 
 const ACCENT = '#10B981', GLOW = '#34d399';
 
@@ -93,9 +97,9 @@ const BADGES = [
   { min: 0, name: 'Budget Rookie', emoji: '🌱', text: "Good start! Budgeting is a skill — and you've just taken the first step. Head back to the concept section, give Kabir's activity another go, and try the quiz again." },
 ];
 
-/* read the Act 1 simulation (cart + reserve) from localStorage */
+/* read the Act 1 simulation (cart + reserve + Scene 6 surprises) from localStorage */
 function loadAct1() {
-  const BUDGET = 50000, RESERVE = 2000;
+  const RESERVE_INIT = 2000;
   const idx = {};
   Object.values(catalogue).forEach((c) => c.items.forEach((it) => { idx[it.id] = it; }));
   try {
@@ -103,10 +107,26 @@ function loadAct1() {
     const items = (st.cart || []).map((id) => idx[id]).filter(Boolean);
     const needs = items.filter((it) => it.type === 'need').reduce((a, it) => a + it.price, 0);
     const wants = items.filter((it) => it.type === 'want').reduce((a, it) => a + it.price, 0);
-    return { items, needs, wants, reserve: typeof st.reserve === 'number' ? st.reserve : RESERVE, played: items.length > 0 };
+    const reserve = typeof st.reserve === 'number' ? st.reserve : RESERVE_INIT;
+    const removed = (st.removedByEvent || []).map((id) => idx[id]).filter(Boolean);
+    return {
+      items, needs, wants, reserve,
+      reserveUsed: Math.max(0, RESERVE_INIT - reserve),
+      savings: st.savings || 0,
+      budgetBonus: st.budgetBonus || 0,
+      removed,
+      hadEvent: !!(st.fixedEventChoice || st.randomEventChoice),
+      played: items.length > 0,
+    };
   } catch {
-    return { items: [], needs: 0, wants: 0, reserve: RESERVE, played: false };
+    return { items: [], needs: 0, wants: 0, reserve: RESERVE_INIT, reserveUsed: 0, savings: 0, budgetBonus: 0, removed: [], hadEvent: false, played: false };
   }
+}
+
+/* completion tracking — the bill only unlocks once all three acts are done */
+function loadProgress() { try { return JSON.parse(localStorage.getItem('lh.dbm.progress.v1') || '{}'); } catch { return {}; } }
+export function markActDone(id) {
+  try { const p = loadProgress(); p[id] = true; localStorage.setItem('lh.dbm.progress.v1', JSON.stringify(p)); } catch { /* noop */ }
 }
 
 function closingLine(a1) {
@@ -124,9 +144,12 @@ const inr = (n) => '₹' + Number(n).toLocaleString('en-IN');
 /* ---- spending snapshot shown inline as an invoice card (no GST, no download) ---- */
 function Invoice({ a1 }) {
   const items = a1.items.length ? a1.items : [{ name: 'Dream Bedroom Setup', price: 40000 }];
-  const total = items.reduce((s, it) => s + it.price, 0);
-  const savings = Math.max(0, 50000 - total);
-  const inv = useMemo(() => 'LH/' + new Date().getFullYear() + '/' + Math.floor(1000 + (total % 9000)), [total]);
+  const itemsTotal = items.reduce((s, it) => s + it.price, 0);
+  const budget = 50000 + (a1.budgetBonus || 0);
+  // money left after furniture + protected reserve = saved
+  const saved = Math.max(0, budget - itemsTotal - a1.reserveUsed);
+  const hasAdj = a1.removed.length > 0 || a1.reserveUsed > 0 || a1.budgetBonus > 0;
+  const inv = useMemo(() => 'LH/' + new Date().getFullYear() + '/' + Math.floor(1000 + (itemsTotal % 9000)), [itemsTotal]);
   const today = useMemo(() => new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }), []);
   return (
     <motion.div className="dbm-inv" initial={{ opacity: 0, y: 16, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: 'spring', stiffness: 180, damping: 20 }}>
@@ -139,33 +162,76 @@ function Invoice({ a1 }) {
         <thead><tr><th>#</th><th>Item</th><th className="r">Qty</th><th className="r">Amount</th></tr></thead>
         <tbody>{items.map((it, i) => (<tr key={i}><td>{i + 1}</td><td>{it.name}</td><td className="r">1</td><td className="r">{inr(it.price)}</td></tr>))}</tbody>
       </table>
+
+      {hasAdj && (
+        <div className="dbm-inv__adj">
+          <div className="dbm-inv__adjttl">⚡ Surprises &amp; adjustments</div>
+          {a1.budgetBonus > 0 && <div><span>🎁 Bonus received (coupon / gift)</span><b className="dbm-inv__plus">+{inr(a1.budgetBonus)}</b></div>}
+          {a1.reserveUsed > 0 && <div><span>🛠️ Damage repair (paid from reserve)</span><b className="dbm-inv__minus">−{inr(a1.reserveUsed)}</b></div>}
+          {a1.removed.map((it) => (
+            <div key={it.id}><span>↩️ Removed for a surprise — {it.name}</span><b className="dbm-inv__minus">−{inr(it.price)}</b></div>
+          ))}
+        </div>
+      )}
+
       <div className="dbm-inv__totals">
-        <div><span>Total spent</span><b>{inr(total)}</b></div>
-        <div><span>Saved · reserve</span><b className="dbm-inv__save">{inr(savings)}</b></div>
-        <div className="dbm-inv__grand"><span>Budget</span><b>{inr(50000)}</b></div>
+        <div><span>Items total</span><b>{inr(itemsTotal)}</b></div>
+        <div><span>Emergency reserve left</span><b className="dbm-inv__save">{inr(a1.reserve)}</b></div>
+        <div><span>Money saved</span><b className="dbm-inv__save">{inr(saved)}</b></div>
+        <div className="dbm-inv__grand"><span>Budget{a1.budgetBonus > 0 ? ' (+ bonus)' : ''}</span><b>{inr(budget)}</b></div>
       </div>
-      <div className="dbm-inv__ft">🧾 Your spending snapshot · Lean Hyphen 💚</div>
+      <div className="dbm-inv__ft">🧾 Your spending snapshot · reflects your Act 1 choices &amp; surprises · Lean Hyphen 💚</div>
     </motion.div>
   );
 }
 
 export default function DreamBedroomAct3({ onComplete, onGoHome }) {
   const a1 = useMemo(loadAct1, []);
+  const narration = useNarration();
   const [screen, setScreen] = useState('intro'); // intro | quiz | result
   const [idx, setIdx] = useState(0);
   const [picked, setPicked] = useState(null);
   const [score, setScore] = useState(0);
   const [showInvoice, setShowInvoice] = useState(false);
+  const [voiceOn, setVoiceOn] = useState(false);
+  const prog = useMemo(loadProgress, [screen]); // re-read when reaching result
+  const billUnlocked = !!(prog.act1 && prog.act2);
 
   const q = QUESTIONS[idx];
+
+  // Kabir reads the current question (+ its options) aloud while voice is on.
+  useEffect(() => {
+    if (!voiceOn || screen !== 'quiz') return;
+    const opts = q.options.map((o, i) => `${String.fromCharCode(65 + i)}. ${o.t}`).join('. ');
+    narration.say(`Question ${idx + 1}. ${q.q}. ${opts}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idx, screen, voiceOn]);
+
   const choose = (oi) => {
     if (picked !== null) return;
     setPicked(oi);
-    if (q.options[oi].correct) setScore((s) => s + 1);
+    const correct = q.options[oi].correct;
+    if (correct) setScore((s) => s + 1);
+    if (voiceOn) {
+      const fb = correct ? `Correct. ${q.right}` : `Not quite. The answer is ${q.options.find((o) => o.correct).t}. ${q.right}`;
+      narration.say(fb);
+    }
   };
   const next = () => {
-    if (idx + 1 >= QUESTIONS.length) { setScreen('result'); return; }
+    narration.stop();
+    if (idx + 1 >= QUESTIONS.length) { markActDone('act3'); setScreen('result'); return; }
     setIdx((i) => i + 1); setPicked(null);
+  };
+  const skip = () => { narration.stop(); setPicked(null); next(); };
+
+  const toggleVoice = async () => {
+    if (voiceOn) { try { await unlockAudio(false); } catch { /* noop */ } try { localStorage.setItem(AUDIO_KEY, 'off'); } catch { /* noop */ } narration.stop(); setVoiceOn(false); }
+    else {
+      try { await unlockAudio(true); } catch { /* noop */ }
+      try { localStorage.setItem(AUDIO_KEY, 'on'); } catch { /* noop */ }
+      setVoiceOn(true);
+      if (screen === 'quiz') { const opts = q.options.map((o, i) => `${String.fromCharCode(65 + i)}. ${o.t}`).join('. '); narration.say(`Question ${idx + 1}. ${q.q}. ${opts}`); }
+    }
   };
 
   const badge = BADGES.find((b) => score >= b.min);
@@ -196,7 +262,9 @@ export default function DreamBedroomAct3({ onComplete, onGoHome }) {
           ))}
         </div>
         <div className="dbm__nowtitle">{screen === 'result' ? 'Your result' : `Act 3 · Knowledge Check`}</div>
-        <span style={{ width: 34 }} />
+        <button className={`dbm__voice ${voiceOn ? 'is-on' : ''}`} onClick={toggleVoice} title={voiceOn ? 'Turn voice off' : 'Read questions aloud'}>
+          {voiceOn ? <Volume2 size={15} /> : <VolumeX size={15} />}
+        </button>
       </header>
 
       <main className="dbm__main">
@@ -220,21 +288,28 @@ export default function DreamBedroomAct3({ onComplete, onGoHome }) {
                   <span className="dbm-q__num">Question {idx + 1}<span>/{QUESTIONS.length}</span></span>
                   <span className="dbm-q__tag">{q.tag}</span>
                 </div>
-                <div className="dbm-q__progress"><motion.div animate={{ width: `${(idx / QUESTIONS.length) * 100}%` }} /></div>
+                <div className="dbm-q__progress"><motion.div animate={{ width: `${((idx + (picked !== null ? 1 : 0)) / QUESTIONS.length) * 100}%` }} /></div>
                 <h2 className="dbm-q__question">{q.q}</h2>
                 <div className="dbm-q__options">
                   {q.options.map((o, oi) => {
                     const state = picked === null ? '' : o.correct ? 'is-correct' : oi === picked ? 'is-wrong' : 'is-dim';
                     return (
-                      <button key={oi} className={`dbm-q__opt ${state}`} onClick={() => choose(oi)} disabled={picked !== null}>
+                      <motion.button
+                        key={oi} className={`dbm-q__opt ${state}`} onClick={() => choose(oi)} disabled={picked !== null}
+                        initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06 * oi, type: 'spring', stiffness: 260, damping: 22 }}
+                        whileHover={picked === null ? { scale: 1.015, x: 3 } : {}} whileTap={picked === null ? { scale: 0.98 } : {}}
+                      >
                         <span className="dbm-q__letter">{String.fromCharCode(65 + oi)}</span>
                         <span className="dbm-q__opttext">{o.t}</span>
                         {picked !== null && o.correct && <Check size={18} className="dbm-q__mark" />}
                         {picked !== null && !o.correct && oi === picked && <X size={18} className="dbm-q__mark" />}
-                      </button>
+                      </motion.button>
                     );
                   })}
                 </div>
+                {picked === null && (
+                  <button className="dbm-q__skip" onClick={skip}>Skip this question <SkipForward size={14} /></button>
+                )}
                 <AnimatePresence>
                   {picked !== null && (
                     <motion.div className={`dbm-q__fb ${q.options[picked].correct ? 'is-right' : 'is-soft'}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
@@ -265,10 +340,14 @@ export default function DreamBedroomAct3({ onComplete, onGoHome }) {
                   <button className="dbm-cta" onClick={() => { try { localStorage.removeItem('lh.dbm.act1.v1'); } catch { /* noop */ } window.location.href = '/lesson2/act1'; }}>
                     <RotateCcw size={16} /> Play again — new room style
                   </button>
-                  <button className="dbm-q__btn2" onClick={() => setShowInvoice((v) => !v)}><Download size={16} /> {showInvoice ? 'Hide' : 'Show'} my spending snapshot</button>
+                  {billUnlocked ? (
+                    <button className="dbm-q__btn2" onClick={() => setShowInvoice((v) => !v)}><Download size={16} /> {showInvoice ? 'Hide' : 'Show'} my spending snapshot</button>
+                  ) : (
+                    <div className="dbm-q__locked"><Lock size={14} /> Finish Act 1 &amp; Act 2 fully to unlock your spending snapshot</div>
+                  )}
                   <button className="dbm-q__btn3" onClick={onGoHome}><Home size={15} /> Back to lessons</button>
                 </div>
-                <AnimatePresence>{showInvoice && <Invoice a1={a1} />}</AnimatePresence>
+                <AnimatePresence>{billUnlocked && showInvoice && <Invoice a1={a1} />}</AnimatePresence>
               </motion.div>
             )}
           </AnimatePresence>

@@ -521,7 +521,11 @@
 .dbm-shopcard__tier { position: absolute; top: 8px; right: 8px; font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 99px; text-transform: uppercase; }
 .dbm-shopcard__tier--budget { background: rgba(148,163,184,.2); color: #cbd5e1; }
 .dbm-shopcard__tier--premium { background: rgba(245,158,11,.2); color: #fbbf24; }
-.dbm-shopcard__art { position: relative; display: grid; place-items: center; height: 66px; margin-top: 6px; }
+.dbm-shopcard__art { position: relative; display: grid; place-items: center; height: 72px; margin-top: 6px; perspective: 560px; }
+/* each item rotates in 3D (turntable) on hover */
+.dbm-shopcard__art3d { transform-style: preserve-3d; backface-visibility: visible; transition: transform .25s; will-change: transform; }
+.dbm-shopcard:hover .dbm-shopcard__art3d { animation: dbm-item-spin 2.6s linear infinite; }
+@keyframes dbm-item-spin { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
 .dbm-shopcard__emoji { font-size: 46px; line-height: 1; filter: drop-shadow(0 6px 8px rgba(0,0,0,.22)); }
 .dbm-shopcard__crown { position: absolute; top: -4px; right: 50%; transform: translateX(34px) rotate(14deg); font-size: 20px; filter: drop-shadow(0 3px 4px rgba(0,0,0,.3)); }
 .dbm-shopcard.is-premium { background: linear-gradient(180deg, rgba(245,180,11,.12), rgba(245,180,11,.04)); border-color: rgba(245,180,11,.5); }

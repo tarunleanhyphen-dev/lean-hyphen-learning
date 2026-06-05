@@ -747,7 +747,7 @@ function ShopCard({ item, selected, wouldOver, color, onClick }) {
       <div className="dbm-shopcard__badge" data-type={item.type}>{item.type === 'need' ? 'Need' : 'Want'}</div>
       {item.tierLabel && <div className={`dbm-shopcard__tier dbm-shopcard__tier--${item.tier}`}>{item.tierLabel}</div>}
       <div className="dbm-shopcard__art">
-        <ItemArt2D art={item.art} tier={item.tier} size={64} />
+        <ItemArt2D art={item.art} tier={item.tier} size={64} className="dbm-shopcard__art3d" />
         {premium && <span className="dbm-shopcard__crown">👑</span>}
       </div>
       <div className="dbm-shopcard__name">{item.name}</div>

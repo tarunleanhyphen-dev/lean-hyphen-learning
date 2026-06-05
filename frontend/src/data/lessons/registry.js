@@ -22,12 +22,13 @@ import ThinkAct4 from '../../components/acts/Act4/Act4.jsx';
 // history but is no longer wired in.)
 import DreamBedroomAct1 from '../../components/acts/dreamBedroomMakeover/Act1/Act1.jsx';
 import DreamBedroomAct2 from '../../components/acts/dreamBedroomMakeover/Act2/Act2.jsx';
+import DreamBedroomAct3 from '../../components/acts/dreamBedroomMakeover/Act3/Act3.jsx';
 
 export const LESSONS = [
   {
     data: whereDoesMyMoneyGo,
     featured: true,
-    acts: { act1: DreamBedroomAct1, act2: DreamBedroomAct2 },
+    acts: { act1: DreamBedroomAct1, act2: DreamBedroomAct2, act3: DreamBedroomAct3 },
   },
   {
     data: thinkBeforeYouSpend,

@@ -105,13 +105,15 @@
 
 /* WHITE expense card (was dark → text was invisible), with 3D perspective */
 .a2-expcard { width: 320px; max-width: 90vw; text-align: center; perspective: 900px; transform-style: preserve-3d;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
   background: linear-gradient(180deg, #ffffff, #f4f6fb); border: 1px solid var(--card-bd); border-top: 5px solid var(--accent);
-  border-radius: 24px; padding: 26px 22px; box-shadow: 0 30px 64px -24px #000; }
-.a2-expcard__art { display: grid; place-items: center; height: 120px; perspective: 700px; }
+  border-radius: 24px; padding: 24px 22px; box-shadow: 0 30px 64px -24px #000; }
+/* fixed-height art block so the name/amount always sit BELOW the image */
+.a2-expcard__art { display: grid; place-items: center; height: 124px; width: 100%; margin-bottom: 6px; perspective: 700px; }
 .a2-expcard__art3d { transform-style: preserve-3d; filter: drop-shadow(0 10px 12px rgba(0,0,0,.2)); }
-.a2-expcard__name { font-weight: 800; font-size: 16px; margin-top: 8px; color: #241f33; }
-.a2-expcard__amt { color: #7c3aed; font-weight: 900; font-size: 22px; }
-.a2-expcard__grey { font-size: 11px; font-weight: 700; color: #b9770a; margin-top: 4px; }
+.a2-expcard__name { font-weight: 800; font-size: 17px; margin: 0; color: #241f33; }
+.a2-expcard__amt { color: #7c3aed; font-weight: 900; font-size: 23px; margin: 0; }
+.a2-expcard__grey { font-size: 11.5px; font-weight: 700; color: #b9770a; margin: 2px 0 0; }
 .a2-choices { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
 .a2-choice { --c: #10b981; font-weight: 800; font-size: 14px; color: #fff; background: linear-gradient(180deg, var(--c), color-mix(in srgb, var(--c) 78%, #000)); border: none; border-radius: 13px; padding: 13px 24px; cursor: pointer; transition: transform .15s, box-shadow .2s; box-shadow: 0 10px 24px -10px var(--c); }
 .a2-choice:hover { transform: translateY(-3px); box-shadow: 0 16px 30px -12px var(--c); }

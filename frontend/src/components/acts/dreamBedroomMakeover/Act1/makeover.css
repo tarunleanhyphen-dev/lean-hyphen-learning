@@ -582,8 +582,13 @@
 }
 
 /* ===================== SCREEN 5 — events ===================== */
+.dbm-events__toptext { display: inline-flex; align-items: center; gap: 8px; align-self: center;
+  font-family: 'Sora', system-ui, sans-serif; font-weight: 800; font-size: 15px; letter-spacing: .02em; color: #fff;
+  background: color-mix(in srgb, var(--accent) 22%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 99px; padding: 8px 18px; }
 .dbm-events__grid { display: grid; grid-template-columns: 1fr; gap: 18px; width: 100%; }
 .dbm-events__stage { display: flex; flex-direction: column; align-items: center; gap: 14px; min-height: 300px; justify-content: center; }
+.dbm-events__tracker { width: 100%; max-width: 640px; margin: 4px auto 0; }
 .dbm-envelope, .dbm-spin { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
 .dbm-envelope__icon, .dbm-wheel { color: var(--glow); filter: drop-shadow(0 8px 20px var(--accent)); }
 .dbm-envelope__line { font-size: 15px; color: var(--ink-dim); }
@@ -607,9 +612,10 @@
 .dbm-events__side { display: flex; flex-direction: column; gap: 14px; }
 .dbm-events__roomwrap { border-radius: 18px; overflow: hidden; border: 1px solid var(--card-bd); }
 @media (min-width: 1000px) {
-  .dbm-events__grid { grid-template-columns: 1fr minmax(300px, 360px); align-items: start; }
-  .dbm-events__side { position: sticky; top: 14px; }
+  .dbm-events__grid { grid-template-columns: 1fr minmax(420px, 520px); align-items: center; }
+  .dbm-events__room, .dbm-events__roomwrap .dbm-room3d { height: 420px; }
 }
+.dbm-events__roomwrap { position: relative; }
 
 /* ===================== SCREEN 6 — snapshot ===================== */
 .dbm-snap__grid { display: grid; grid-template-columns: 1fr; gap: 18px; width: 100%; max-width: 980px; align-items: center; }

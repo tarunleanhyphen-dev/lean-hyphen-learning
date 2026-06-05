@@ -823,20 +823,24 @@ export function Screen5Events({ mk, narration, vibe, accent }) {
   const pickRandom = (opt) => {
     sfx(randomEv.good ? 'ding' : 'alert');
     mk.applyEventEffect('random', opt.id, opt.effect);
-    setCons({ text: opt.consequence, next: () => mk.setScreen('screen-6-snapshot') });
+    setCons({ text: opt.consequence, next: () => { setPhase('closing'); narration.say(s.closingLine); } });
     narration.say(opt.consequence);
   };
 
   return (
     <div className="dbm-screen dbm-screen--events">
+      {/* top surprise line (read aloud via the intro narration) */}
+      <motion.div className="dbm-events__toptext" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
+        <Mail size={16} /> {phase === 'closing' ? 'Surprises resolved' : "You've got a surprise waiting"}
+      </motion.div>
+
       <div className="dbm-events__grid">
         <div className="dbm-events__stage">
           {phase === 'intro' && (
             <motion.div className="dbm-envelope" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}>
-              <h2 className="dbm-h2">Plot twists</h2>
-              <NarratorCard narration={narration} lines={[s.intro]} accent={accent} done={n.done} onReplay={n.replay} onSkip={n.skip} compact />
+              <NarratorCard narration={narration} lines={[s.intro]} accent={accent} done={n.done} onReplay={n.replay} onSkip={n.skip} compact size={78} />
               <motion.div className="dbm-envelope__icon" animate={{ rotate: [0, -4, 4, 0], y: [0, -6, 0] }} transition={{ repeat: Infinity, duration: 2.6 }}>
-                <Mail size={64} />
+                <Mail size={56} />
               </motion.div>
               <p className="dbm-envelope__line">{s.envelopeLine}</p>
               <CTA accent={accent} disabled={!n.done} onClick={() => { sfx('reveal'); setPhase('fixed'); }}>{s.envelopeCta}</CTA>
@@ -849,7 +853,7 @@ export function Screen5Events({ mk, narration, vibe, accent }) {
 
           {phase === 'spin' && (
             <motion.div className="dbm-spin" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              <h2 className="dbm-h2">One more twist…</h2>
+              <h2 className="dbm-h2" style={{ color: '#fff' }}>One more twist…</h2>
               <p className="dbm-envelope__line">{s.spinLine}</p>
               <motion.div className="dbm-wheel" animate={randomEv ? { rotate: 1080 } : {}} transition={{ duration: 1.4, ease: 'easeOut' }}>
                 <RotateCw size={72} />
@@ -861,15 +865,28 @@ export function Screen5Events({ mk, narration, vibe, accent }) {
           {phase === 'random' && randomEv && (
             <EventCard event={randomEv} accent={accent} onPick={pickRandom} />
           )}
+
+          {phase === 'closing' && (
+            <motion.div className="dbm-eventcard is-good" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+              <div className="dbm-eventcard__tag">✅ Lesson learnt</div>
+              <div className="dbm-envelope__icon" style={{ fontSize: 44 }}>🛡️</div>
+              <p className="dbm-eventcard__text">{s.closingLine}</p>
+              <CTA accent={accent} onClick={() => mk.setScreen('screen-6-snapshot')}>See my spending snapshot</CTA>
+            </motion.div>
+          )}
         </div>
 
+        {/* bigger live 3D room */}
         <div className="dbm-events__side">
           <div className="dbm-events__roomwrap">
             <Room3D vibe={vibe} cart={mk.state.cart} className="dbm-events__room" />
+            <div className="dbm-shop__roomtag">Live room · updates with each choice</div>
           </div>
-          <Tracker mk={mk} bands={BANDS} compact />
         </div>
       </div>
+
+      {/* expense tracker below the envelope / events */}
+      <div className="dbm-events__tracker"><Tracker mk={mk} bands={BANDS} /></div>
 
       <AnimatePresence>
         {cons && <ConsequenceModal text={cons.text} accent={accent} onClose={() => { const nx = cons.next; setCons(null); nx?.(); }} />}

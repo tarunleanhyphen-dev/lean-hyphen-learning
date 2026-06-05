@@ -146,11 +146,12 @@ export const lesson = {
     {
       id: 'screen-5-events',
       title: 'Plot Twists',
-      intro: "You've planned your room beautifully. But life doesn't always go to plan...",
-      envelopeLine: "You've got a surprise waiting. Open it.",
+      intro: "You've got a surprise waiting. Open the envelope.",
+      envelopeLine: "Life doesn't always go to plan. Let's see what's inside.",
       envelopeCta: 'Open Envelope',
       spinLine: 'One more twist — spin the wheel of fate.',
       spinCta: 'Spin the Wheel',
+      closingLine: "You just experienced what every adult faces — an unplanned cost that forced a real decision. People with no reserve have no choices. That's the whole point of building one.",
     },
     {
       id: 'screen-6-snapshot',

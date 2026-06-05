@@ -614,15 +614,16 @@ export function Screen4Shop({ mk, narration, vibe, accent }) {
   return (
     <div className="dbm-screen dbm-screen--shop">
       <div className="dbm-shop">
-        {/* LEFT — sticky live 3D room only */}
+        {/* LEFT — sticky live 3D room + budget tracker */}
         <div className={`dbm-shop__left ${shake ? 'is-shake' : ''}`}>
           <div className="dbm-shop__roomwrap">
             <Room3D vibe={vibe} cart={mk.state.cart} className="dbm-shop__room" />
             <div className="dbm-shop__roomtag">Live 3D preview · {cartItems.length} items</div>
           </div>
+          <Tracker mk={mk} bands={BANDS} />
         </div>
 
-        {/* RIGHT — catalogue (with the budget tracker on top) */}
+        {/* RIGHT — catalogue */}
         <div className="dbm-shop__right">
           <div className="dbm-shop__header">
             <h2 className="dbm-h2">Shop smart</h2>
@@ -630,7 +631,6 @@ export function Screen4Shop({ mk, narration, vibe, accent }) {
             <p className="dbm-shop__sub"><Lock size={12} /> {s.sub}</p>
             <p className="dbm-shop__tip"><Sparkles size={12} /> {s.tip}</p>
           </div>
-          <Tracker mk={mk} bands={BANDS} />
 
           {Object.entries(catalogue).map(([catId, cat]) => (
             <div key={catId} className="dbm-catgroup">

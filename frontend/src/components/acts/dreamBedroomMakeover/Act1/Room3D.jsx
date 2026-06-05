@@ -120,11 +120,21 @@ function Chair({ gaming }) {
   );
 }
 function Shelf() {
+  const books = ['#d65b5b', '#5b8fd6', '#5bd68f', '#e0a23a', '#a855f7', '#ef6aa0'];
+  // open wooden bookshelf in the back-right corner (right of the window)
   return (
-    <group position={[0.4, 0, -2.55]}>
-      <Box args={[1.2, 1.4, 0.3]} color="#9b7b53" position={[0, 0.9, 0]} />
-      <Box args={[1.1, 0.4, 0.25]} color="#d65b5b" position={[-0.2, 0.6, 0.03]} rough={1} />
-      <Box args={[1.1, 0.4, 0.25]} color="#5b8fd6" position={[0.2, 1.1, 0.03]} rough={1} />
+    <group position={[2.4, 0, -2.5]}>
+      {/* sides + top + back (open front) */}
+      <Box args={[0.06, 2.2, 0.4]} color="#8a6a45" position={[-0.57, 1.1, 0]} />
+      <Box args={[0.06, 2.2, 0.4]} color="#8a6a45" position={[0.57, 1.1, 0]} />
+      <Box args={[1.2, 0.07, 0.4]} color="#9c7b52" position={[0, 2.18, 0]} />
+      <Box args={[1.14, 2.1, 0.04]} color="#6b4f33" position={[0, 1.1, -0.17]} />
+      {/* shelves */}
+      {[0.45, 1.05, 1.62].map((y, i) => <Box key={i} args={[1.14, 0.06, 0.36]} color="#9c7b52" position={[0, y, 0]} />)}
+      {/* rows of books */}
+      {[0.62, 1.22, 1.79].flatMap((y, r) => [0, 1, 2, 3].map((c) => (
+        <Box key={`${r}-${c}`} args={[0.16, 0.34, 0.26]} color={books[(r * 2 + c) % books.length]} position={[-0.4 + c * 0.26, y, 0.03]} rough={0.9} />
+      )))}
     </group>
   );
 }
@@ -155,21 +165,22 @@ function Mirror() {
 function Fan() {
   const r = useRef();
   useFrame((_, d) => { if (r.current) r.current.rotation.z -= d * 9; }); // clockwise
+  // compact table fan that sits ON the study desk
   return (
-    <group position={[-2.4, 0, 0.7]}>
-      {/* base + stem */}
-      <mesh position={[0, 0.04, 0]}><cylinderGeometry args={[0.26, 0.3, 0.08, 20]} /><meshStandardMaterial color="#3a3f48" /></mesh>
-      <Box args={[0.09, 1.0, 0.09]} color="#5a626e" position={[0, 0.55, 0]} />
+    <group position={[-2.35, 1.04, 0.4]}>
+      {/* small base + short stem */}
+      <mesh position={[0, 0.03, 0]}><cylinderGeometry args={[0.13, 0.16, 0.06, 18]} /><meshStandardMaterial color="#3a3f48" /></mesh>
+      <Box args={[0.06, 0.28, 0.06]} color="#5a626e" position={[0, 0.19, 0]} />
       {/* head, facing into the room (+z) */}
-      <group position={[0, 1.05, 0.14]}>
-        <mesh><torusGeometry args={[0.36, 0.028, 8, 30]} /><meshStandardMaterial color="#c3ccd6" metalness={0.3} /></mesh>
+      <group position={[0, 0.34, 0.1]}>
+        <mesh><torusGeometry args={[0.22, 0.02, 8, 26]} /><meshStandardMaterial color="#c3ccd6" metalness={0.3} /></mesh>
         <group ref={r}>
           {[0, 1, 2].map((i) => {
             const a = (i * 2 * Math.PI) / 3;
-            return <Box key={i} args={[0.14, 0.42, 0.02]} color={i % 2 ? '#cfd8e2' : '#eef2f6'} position={[0.18 * Math.sin(a), 0.18 * Math.cos(a), 0]} rotation={[0, 0, -a]} />;
+            return <Box key={i} args={[0.09, 0.26, 0.015]} color={i % 2 ? '#cfd8e2' : '#eef2f6'} position={[0.11 * Math.sin(a), 0.11 * Math.cos(a), 0]} rotation={[0, 0, -a]} />;
           })}
         </group>
-        <mesh position={[0, 0, 0.03]}><cylinderGeometry args={[0.06, 0.06, 0.06, 14]} /><meshStandardMaterial color="#5a626e" /></mesh>
+        <mesh position={[0, 0, 0.02]}><cylinderGeometry args={[0.04, 0.04, 0.05, 12]} /><meshStandardMaterial color="#5a626e" /></mesh>
       </group>
     </group>
   );
@@ -179,15 +190,15 @@ function Curtains() {
   return (
     <group position={[0, 1.7, -2.9]}>
       {/* rod */}
-      <Box args={[2.5, 0.09, 0.1]} color="#3a2c20" position={[0, 1.05, 0.05]} />
-      {/* valance */}
-      <Box args={[2.5, 0.4, 0.12]} color="#4a1c36" position={[0, 0.86, 0.07]} rough={1} />
-      {/* dark cloth panels framing the window */}
-      <Box args={[0.55, 2.0, 0.14]} color="#5a2342" position={[-0.96, -0.1, 0.06]} rough={1} />
-      <Box args={[0.55, 2.0, 0.14]} color="#5a2342" position={[0.96, -0.1, 0.06]} rough={1} />
+      <Box args={[2.5, 0.09, 0.1]} color="#2a2c33" position={[0, 1.05, 0.05]} />
+      {/* valance (dark blue) */}
+      <Box args={[2.5, 0.4, 0.12]} color="#16294a" position={[0, 0.86, 0.07]} rough={1} />
+      {/* dark-blue cloth panels framing the window */}
+      <Box args={[0.55, 2.0, 0.14]} color="#1e3a64" position={[-0.96, -0.1, 0.06]} rough={1} />
+      <Box args={[0.55, 2.0, 0.14]} color="#1e3a64" position={[0.96, -0.1, 0.06]} rough={1} />
       {/* soft fold highlights */}
-      <Box args={[0.06, 1.9, 0.15]} color="#7a3a5e" position={[-0.96, -0.1, 0.07]} rough={1} />
-      <Box args={[0.06, 1.9, 0.15]} color="#7a3a5e" position={[0.96, -0.1, 0.07]} rough={1} />
+      <Box args={[0.06, 1.9, 0.15]} color="#2f5286" position={[-0.96, -0.1, 0.07]} rough={1} />
+      <Box args={[0.06, 1.9, 0.15]} color="#2f5286" position={[0.96, -0.1, 0.07]} rough={1} />
     </group>
   );
 }

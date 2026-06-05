@@ -188,6 +188,7 @@
 }
 .dbm-toast--bad { background: #fdecec; color: #b42318; border: 1px solid #f97066; }
 .dbm-toast--good { background: #d1fae5; color: #065f46; border: 1px solid #34d399; }
+.dbm-toast--warn { background: linear-gradient(180deg, #fff6e0, #ffedc4); color: #7a4d05; border: 1px solid #f0a90a; box-shadow: 0 16px 40px -12px rgba(240,169,10,.55); }
 
 /* ---------- modal ---------- */
 .dbm-modal__scrim {
@@ -404,24 +405,32 @@
   color: #fff; background: var(--accent); padding: 7px 24px; border-radius: 11px;
   box-shadow: 0 10px 22px -8px var(--accent), inset 0 1px 0 rgba(255,255,255,.4);
 }
-/* the clear glass cube */
+/* the clear frameless glass cube (matches a glass display case) */
 .dbm-sortbox__glass {
-  position: relative; min-height: 178px; padding: 20px 12px 14px; border-radius: 14px 14px 4px 4px; overflow: hidden;
-  background: linear-gradient(160deg, rgba(255,255,255,.42) 0%, color-mix(in srgb, var(--accent) 7%, rgba(255,255,255,.12)) 100%);
-  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
-  border: 1.5px solid color-mix(in srgb, var(--accent) 30%, rgba(255,255,255,.75));
-  box-shadow: inset 0 2px 0 rgba(255,255,255,.85), inset 2px 0 0 rgba(255,255,255,.4), inset -2px 0 0 rgba(255,255,255,.25), 0 16px 34px -20px rgba(0,0,0,.45);
+  position: relative; min-height: 252px; padding: 26px 14px 18px; border-radius: 6px; overflow: hidden;
+  background: linear-gradient(150deg, rgba(255,255,255,.32) 0%, rgba(235,242,248,.14) 45%, rgba(255,255,255,.2) 100%);
+  -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px);
+  border: 1px solid rgba(255,255,255,.85);
+  box-shadow:
+    inset 0 0 0 1px rgba(180,200,215,.5),      /* frameless glass edge */
+    inset 0 3px 6px rgba(255,255,255,.9),       /* top sheen */
+    inset 0 -30px 40px -28px rgba(120,140,160,.5),
+    0 18px 38px -20px rgba(0,0,0,.4);
 }
-.dbm-sortbox.is-active .dbm-sortbox__glass { border-color: var(--accent); box-shadow: inset 0 2px 0 rgba(255,255,255,.85), 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent), 0 18px 38px -18px var(--accent); }
-.dbm-sortbox__sheen { position: absolute; top: -30%; left: -10%; width: 38%; height: 160%; pointer-events: none;
-  background: linear-gradient(100deg, transparent, rgba(255,255,255,.5), transparent); transform: rotate(16deg); }
-.dbm-sortbox__items { position: relative; display: flex; flex-wrap: wrap; align-content: flex-start; justify-content: center; gap: 6px; }
-.dbm-sortbox__item { width: 42px; height: 42px; border-radius: 10px; background: rgba(255,255,255,.72);
-  border: 1px solid rgba(255,255,255,.85); box-shadow: 0 3px 8px -3px rgba(0,0,0,.22); display: grid; place-items: center; overflow: hidden; }
-/* base plinth */
+/* brushed-silver corner posts (frameless glass-to-glass look) */
+.dbm-sortbox__glass::before, .dbm-sortbox__glass::after { content: ''; position: absolute; top: 0; bottom: 0; width: 3px;
+  background: linear-gradient(90deg, rgba(210,220,230,.95), rgba(160,175,190,.5)); pointer-events: none; }
+.dbm-sortbox__glass::before { left: 0; } .dbm-sortbox__glass::after { right: 0; }
+.dbm-sortbox.is-active .dbm-sortbox__glass { box-shadow: inset 0 0 0 1px var(--accent), inset 0 3px 6px rgba(255,255,255,.9), 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent), 0 20px 40px -18px var(--accent); }
+.dbm-sortbox__sheen { position: absolute; top: -20%; left: 6%; width: 30%; height: 150%; pointer-events: none; z-index: 1;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,.6), transparent); transform: rotate(14deg); }
+.dbm-sortbox__items { position: relative; z-index: 2; display: flex; flex-wrap: wrap; align-content: flex-start; justify-content: center; gap: 7px; }
+.dbm-sortbox__item { width: 46px; height: 46px; border-radius: 10px; background: rgba(255,255,255,.78);
+  border: 1px solid rgba(255,255,255,.9); box-shadow: 0 4px 9px -3px rgba(0,0,0,.25); display: grid; place-items: center; overflow: hidden; }
+/* wood-veneer base */
 .dbm-sortbox__base { display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  padding: 7px 14px; border-radius: 0 0 12px 12px; background: linear-gradient(180deg, #6a5238, #4e3c28);
-  box-shadow: 0 12px 22px -12px rgba(0,0,0,.5); }
+  padding: 10px 16px; border-radius: 0 0 8px 8px; background: linear-gradient(180deg, #7a5e3e 0%, #5a4429 100%);
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.18), 0 14px 24px -12px rgba(0,0,0,.55); }
 .dbm-sortbox__sub { font-size: 11px; color: rgba(255,255,255,.72); }
 .dbm-sortbox__count { font-size: 11.5px; font-weight: 800; color: #fff; }
 .dbm-sort__skip { margin-top: 4px; display: inline-flex; align-items: center; gap: 5px; background: none; border: none;
@@ -533,7 +542,7 @@
 .dbm-shopcard.is-premium .dbm-shopcard__emoji { transform: scale(1.08); }
 .dbm-shopcard.is-budget { background: linear-gradient(180deg, rgba(148,163,184,.1), rgba(148,163,184,.03)); }
 .dbm-shopcard__name { font-size: 12.5px; font-weight: 700; line-height: 1.25; min-height: 31px; display: flex; align-items: center; }
-.dbm-shopcard__price { font-size: 15px; font-weight: 900; color: var(--glow); }
+.dbm-shopcard__price { font-size: 15px; font-weight: 900; color: #f0900a; }
 .dbm-shopcard__add { font-size: 11px; font-weight: 700; color: var(--ink-faint); display: inline-flex; align-items: center; gap: 4px; margin-top: 2px; }
 .dbm-shopcard.is-selected .dbm-shopcard__add { color: var(--c); }
 

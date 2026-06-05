@@ -92,14 +92,25 @@
 .a2-bucket__bar { height: 100%; background: var(--c); border-radius: 99px; }
 .a2-bucket__val { font-size: 14px; font-weight: 800; }
 .a2-act__progress { font-size: 13px; color: var(--ink-faint); width: 100%; max-width: 420px; text-align: center; }
-.a2-expcard { width: 220px; text-align: center; background: linear-gradient(180deg, #1d1b30, #15131f); border: 1px solid var(--card-bd); border-radius: 18px; padding: 16px; box-shadow: 0 18px 44px -20px #000; }
-.a2-expcard__art { display: grid; place-items: center; height: 60px; }
-.a2-expcard__name { font-weight: 700; font-size: 15px; margin-top: 6px; }
-.a2-expcard__amt { color: var(--glow); font-weight: 900; font-size: 20px; }
-.a2-expcard__grey { font-size: 11px; color: #fbbf24; margin-top: 4px; }
+/* skip button */
+.a2-skip { align-self: flex-end; display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700;
+  color: rgba(255,255,255,.78); background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.16);
+  border-radius: 99px; padding: 7px 14px; cursor: pointer; transition: .2s; margin-top: -6px; }
+.a2-skip:hover { color: #fff; background: rgba(255,255,255,.14); border-color: var(--accent); }
+
+/* WHITE expense card (was dark → text was invisible), with 3D perspective */
+.a2-expcard { width: 240px; text-align: center; perspective: 800px; transform-style: preserve-3d;
+  background: linear-gradient(180deg, #ffffff, #f4f6fb); border: 1px solid var(--card-bd); border-top: 4px solid var(--accent);
+  border-radius: 20px; padding: 18px 16px; box-shadow: 0 26px 56px -24px #000; }
+.a2-expcard__art { display: grid; place-items: center; height: 70px; perspective: 600px; }
+.a2-expcard__art3d { transform-style: preserve-3d; filter: drop-shadow(0 10px 12px rgba(0,0,0,.2)); }
+.a2-expcard__name { font-weight: 800; font-size: 16px; margin-top: 8px; color: #241f33; }
+.a2-expcard__amt { color: #7c3aed; font-weight: 900; font-size: 22px; }
+.a2-expcard__grey { font-size: 11px; font-weight: 700; color: #b9770a; margin-top: 4px; }
 .a2-choices { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
-.a2-choice { --c: #10b981; font-weight: 800; font-size: 14px; color: #fff; background: var(--c); border: none; border-radius: 13px; padding: 12px 22px; cursor: pointer; transition: transform .15s; box-shadow: 0 8px 22px -10px var(--c); }
-.a2-choice:hover { transform: translateY(-2px); }
+.a2-choice { --c: #10b981; font-weight: 800; font-size: 14px; color: #fff; background: linear-gradient(180deg, var(--c), color-mix(in srgb, var(--c) 78%, #000)); border: none; border-radius: 13px; padding: 13px 24px; cursor: pointer; transition: transform .15s, box-shadow .2s; box-shadow: 0 10px 24px -10px var(--c); }
+.a2-choice:hover { transform: translateY(-3px); box-shadow: 0 16px 30px -12px var(--c); }
+.a2-choice:active { transform: translateY(-1px); }
 
 /* ---- C3 results ---- */
 .a2-results { width: 100%; max-width: 680px; background: var(--card); border: 1px solid var(--card-bd); border-radius: 18px; padding: 14px 16px; }

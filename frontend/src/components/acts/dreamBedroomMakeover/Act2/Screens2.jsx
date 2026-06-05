@@ -300,6 +300,10 @@ export function C3Activity({ go, narration, accent }) {
       <NarratorCard narration={narration} lines={[d.intro, d.task]} accent={accent} done compact size={92}
         onReplay={() => narration.replay([d.intro, d.task])} onSkip={() => narration.skip()} />
 
+      <button className="a2-skip" onClick={() => { sfx('tap'); narration.stop(); go('c4-takeaway'); }}>
+        Skip sorting → Takeaway <ArrowRight size={14} />
+      </button>
+
       <div className="a2-buckets">
         {d.buckets.map((b) => (
           <div key={b.id} className="a2-bucket" style={{ '--c': b.color }}>
@@ -315,8 +319,13 @@ export function C3Activity({ go, narration, accent }) {
       </div>
 
       <AnimatePresence mode="wait">
-        <motion.div key={exp.id} className="a2-expcard" initial={{ opacity: 0, y: -18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.85 }}>
-          <div className="a2-expcard__art"><ItemArt art={exp.art} size={56} /></div>
+        <motion.div key={exp.id} className="a2-expcard" initial={{ opacity: 0, y: -18, rotateX: 14 }} animate={{ opacity: 1, y: 0, rotateX: 0 }} exit={{ opacity: 0, scale: 0.85 }}
+          whileHover={{ rotateX: -6, rotateY: 6, scale: 1.03 }} transition={{ type: 'spring', stiffness: 160, damping: 16 }}>
+          <div className="a2-expcard__art">
+            <motion.div className="a2-expcard__art3d" animate={{ rotateY: [0, 12, -12, 0], y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 3.2, ease: 'easeInOut' }} whileHover={{ scale: 1.15 }}>
+              <ItemArt art={exp.art} size={62} />
+            </motion.div>
+          </div>
           <div className="a2-expcard__name">{exp.name}</div>
           <div className="a2-expcard__amt">{fmt(exp.amount)}</div>
           {exp.grey && <div className="a2-expcard__grey">🤔 grey area</div>}

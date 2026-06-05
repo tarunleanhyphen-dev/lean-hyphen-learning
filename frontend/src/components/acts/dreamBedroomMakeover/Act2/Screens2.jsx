@@ -63,11 +63,14 @@ export function C1Reveal({ go, narration, accent }) {
   const allOpen = unlocked.length === d.slices.length;
   const n = useNarr(narration, [d.intro, d.prompt]);
 
-  const click = (slice) => {
-    if (unlocked.includes(slice.id)) return;
+  // Always reveal strictly in order — 50% → 30% → 20% — no matter which slice
+  // is tapped, so Kabir narrates them in the right sequence every time.
+  const click = () => {
+    const next = d.slices[unlocked.length];
+    if (!next) return;
     sfx('ding');
-    setUnlocked((u) => [...u, slice.id]);
-    narration.say(slice.text);
+    setUnlocked((u) => [...u, next.id]);
+    narration.say(next.text);
   };
   useEffect(() => { if (allOpen) { sfx('reveal'); narration.say(d.outro); } /* eslint-disable-next-line */ }, [allOpen]);
 
@@ -80,15 +83,16 @@ export function C1Reveal({ go, narration, accent }) {
         <div className="a2-reveal2__left">
           <Pie slices={d.slices} unlocked={unlocked} onSlice={click} />
           <div className="a2-reveal__panel">
-            {d.slices.map((s) => {
+            {d.slices.map((s, i) => {
               const open = unlocked.includes(s.id);
+              const isNext = i === unlocked.length; // the only tappable card
               return (
-                <motion.button key={s.id} className={`a2-slicecard ${open ? 'is-open' : ''}`} style={{ '--c': s.color }}
-                  onClick={() => click(s)} whileHover={{ scale: open ? 1 : 1.02 }} whileTap={{ scale: 0.98 }}
-                  animate={open ? { scale: [1, 1.04, 1] } : { opacity: 1 }} transition={{ duration: 0.4 }}>
+                <motion.button key={s.id} className={`a2-slicecard ${open ? 'is-open' : ''} ${!open && !isNext ? 'is-locked' : ''}`} style={{ '--c': s.color }}
+                  onClick={click} disabled={!open && !isNext} whileHover={{ scale: isNext ? 1.02 : 1 }} whileTap={{ scale: isNext ? 0.98 : 1 }}
+                  animate={open ? { scale: [1, 1.04, 1] } : { opacity: isNext ? 1 : 0.5 }} transition={{ duration: 0.4 }}>
                   <div className="a2-slicecard__pct">{s.pct}%</div>
                   <div className="a2-slicecard__body">
-                    <div className="a2-slicecard__label">{open ? s.label : '👆 Tap to reveal'}</div>
+                    <div className="a2-slicecard__label">{open ? s.label : isNext ? '👆 Tap to reveal' : '🔒 Next up'}</div>
                     {open && <p>{s.text.replace(/^\d+% — \w+\. /, '')}</p>}
                   </div>
                   {open && <Check size={16} className="a2-slicecard__check" />}
@@ -115,39 +119,75 @@ export function C1Reveal({ go, narration, accent }) {
   );
 }
 
-/* A small TV/monitor that loops a 3D-style motion explainer of the rule:
- * a spinning ₹ coin drops, and the three buckets fill to 50/30/20 on repeat. */
+/* A TV/monitor that loops a ~10-second 3D-motion explainer of the rule.
+ * It runs a 4-stage timeline (intro → Needs → Wants → Savings) where the coin
+ * spins, a caption narrates each step, and the buckets fill progressively. */
+const TV_ROWS = [
+  { pct: 50, label: 'Needs', color: '#10B981', icon: '🏠' },
+  { pct: 30, label: 'Wants', color: '#A855F7', icon: '🎮' },
+  { pct: 20, label: 'Savings', color: '#F59E0B', icon: '🐷' },
+];
+const TV_STAGES = [
+  { key: 'intro',   icon: '💰', title: 'You have ₹50,000', sub: 'Where should it go?' },
+  { key: 'needs',   icon: '🏠', title: '50% → Needs',      sub: 'Rent, food, transport' },
+  { key: 'wants',   icon: '🎮', title: '30% → Wants',      sub: 'Fun, outings, hobbies' },
+  { key: 'savings', icon: '🐷', title: '20% → Savings',    sub: 'Your safety net & goals' },
+];
 function RuleTV() {
-  const rows = [
-    { pct: 50, label: 'Needs', color: '#10B981', icon: '🏠' },
-    { pct: 30, label: 'Wants', color: '#A855F7', icon: '🎮' },
-    { pct: 20, label: 'Savings', color: '#F59E0B', icon: '🐷' },
-  ];
+  const [stage, setStage] = useState(0);
+  // ~2.5s per stage → ~10s full loop.
+  useEffect(() => {
+    const id = setInterval(() => setStage((s) => (s + 1) % TV_STAGES.length), 2500);
+    return () => clearInterval(id);
+  }, []);
+  const st = TV_STAGES[stage];
+  const filledUpTo = stage; // 0 = none, 1 = needs, 2 = +wants, 3 = +savings
+  const done = stage === TV_STAGES.length - 1;
+
   return (
     <div className="a2-tv">
       <div className="a2-tv__screen">
         <div className="a2-tv__scan" />
-        <div className="a2-tv__title">Where ₹50,000 goes</div>
-        <motion.div className="a2-tv__coin" animate={{ rotateY: [0, 360] }} transition={{ repeat: Infinity, duration: 2.4, ease: 'linear' }}>₹</motion.div>
+
+        {/* changing caption */}
+        <AnimatePresence mode="wait">
+          <motion.div key={st.key} className="a2-tv__cap"
+            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.35 }}>
+            <motion.div className="a2-tv__bigico" animate={{ rotateY: [0, 360], y: [0, -6, 0] }} transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}>{st.icon}</motion.div>
+            <div className="a2-tv__title">{st.title}</div>
+            <div className="a2-tv__sub">{st.sub}</div>
+          </motion.div>
+        </AnimatePresence>
+
+        {/* progressively-filling buckets */}
         <div className="a2-tv__rows">
-          {rows.map((r, i) => (
-            <div className="a2-tv__row" key={r.label}>
-              <span className="a2-tv__ico">{r.icon}</span>
-              <div className="a2-tv__track">
-                <motion.div className="a2-tv__fill" style={{ background: r.color }}
-                  initial={{ width: '0%' }}
-                  animate={{ width: ['0%', `${r.pct}%`, `${r.pct}%`, '0%'] }}
-                  transition={{ repeat: Infinity, duration: 4, times: [0, 0.35, 0.85, 1], delay: i * 0.25, ease: 'easeInOut' }} />
-                <span className="a2-tv__pct" style={{ color: r.color }}>{r.pct}%</span>
+          {TV_ROWS.map((r, i) => {
+            const active = filledUpTo >= i + 1;
+            return (
+              <div className="a2-tv__row" key={r.label}>
+                <span className="a2-tv__ico">{r.icon}</span>
+                <div className="a2-tv__track">
+                  <motion.div className="a2-tv__fill" style={{ background: r.color }}
+                    animate={{ width: active ? `${r.pct}%` : '0%' }} transition={{ type: 'spring', stiffness: 90, damping: 18 }} />
+                  <span className="a2-tv__pct" style={{ color: active ? r.color : 'rgba(255,255,255,.4)' }}>{r.pct}%</span>
+                </div>
+                <span className="a2-tv__lbl">{r.label}</span>
               </div>
-              <span className="a2-tv__lbl">{r.label}</span>
-            </div>
-          ))}
+            );
+          })}
         </div>
+
+        <AnimatePresence>
+          {done && (
+            <motion.div className="a2-tv__badge" initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
+              ✓ That's the 50/30/20 rule!
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
       <div className="a2-tv__neck" />
       <div className="a2-tv__base" />
-      <div className="a2-tv__caption">📺 The rule, on loop</div>
+      <div className="a2-tv__caption">📺 The rule explained · on loop</div>
     </div>
   );
 }

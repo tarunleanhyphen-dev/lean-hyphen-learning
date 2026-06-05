@@ -817,12 +817,8 @@ export function Screen5Events({ mk, narration, vibe, accent }) {
     narration.say(opt.consequence);
   };
 
-  const spin = () => {
-    sfx('reveal');
-    const ev = surpriseEvents.randomEvents[Math.floor(Math.random() * surpriseEvents.randomEvents.length)];
-    mk.setRandomEvent(ev);
-    setTimeout(() => setPhase('random'), 1500);
-  };
+  // The wheel lands on the chosen event, then reveals its decision card.
+  const onWheelResult = (ev) => { mk.setRandomEvent(ev); setPhase('random'); };
 
   const pickRandom = (opt) => {
     sfx(randomEv.good ? 'ding' : 'alert');
@@ -859,10 +855,7 @@ export function Screen5Events({ mk, narration, vibe, accent }) {
             <motion.div className="dbm-spin" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <h2 className="dbm-h2" style={{ color: '#fff' }}>One more twist…</h2>
               <p className="dbm-envelope__line">{s.spinLine}</p>
-              <motion.div className="dbm-wheel" animate={randomEv ? { rotate: 1080 } : {}} transition={{ duration: 1.4, ease: 'easeOut' }}>
-                <RotateCw size={72} />
-              </motion.div>
-              <CTA accent={accent} disabled={!!randomEv} onClick={spin}>{s.spinCta}</CTA>
+              <SpinWheel events={surpriseEvents.randomEvents} accent={accent} cta={s.spinCta} onResult={onWheelResult} />
             </motion.div>
           )}
 
@@ -895,6 +888,60 @@ export function Screen5Events({ mk, narration, vibe, accent }) {
       <AnimatePresence>
         {cons && <ConsequenceModal text={cons.text} accent={accent} onClose={() => { const nx = cons.next; setCons(null); nx?.(); }} />}
       </AnimatePresence>
+    </div>
+  );
+}
+
+/* An interactive prize wheel — one coloured segment per random event. It
+ * spins ~5 turns, decelerates onto a randomly chosen segment, then hands the
+ * landed event back to the parent so its decision card can appear. */
+const WHEEL_EMOJI = { coupon: '🎟️', gift: '🎁', electrician: '🔧', 'delivery-charge': '📦' };
+const WHEEL_FILL  = { coupon: '#10b981', gift: '#22c55e', electrician: '#f59e0b', 'delivery-charge': '#ef4444' };
+function SpinWheel({ events, accent, cta, onResult }) {
+  const [rot, setRot] = useState(0);
+  const [spinning, setSpinning] = useState(false);
+  const landed = useRef(null);
+  const n = events.length;
+  const seg = 360 / n;
+  const R = 96, C = 100;
+  const pt = (deg, r = R) => [C + r * Math.sin((deg * Math.PI) / 180), C - r * Math.cos((deg * Math.PI) / 180)];
+
+  const spin = () => {
+    if (spinning || landed.current) return;
+    setSpinning(true);
+    sfx('reveal');
+    const i = Math.floor(Math.random() * n);
+    landed.current = events[i];
+    // 5 full turns, then bring segment i's centre under the top pointer.
+    setRot(360 * 5 - i * seg);
+  };
+
+  return (
+    <div className="dbm-wheelwrap">
+      <div className="dbm-wheel__pointer" aria-hidden>▼</div>
+      <motion.svg
+        className="dbm-wheel3" width={210} height={210} viewBox="0 0 200 200"
+        animate={{ rotate: rot }} transition={{ duration: 3.6, ease: [0.18, 0.9, 0.2, 1] }}
+        onAnimationComplete={() => { if (spinning && landed.current) onResult(landed.current); }}
+      >
+        <circle cx={C} cy={C} r={R + 3} fill="#1b1830" stroke="rgba(255,255,255,.25)" strokeWidth="2" />
+        {events.map((ev, i) => {
+          const a0 = i * seg - seg / 2, a1 = i * seg + seg / 2;
+          const [x0, y0] = pt(a0), [x1, y1] = pt(a1);
+          const [lx, ly] = pt(i * seg, R * 0.62);
+          return (
+            <g key={ev.id}>
+              <path d={`M${C} ${C} L${x0} ${y0} A${R} ${R} 0 ${seg > 180 ? 1 : 0} 1 ${x1} ${y1} Z`}
+                fill={WHEEL_FILL[ev.id] || accent} stroke="rgba(0,0,0,.25)" strokeWidth="1" />
+              <text x={lx} y={ly} textAnchor="middle" dominantBaseline="central" fontSize="26"
+                transform={`rotate(${i * seg} ${lx} ${ly})`}>{WHEEL_EMOJI[ev.id] || '🎲'}</text>
+            </g>
+          );
+        })}
+        <circle cx={C} cy={C} r="16" fill="#fff" stroke="rgba(0,0,0,.2)" strokeWidth="1" />
+        <circle cx={C} cy={C} r="6" fill={accent} />
+      </motion.svg>
+      <CTA accent={accent} disabled={spinning} onClick={spin}>{spinning ? 'Spinning…' : cta}</CTA>
     </div>
   );
 }

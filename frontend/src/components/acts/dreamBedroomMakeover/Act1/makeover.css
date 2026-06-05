@@ -629,6 +629,21 @@
 }
 .dbm-events__roomwrap { position: relative; }
 
+/* --- interactive prize wheel --- */
+.dbm-wheelwrap { display: flex; flex-direction: column; align-items: center; gap: 18px; position: relative; }
+.dbm-wheel__pointer { position: absolute; top: -6px; left: 50%; transform: translateX(-50%); z-index: 3;
+  font-size: 26px; line-height: 1; color: var(--glow); filter: drop-shadow(0 3px 4px rgba(0,0,0,.5)); }
+.dbm-wheel3 { border-radius: 50%; filter: drop-shadow(0 18px 40px rgba(0,0,0,.5)); }
+.dbm-spin .dbm-h2 { margin-bottom: 0; }
+
+/* --- richer envelope / event cards --- */
+.dbm-envelope { background: linear-gradient(170deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); border-radius: 22px; padding: 26px 28px;
+  box-shadow: 0 26px 60px -30px #000; max-width: 520px; }
+.dbm-envelope__icon { color: var(--glow); filter: drop-shadow(0 10px 22px var(--accent)); }
+.dbm-eventopt:active { transform: translateY(0); }
+.dbm-events__toptext { box-shadow: 0 10px 30px -16px var(--accent); }
+
 /* ===================== SCREEN 6 — snapshot ===================== */
 .dbm-screen--snapshot .dbm-h2, .dbm-snap__title { color: #fff; font-family: 'Sora', 'Plus Jakarta Sans', system-ui, sans-serif; }
 .dbm-snap__grid { display: grid; grid-template-columns: 1fr; gap: 18px; width: 100%; max-width: 980px; align-items: center; }

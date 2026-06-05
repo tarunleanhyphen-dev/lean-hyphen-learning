@@ -362,8 +362,8 @@ export function C3Activity({ go, narration, accent }) {
         <motion.div key={exp.id} className="a2-expcard" initial={{ opacity: 0, y: -18, rotateX: 14 }} animate={{ opacity: 1, y: 0, rotateX: 0 }} exit={{ opacity: 0, scale: 0.85 }}
           whileHover={{ rotateX: -6, rotateY: 6, scale: 1.03 }} transition={{ type: 'spring', stiffness: 160, damping: 16 }}>
           <div className="a2-expcard__art">
-            <motion.div className="a2-expcard__art3d" animate={{ rotateY: [0, 12, -12, 0], y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 3.2, ease: 'easeInOut' }} whileHover={{ scale: 1.15 }}>
-              <ItemArt art={exp.art} size={62} />
+            <motion.div className="a2-expcard__art3d" animate={{ rotateY: [0, 12, -12, 0], y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 3.2, ease: 'easeInOut' }} whileHover={{ scale: 1.15 }}>
+              <ItemArt art={exp.art} size={108} />
             </motion.div>
           </div>
           <div className="a2-expcard__name">{exp.name}</div>

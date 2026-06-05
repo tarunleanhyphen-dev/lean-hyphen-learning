@@ -104,10 +104,10 @@
 .a2-skip:hover { color: #fff; background: rgba(255,255,255,.14); border-color: var(--accent); }
 
 /* WHITE expense card (was dark → text was invisible), with 3D perspective */
-.a2-expcard { width: 240px; text-align: center; perspective: 800px; transform-style: preserve-3d;
-  background: linear-gradient(180deg, #ffffff, #f4f6fb); border: 1px solid var(--card-bd); border-top: 4px solid var(--accent);
-  border-radius: 20px; padding: 18px 16px; box-shadow: 0 26px 56px -24px #000; }
-.a2-expcard__art { display: grid; place-items: center; height: 70px; perspective: 600px; }
+.a2-expcard { width: 320px; max-width: 90vw; text-align: center; perspective: 900px; transform-style: preserve-3d;
+  background: linear-gradient(180deg, #ffffff, #f4f6fb); border: 1px solid var(--card-bd); border-top: 5px solid var(--accent);
+  border-radius: 24px; padding: 26px 22px; box-shadow: 0 30px 64px -24px #000; }
+.a2-expcard__art { display: grid; place-items: center; height: 120px; perspective: 700px; }
 .a2-expcard__art3d { transform-style: preserve-3d; filter: drop-shadow(0 10px 12px rgba(0,0,0,.2)); }
 .a2-expcard__name { font-weight: 800; font-size: 16px; margin-top: 8px; color: #241f33; }
 .a2-expcard__amt { color: #7c3aed; font-weight: 900; font-size: 22px; }

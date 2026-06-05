@@ -318,9 +318,8 @@ export function Screen3Sort({ mk, narration, accent }) {
     setFly(choice);
     setDrop(choice);
     setTimeout(() => setDrop(null), 650);
+    // feedback shows visually only — no per-item voice on this screen
     const text = item.feedback[choice];
-    narration.say(text);
-    // let the card fly into the bucket, then reveal feedback
     setTimeout(() => { setFeedback({ item, choice, text, grey: item.isGreyArea }); setFly(null); }, 470);
   };
 
@@ -370,7 +369,7 @@ export function Screen3Sort({ mk, narration, accent }) {
                   animate={{ y: [0, -8, 0] }}
                   transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
                 >
-                  <ItemArt2D art={item.art} size={132} />
+                  <ItemArt2D art={item.art} tier={item.id.includes('budget') ? 'budget' : 'premium'} size={132} />
                 </motion.div>
                 <div className="dbm-sortcard__name">{item.name}</div>
                 <div className="dbm-sortcard__price">{fmt(item.price)}</div>
@@ -396,8 +395,8 @@ export function Screen3Sort({ mk, narration, accent }) {
         </motion.div>
       )}
 
-      <button className="dbm-sort__skip" onClick={() => { sfx('tap'); narration.skip(); mk.setScreen('screen-4-shop'); }}>
-        Skip activity <ArrowRight size={13} />
+      <button className="dbm-sort__skip" onClick={() => { sfx('tap'); narration.skip(); setIdx(sortItems.length); }}>
+        Skip to summary <ArrowRight size={13} />
       </button>
     </div>
   );
@@ -457,7 +456,7 @@ function SortBox({ kind, label, sub, accent, answers, active }) {
                 transition={{ type: 'spring', stiffness: 320, damping: 18 }}
                 title={it.name}
               >
-                <ItemArt2D art={it.art} size={34} />
+                <ItemArt2D art={it.art} tier={it.id.includes('budget') ? 'budget' : 'premium'} size={34} />
               </motion.div>
             ))}
           </AnimatePresence>
@@ -479,8 +478,8 @@ function SortSummary({ mk, accent, narration }) {
   const total = needsVal + wantsVal || 1;
   const needsPct = Math.round((needsVal / total) * 100);
   const wantsPct = 100 - needsPct;
-  // Dynamic narration — fills in the learner's own Needs / Wants totals.
-  const summaryLine = `Your Needs cost ${fmt(needsVal)} — that money has to be spent, no choice. Your Wants are ${fmt(wantsVal)} — that's where your decisions actually matter. Every budget has these two zones: fixed costs you can't avoid, and flexible spending you can control.`;
+  // Read the short summary heading aloud; the detailed split is shown visually.
+  const summaryLine = "Nice work! Here's a quick look at what you found.";
   const n = useScreenNarration(narration, [summaryLine]);
   useEffect(() => { sfx('reveal'); }, []);
 
@@ -545,7 +544,7 @@ function ZoneCard({ kind, emoji, title, caption, value, pct, color, answers }) {
       <div className="dbm-zone__caption">{caption}</div>
       <div className="dbm-zone__box">
         {items.map((it) => (
-          <div key={it.id} className="dbm-zone__item" title={it.name}><ItemArt2D art={it.art} size={36} /></div>
+          <div key={it.id} className="dbm-zone__item" title={it.name}><ItemArt2D art={it.art} tier={it.id.includes('budget') ? 'budget' : 'premium'} size={36} /></div>
         ))}
       </div>
     </motion.div>

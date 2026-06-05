@@ -14,10 +14,10 @@ let musicGain = null;
 let muted = true;
 
 const MASTER_VOLUME = 0.85;
-// Round 2 of the music-too-loud QA cycle. 0.25 was still too forward,
-// so dropping again to 0.10 puts the busiest mood at ~0.17 final gain
-// — barely-there ambience that won't fight the narrator.
-const MUSIC_VOLUME = 0.10;
+// Calm background music — clearly present but still under the narrator.
+const MUSIC_VOLUME = 0.22;
+// Kabir's narration plays a touch softer than full so the music sits nicely.
+const SPEECH_VOLUME = 0.78;
 
 function ensureCtx() {
   if (ctx) return ctx;
@@ -204,9 +204,9 @@ const MUSIC_TRACKS = {
   hit:         null,
   silent:      null,
 };
-/* Volume the real audio plays at. Deliberately lower than the synth
- * mood gain so the music sits CLEARLY under the narrator. */
-const BG_MUSIC_VOLUME = 0.08;
+/* Volume the real (ElevenLabs) background track plays at — present and
+ * pleasant, but still under Kabir's narration. */
+const BG_MUSIC_VOLUME = 0.20;
 
 // Mood definitions tuned so transitions are *audible*, not subtle. The big
 // dimensions of contrast: bus volume, presence of percussion, low-pass cutoff
@@ -1128,7 +1128,7 @@ export function cancelCloudSpeech() {
  * cancelling whatever's currently playing). The `done` callback fires
  * exactly once when the final chunk finishes — that's the queue's signal
  * to start the next item. */
-function cloudSpeakOnce(text, { who = 'shanaya', volume = 1 } = {}, done) {
+function cloudSpeakOnce(text, { who = 'shanaya', volume = SPEECH_VOLUME } = {}, done) {
   if (muted || !text) { done?.(); return; }
   cancelCloudSpeech();
   // Expand prices/digits into English words BEFORE stripping emoji + chunking.

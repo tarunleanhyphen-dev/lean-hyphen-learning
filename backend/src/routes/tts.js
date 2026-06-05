@@ -194,7 +194,15 @@ router.get('/', async (req, res, next) => {
       }
     }
 
-    cacheSet(cacheKey, buf);
+    // Only cache when the bytes came from the engine the cacheKey represents.
+    // Otherwise a transient ElevenLabs failure would cache the Edge fallback
+    // under the `el:` key — permanently giving that one line a different voice.
+    // Skipping the cache on fallback means the next request retries ElevenLabs,
+    // so every line converges on the real Kabir voice.
+    const elevenIntended = !!(elevenKey && elevenVoiceId);
+    if (!elevenIntended || source === 'elevenlabs') {
+      cacheSet(cacheKey, buf);
+    }
     res.set('X-TTS-Source', source || 'unknown');
 
     res.set('Content-Type', 'audio/mpeg');

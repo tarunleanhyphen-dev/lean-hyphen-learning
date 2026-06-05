@@ -401,8 +401,34 @@ export function Screen3Sort({ mk, narration, accent }) {
   );
 }
 
-/* A transparent, colour-tinted box labelled Need / Want. Items the learner has
- * sorted into it appear (and stay) inside the box. */
+/* A clean 3D glass display cube drawn in SVG (front + top + right faces + base). */
+function GlassCube({ accent }) {
+  return (
+    <svg className="dbm-cube__svg" viewBox="0 0 180 178" width="100%" aria-hidden preserveAspectRatio="xMidYMid meet">
+      {/* ----- wood base (under the glass) ----- */}
+      <path d="M130 140 L160 110 L160 138 L130 168 Z" fill="#4e3b25" />
+      <path d="M10 140 L130 140 L130 168 L10 168 Z" fill="#6a5036" />
+      <path d="M10 140 L130 140 L130 145 L10 145 Z" fill="#7d5e3c" />
+      {/* ----- glass cube ----- */}
+      {/* right side face (darker, tinted) */}
+      <path d="M130 40 L160 10 L160 110 L130 140 Z" fill="rgba(150,172,190,0.33)" stroke="rgba(255,255,255,0.55)" strokeWidth="1" />
+      {/* top face (lightest) */}
+      <path d="M10 40 L40 10 L160 10 L130 40 Z" fill="rgba(255,255,255,0.4)" stroke="rgba(255,255,255,0.85)" strokeWidth="1" />
+      {/* front face (clear) */}
+      <path d="M10 40 L130 40 L130 140 L10 140 Z" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.85)" strokeWidth="1.4" />
+      {/* faint accent tint along the front floor */}
+      <path d="M10 120 L130 120 L130 140 L10 140 Z" fill={accent} opacity="0.12" />
+      {/* glass sheen band on the front */}
+      <path d="M30 40 L54 40 L36 140 L12 140 Z" fill="rgba(255,255,255,0.16)" />
+      {/* crisp vertical edges */}
+      <line x1="10" y1="40" x2="10" y2="140" stroke="rgba(255,255,255,0.9)" strokeWidth="1.4" />
+      <line x1="130" y1="40" x2="130" y2="140" stroke="rgba(255,255,255,0.65)" strokeWidth="1.2" />
+    </svg>
+  );
+}
+
+/* A 3D glass display cube labelled Need / Want. Items the learner has sorted
+ * into it appear (and stay) inside the cube. */
 function SortBox({ kind, label, sub, accent, answers, active }) {
   const items = sortItems.filter((it) => answers[it.id] === kind);
   return (
@@ -415,9 +441,9 @@ function SortBox({ kind, label, sub, accent, answers, active }) {
     >
       {/* label tab on TOP */}
       <div className="dbm-sortbox__tab">{label}</div>
-      {/* clear glass cube — items sit inside */}
-      <div className="dbm-sortbox__glass">
-        <span className="dbm-sortbox__sheen" />
+      {/* 3D glass display cube — items overlaid inside the front face */}
+      <div className="dbm-sortbox__cube">
+        <GlassCube accent={accent} />
         <div className="dbm-sortbox__items">
           <AnimatePresence>
             {items.map((it) => (
@@ -429,16 +455,15 @@ function SortBox({ kind, label, sub, accent, answers, active }) {
                 transition={{ type: 'spring', stiffness: 320, damping: 18 }}
                 title={it.name}
               >
-                <ItemArt2D art={it.art} size={38} />
+                <ItemArt2D art={it.art} size={34} />
               </motion.div>
             ))}
           </AnimatePresence>
         </div>
-      </div>
-      {/* base */}
-      <div className="dbm-sortbox__base">
-        <span className="dbm-sortbox__sub">{sub}</span>
-        <span className="dbm-sortbox__count">{items.length} item{items.length === 1 ? '' : 's'}</span>
+        <div className="dbm-sortbox__base">
+          <span className="dbm-sortbox__sub">{sub}</span>
+          <span className="dbm-sortbox__count">{items.length} item{items.length === 1 ? '' : 's'}</span>
+        </div>
       </div>
     </motion.div>
   );

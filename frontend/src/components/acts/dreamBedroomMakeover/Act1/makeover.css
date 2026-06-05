@@ -631,8 +631,9 @@
 
 /* --- interactive prize wheel --- */
 .dbm-wheelwrap { display: flex; flex-direction: column; align-items: center; gap: 18px; position: relative; }
-.dbm-wheel__pointer { position: absolute; top: -6px; left: 50%; transform: translateX(-50%); z-index: 3;
-  font-size: 26px; line-height: 1; color: var(--glow); filter: drop-shadow(0 3px 4px rgba(0,0,0,.5)); }
+.dbm-wheel__pointer { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); z-index: 3;
+  font-size: 38px; line-height: 1; color: var(--glow); filter: drop-shadow(0 3px 4px rgba(0,0,0,.5)); }
+.dbm-wheel3 { max-width: 90vw; height: auto; }
 .dbm-wheel3 { border-radius: 50%; filter: drop-shadow(0 18px 40px rgba(0,0,0,.5)); }
 .dbm-spin .dbm-h2 { margin-bottom: 0; }
 

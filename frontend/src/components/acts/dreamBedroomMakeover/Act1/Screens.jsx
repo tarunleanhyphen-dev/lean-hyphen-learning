@@ -925,7 +925,7 @@ function SpinWheel({ events, accent, cta, onResult }) {
     <div className="dbm-wheelwrap">
       <div className="dbm-wheel__pointer" aria-hidden>▼</div>
       <motion.svg
-        className="dbm-wheel3" width={210} height={210} viewBox="0 0 200 200"
+        className="dbm-wheel3" width={320} height={320} viewBox="0 0 200 200"
         animate={{ rotate: rot }} transition={{ duration: 3.6, ease: [0.18, 0.9, 0.2, 1] }}
         onAnimationComplete={() => { if (spinning && landed.current) onResult(landed.current); }}
       >

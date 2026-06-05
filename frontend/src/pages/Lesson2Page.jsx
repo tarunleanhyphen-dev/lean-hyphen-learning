@@ -13,8 +13,9 @@ import { Play, Clock, Sparkles, Lock, ArrowRight } from 'lucide-react';
 import { lesson } from '../data/lessons/whereDoesMyMoneyGo.js';
 import DreamBedroomAct1 from '../components/acts/dreamBedroomMakeover/Act1/Act1.jsx';
 import DreamBedroomAct2 from '../components/acts/dreamBedroomMakeover/Act2/Act2.jsx';
+import DreamBedroomAct3 from '../components/acts/dreamBedroomMakeover/Act3/Act3.jsx';
 
-const ACT_COMPONENTS = { act1: DreamBedroomAct1, act2: DreamBedroomAct2 };
+const ACT_COMPONENTS = { act1: DreamBedroomAct1, act2: DreamBedroomAct2, act3: DreamBedroomAct3 };
 
 export default function Lesson2Page() {
   const { actId } = useParams();

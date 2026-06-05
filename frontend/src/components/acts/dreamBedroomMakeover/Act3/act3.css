@@ -1,0 +1,69 @@
+/* Act 3 — Knowledge Check quiz */
+.dbm-act3 .dbm-screen { max-width: 760px; gap: 14px; }
+
+/* intro */
+.dbm-q__intro { align-items: center; text-align: center; padding-top: 40px; }
+.dbm-q__introicon { font-size: 64px; line-height: 1; filter: drop-shadow(0 10px 16px rgba(0,0,0,.4)); }
+.dbm-q__introsub { color: var(--ink-dim); font-size: 15px; max-width: 460px; margin: 0; }
+
+/* quiz */
+.dbm-q { align-items: stretch; }
+.dbm-q__top { display: flex; align-items: center; justify-content: space-between; }
+.dbm-q__num { font-family: 'Sora', system-ui, sans-serif; font-weight: 800; font-size: 15px; color: var(--ink); }
+.dbm-q__num span { color: var(--ink-faint); font-weight: 600; }
+.dbm-q__tag { font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent); border-radius: 99px; padding: 4px 11px; }
+.dbm-q__progress { height: 5px; background: rgba(0,0,0,.08); border-radius: 99px; overflow: hidden; }
+.dbm-q__progress > div { height: 100%; background: var(--accent); border-radius: 99px; }
+.dbm-q__question { font-family: 'Sora', 'Plus Jakarta Sans', system-ui, sans-serif; font-weight: 700; font-size: clamp(18px, 2.6vw, 24px);
+  line-height: 1.4; letter-spacing: -0.01em; color: var(--ink); margin: 4px 0 6px; }
+.dbm-q__options { display: flex; flex-direction: column; gap: 10px; }
+.dbm-q__opt {
+  display: flex; align-items: center; gap: 12px; text-align: left; cursor: pointer;
+  background: var(--card); border: 1.5px solid var(--card-bd); border-radius: 14px; padding: 14px 16px;
+  font-size: 14.5px; font-weight: 500; color: var(--ink); transition: border-color .18s, background .18s, transform .12s;
+}
+.dbm-q__opt:not(:disabled):hover { border-color: var(--accent); transform: translateY(-2px); }
+.dbm-q__letter { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px;
+  font-family: 'Sora', system-ui, sans-serif; font-weight: 800; font-size: 14px; color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); }
+.dbm-q__opttext { flex: 1; }
+.dbm-q__mark { flex: none; }
+.dbm-q__opt.is-correct { border-color: #10b981; background: #e9faf3; color: #065f46; }
+.dbm-q__opt.is-correct .dbm-q__letter { background: #10b981; color: #fff; border-color: #10b981; }
+.dbm-q__opt.is-correct .dbm-q__mark { color: #10b981; }
+.dbm-q__opt.is-wrong { border-color: #f0a0a0; background: #fdecec; color: #b42318; }
+.dbm-q__opt.is-wrong .dbm-q__letter { background: #e0444c; color: #fff; border-color: #e0444c; }
+.dbm-q__opt.is-wrong .dbm-q__mark { color: #e0444c; }
+.dbm-q__opt.is-dim { opacity: .55; }
+.dbm-q__opt:disabled { cursor: default; }
+
+.dbm-q__fb { display: flex; align-items: center; gap: 12px; margin-top: 4px; color: var(--ink);
+  background: #fff; border: 1px solid var(--card-bd); border-radius: 16px; padding: 14px 16px; }
+.dbm-q__fb.is-right { border-color: rgba(16,185,129,.5); background: #e9faf3; }
+.dbm-q__fb.is-soft { border-color: rgba(99,102,241,.45); background: #eef0fe; }
+.dbm-q__fbicon { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: rgba(0,0,0,.06); font-size: 18px; }
+.dbm-q__fb p { flex: 1; margin: 0; font-size: 14px; line-height: 1.5; font-weight: 500; }
+.dbm-q__next { flex: none; display: inline-flex; align-items: center; gap: 5px; cursor: pointer; border: none;
+  background: linear-gradient(135deg, #ffce3a, #f0a90a); color: #3a2a00; border-radius: 11px; padding: 10px 16px; font-weight: 700; font-size: 13px; }
+
+/* result */
+.dbm-q__result { align-items: center; text-align: center; padding-top: 28px; }
+.dbm-q__trophy { color: #f0a90a; width: 46px; height: 46px; }
+.dbm-q__scorebig { font-family: 'Sora', system-ui, sans-serif; font-weight: 900; font-size: 64px; line-height: 1; color: var(--accent); }
+.dbm-q__scorebig span { font-size: 28px; color: var(--ink-faint); }
+.dbm-q__badge { display: inline-flex; align-items: center; gap: 8px; font-family: 'Sora', system-ui, sans-serif; font-weight: 800; font-size: 20px; color: var(--ink);
+  background: color-mix(in srgb, var(--accent) 12%, #fff); border: 1px solid color-mix(in srgb, var(--accent) 34%, transparent); border-radius: 14px; padding: 8px 18px; }
+.dbm-q__badgeicon { font-size: 24px; }
+.dbm-q__badgetext { color: var(--ink-dim); font-size: 14.5px; line-height: 1.6; max-width: 520px; margin: 2px 0; }
+.dbm-q__closing { font-size: 14px; line-height: 1.6; color: var(--ink); max-width: 520px; font-style: italic;
+  background: color-mix(in srgb, var(--accent) 8%, #fff); border-left: 3px solid var(--accent); border-radius: 0 12px 12px 0; padding: 12px 16px; text-align: left; }
+.dbm-q__actions { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 380px; margin-top: 8px; }
+.dbm-q__actions .dbm-cta { justify-content: center; }
+.dbm-q__btn2 { display: inline-flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;
+  font-weight: 700; font-size: 14px; color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 38%, transparent); border-radius: 14px; padding: 12px 18px; }
+.dbm-q__btn2:hover { background: color-mix(in srgb, var(--accent) 20%, transparent); }
+.dbm-q__btn3 { display: inline-flex; align-items: center; justify-content: center; gap: 7px; cursor: pointer;
+  font-weight: 600; font-size: 13px; color: var(--ink-faint); background: none; border: none; padding: 6px; }
+.dbm-q__btn3:hover { color: var(--ink); }

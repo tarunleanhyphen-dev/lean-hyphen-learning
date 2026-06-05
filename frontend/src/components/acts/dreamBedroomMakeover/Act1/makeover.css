@@ -448,6 +448,18 @@
 .dbm-zonebar__seg--need { background: linear-gradient(100deg, #10b981, #059669); }
 .dbm-zonebar__seg--want { background: linear-gradient(100deg, #a855f7, #7c3aed); }
 .dbm-zones { display: grid; grid-template-columns: 1fr; gap: 16px; width: 100%; max-width: 660px; perspective: 1100px; }
+
+/* Bigger summary variant — no Kabir card, roomier zones */
+.dbm-screen--sortsum-lg .dbm-zonebar { max-width: 860px; height: 52px; }
+.dbm-screen--sortsum-lg .dbm-zonebar__seg { font-size: 17px; }
+.dbm-screen--sortsum-lg .dbm-zones { max-width: 880px; grid-template-columns: 1fr 1fr; gap: 22px; }
+.dbm-screen--sortsum-lg .dbm-zone { padding: 26px 28px; }
+.dbm-screen--sortsum-lg .dbm-zone__emoji { font-size: 50px; }
+.dbm-screen--sortsum-lg .dbm-zone__val { font-size: 36px; }
+.dbm-screen--sortsum-lg .dbm-zone__title { font-size: 17px; }
+.dbm-screen--sortsum-lg .dbm-zone__box { min-height: 72px; }
+.dbm-screen--sortsum-lg .dbm-sort__title { font-size: clamp(24px, 3.4vw, 34px); }
+@media (max-width: 760px) { .dbm-screen--sortsum-lg .dbm-zones { grid-template-columns: 1fr; } }
 .dbm-zone {
   position: relative; text-align: left; padding: 20px 22px; border-radius: 22px; transform-style: preserve-3d;
   background: linear-gradient(165deg, #ffffff, #f4f6fb); border: 1px solid var(--card-bd);

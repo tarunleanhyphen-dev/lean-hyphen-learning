@@ -478,18 +478,21 @@ function SortSummary({ mk, accent, narration }) {
   const total = needsVal + wantsVal || 1;
   const needsPct = Math.round((needsVal / total) * 100);
   const wantsPct = 100 - needsPct;
-  // Read the short summary heading aloud; the detailed split is shown visually.
+  // Read ONLY the short summary line aloud (no on-screen Kabir card here).
   const summaryLine = "Nice work! Here's a quick look at what you found.";
-  const n = useScreenNarration(narration, [summaryLine]);
+  useScreenNarration(narration, [summaryLine]);
   useEffect(() => { sfx('reveal'); }, []);
 
   return (
-    <div className="dbm-screen dbm-screen--sortsum">
+    <div className="dbm-screen dbm-screen--sortsum dbm-screen--sortsum-lg">
       <PartyPopper className="dbm-sortsum__pop" />
       <motion.div className="dbm-eyebrow" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
         <Sparkles size={14} /> Step 4 · The two zones of every budget
       </motion.div>
       <h2 className="dbm-h2 dbm-sort__title">{s.summaryHeading}</h2>
+
+      {/* Start-shopping button moved to the top */}
+      <CTA accent={accent} onClick={() => mk.setScreen('screen-4-shop')}><ShoppingBag size={18} /> {s.cta}</CTA>
 
       <div className="dbm-zonebar">
         <motion.div className="dbm-zonebar__seg dbm-zonebar__seg--need" initial={{ width: 0 }} animate={{ width: `${needsPct}%` }} transition={{ duration: 0.9, ease: 'easeOut' }}>
@@ -504,9 +507,6 @@ function SortSummary({ mk, accent, narration }) {
         <ZoneCard kind="need" emoji="🧺" title="Needs · fixed costs" caption="Has to be spent — no choice." value={needsVal} pct={needsPct} color="#10B981" answers={answers} />
         <ZoneCard kind="want" emoji="🛍️" title="Wants · flexible spending" caption="Where your decisions matter." value={wantsVal} pct={wantsPct} color="#A855F7" answers={answers} />
       </div>
-
-      <NarratorCard narration={narration} lines={[summaryLine]} accent={accent} done={n.done} onReplay={n.replay} onSkip={n.skip} compact />
-      <CTA accent={accent} disabled={!n.done} onClick={() => mk.setScreen('screen-4-shop')}><ShoppingBag size={17} /> {s.cta}</CTA>
     </div>
   );
 }

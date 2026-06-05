@@ -1136,8 +1136,11 @@ function cloudSpeakOnce(text, { who = 'shanaya', volume = 1 } = {}, done) {
   });
   pendingAudios = audios;
   if (import.meta.env?.DEV) {
+    // NB: `text` is this fn's string param (shadows the text() helper), so build
+    // the preview inline rather than calling text().
+    const preview = (chunks[0] || '').slice(0, 60) + (chunks.length > 1 ? ` (+${chunks.length - 1} more)` : '');
     // eslint-disable-next-line no-console
-    console.log('[cloudSpeak] 🔊', who, '→', text(chunks));
+    console.log('[cloudSpeak] 🔊', who, '→', preview);
   }
   playChunkSequence(audios, 0, () => {
     activeUtterances = Math.max(0, activeUtterances - 1);

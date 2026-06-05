@@ -1257,6 +1257,10 @@ export function expandNumbersForTTS(text) {
   if (!text) return text;
   let out = text;
 
+  // Percentages FIRST: "50%" → "fifty percent" (the voice engine otherwise
+  // mis-reads the "%" glyph). Handles 1–3 digit values.
+  out = out.replace(/(\d{1,3})\s?%/g, (_m, d) => `${intToWords(parseInt(d, 10))} percent`);
+
   // ₹3,596  or  ₹3596  → "three thousand five hundred ninety six rupees"
   out = out.replace(/₹\s?([\d,]+)/g, (_m, digits) => {
     const n = parseInt(digits.replace(/,/g, ''), 10);

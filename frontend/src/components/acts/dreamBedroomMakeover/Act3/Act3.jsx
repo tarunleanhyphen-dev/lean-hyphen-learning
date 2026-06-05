@@ -220,10 +220,13 @@ export default function DreamBedroomAct3({ onComplete, onGoHome }) {
   const [picked, setPicked] = useState(null);
   const [score, setScore] = useState(0);
   const [results, setResults] = useState([]); // 'right' | 'wrong' | 'skip' per question
-  const [showInvoice, setShowInvoice] = useState(false);
+  const [showInvoice, setShowInvoice] = useState(true);
   const [voiceOn, setVoiceOn] = useState(false);
-  const prog = useMemo(loadProgress, [screen]); // re-read when reaching result
-  const billUnlocked = !!(prog.act1 && prog.act2);
+  useMemo(loadProgress, [screen]); // re-read progress when reaching result
+  // The spending snapshot always generates at the end of Act 3. It reads the
+  // learner's Act 1 choices from localStorage (with safe defaults if Act 1
+  // wasn't played), so it never needs to be gated behind act completion.
+  const billUnlocked = true;
 
   const q = QUESTIONS[idx];
 

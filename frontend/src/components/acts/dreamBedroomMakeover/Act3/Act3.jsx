@@ -121,72 +121,32 @@ function closingLine(a1) {
 
 const inr = (n) => '₹' + Number(n).toLocaleString('en-IN');
 
-/* ---- GST invoice (Indian format) downloaded as a self-contained HTML file ---- */
-function downloadInvoice(a1) {
+/* ---- spending snapshot shown inline as an invoice card (no GST, no download) ---- */
+function Invoice({ a1 }) {
   const items = a1.items.length ? a1.items : [{ name: 'Dream Bedroom Setup', price: 40000 }];
-  const rows = items.map((it, i) => {
-    const taxable = Math.round(it.price / 1.18); // treat catalogue price as GST-inclusive
-    const gst = it.price - taxable;
-    return { i: i + 1, name: it.name, hsn: '9403', qty: 1, taxable, gst, amount: it.price };
-  });
-  const sub = rows.reduce((s, r) => s + r.taxable, 0);
-  const gstTotal = rows.reduce((s, r) => s + r.gst, 0);
-  const grand = rows.reduce((s, r) => s + r.amount, 0);
-  const cgst = Math.round(gstTotal / 2), sgst = gstTotal - cgst;
-  const inv = 'LH/' + new Date().getFullYear() + '/' + Math.floor(1000 + (grand % 9000));
-  const today = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Invoice ${inv}</title>
-<style>
-  *{box-sizing:border-box;font-family:'Segoe UI',Arial,sans-serif}
-  body{margin:0;background:#eef1f6;padding:24px;color:#1f2430}
-  .inv{max-width:760px;margin:auto;background:#fff;border:1px solid #e3e7ee;border-radius:14px;overflow:hidden;box-shadow:0 18px 50px -24px rgba(0,0,0,.35)}
-  .hd{display:flex;justify-content:space-between;align-items:center;padding:22px 26px;background:linear-gradient(135deg,#10B981,#0c8f63);color:#fff}
-  .brand{display:flex;align-items:center;gap:12px}
-  .brand .logo{width:46px;height:46px;border-radius:12px;background:#fff;display:grid;place-items:center;font-size:26px}
-  .brand h1{margin:0;font-size:20px}.brand p{margin:2px 0 0;font-size:12px;opacity:.9}
-  .ttl{text-align:right}.ttl h2{margin:0;font-size:24px;letter-spacing:2px}.ttl p{margin:2px 0 0;font-size:12px;opacity:.9}
-  .meta{display:flex;justify-content:space-between;gap:20px;padding:18px 26px;border-bottom:1px solid #eef1f6;font-size:13px}
-  .meta b{display:block;color:#0c8f63;font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
-  table{width:100%;border-collapse:collapse;font-size:13px}
-  th{background:#f4f7fb;text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#5c6678}
-  td{padding:10px 12px;border-bottom:1px solid #f0f3f8}
-  td.r,th.r{text-align:right}
-  .tot{padding:16px 26px;display:flex;justify-content:flex-end}
-  .tot table{width:300px}
-  .tot td{border:none;padding:5px 0}
-  .grand{font-size:18px;font-weight:800;color:#0c8f63;border-top:2px solid #10B981!important;padding-top:8px!important}
-  .ft{padding:16px 26px;background:#f8fafc;font-size:11px;color:#7a8499;text-align:center;border-top:1px solid #eef1f6}
-  .words{padding:0 26px 14px;font-size:12px;color:#5c6678}
-</style></head>
-<body><div class="inv">
-  <div class="hd">
-    <div class="brand"><div class="logo">🛋️</div><div><h1>Lean Hyphen Furnishings</h1><p>Dream Bedroom Store · Bengaluru, KA</p></div></div>
-    <div class="ttl"><h2>TAX INVOICE</h2><p>GSTIN: 29ABCDE1234F1Z5</p></div>
-  </div>
-  <div class="meta">
-    <div><b>Invoice No.</b>${inv}<br><b style="margin-top:8px">Date</b>${today}</div>
-    <div><b>Billed To</b>Student Saver<br>Lesson 2 · Where Does My Money Go?</div>
-    <div><b>Place of Supply</b>Karnataka (29)<br><b style="margin-top:8px">Payment</b>Simulation</div>
-  </div>
-  <table><thead><tr><th>#</th><th>Item</th><th>HSN</th><th class="r">Qty</th><th class="r">Taxable</th><th class="r">GST 18%</th><th class="r">Amount</th></tr></thead>
-  <tbody>${rows.map((r) => `<tr><td>${r.i}</td><td>${r.name}</td><td>${r.hsn}</td><td class="r">${r.qty}</td><td class="r">${inr(r.taxable)}</td><td class="r">${inr(r.gst)}</td><td class="r">${inr(r.amount)}</td></tr>`).join('')}</tbody></table>
-  <div class="tot"><table>
-    <tr><td>Taxable Value</td><td class="r">${inr(sub)}</td></tr>
-    <tr><td>CGST @ 9%</td><td class="r">${inr(cgst)}</td></tr>
-    <tr><td>SGST @ 9%</td><td class="r">${inr(sgst)}</td></tr>
-    <tr><td class="grand">Grand Total</td><td class="r grand">${inr(grand)}</td></tr>
-  </table></div>
-  <div class="words">Amount chargeable (in words): <b>${grand.toLocaleString('en-IN')} Rupees only</b></div>
-  <div class="ft">This is a computer-generated invoice for a learning simulation · Lean Hyphen · Goods once sold are part of your dream room 💚</div>
-</div></body></html>`;
-
-  const blob = new Blob([html], { type: 'text/html' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = `spending-snapshot-${inv.replace(/\//g, '-')}.html`;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  const total = items.reduce((s, it) => s + it.price, 0);
+  const savings = Math.max(0, 50000 - total);
+  const inv = useMemo(() => 'LH/' + new Date().getFullYear() + '/' + Math.floor(1000 + (total % 9000)), [total]);
+  const today = useMemo(() => new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }), []);
+  return (
+    <motion.div className="dbm-inv" initial={{ opacity: 0, y: 16, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: 'spring', stiffness: 180, damping: 20 }}>
+      <div className="dbm-inv__hd">
+        <div className="dbm-inv__brand"><span className="dbm-inv__logo">🛋️</span><div><b>Lean Hyphen Furnishings</b><small>Dream Bedroom Store</small></div></div>
+        <div className="dbm-inv__ttl"><b>INVOICE</b><small>{inv}</small></div>
+      </div>
+      <div className="dbm-inv__meta"><span>Billed to · Student Saver</span><span>{today}</span></div>
+      <table className="dbm-inv__table">
+        <thead><tr><th>#</th><th>Item</th><th className="r">Qty</th><th className="r">Amount</th></tr></thead>
+        <tbody>{items.map((it, i) => (<tr key={i}><td>{i + 1}</td><td>{it.name}</td><td className="r">1</td><td className="r">{inr(it.price)}</td></tr>))}</tbody>
+      </table>
+      <div className="dbm-inv__totals">
+        <div><span>Total spent</span><b>{inr(total)}</b></div>
+        <div><span>Saved · reserve</span><b className="dbm-inv__save">{inr(savings)}</b></div>
+        <div className="dbm-inv__grand"><span>Budget</span><b>{inr(50000)}</b></div>
+      </div>
+      <div className="dbm-inv__ft">🧾 Your spending snapshot · Lean Hyphen 💚</div>
+    </motion.div>
+  );
 }
 
 export default function DreamBedroomAct3({ onComplete, onGoHome }) {
@@ -195,6 +155,7 @@ export default function DreamBedroomAct3({ onComplete, onGoHome }) {
   const [idx, setIdx] = useState(0);
   const [picked, setPicked] = useState(null);
   const [score, setScore] = useState(0);
+  const [showInvoice, setShowInvoice] = useState(false);
 
   const q = QUESTIONS[idx];
   const choose = (oi) => {
@@ -212,7 +173,20 @@ export default function DreamBedroomAct3({ onComplete, onGoHome }) {
 
   return (
     <div className="dbm dbm--study dbm-act3" style={{ '--accent': ACCENT, '--glow': GLOW }}>
-      <div className="dbm__bg"><div className="dbm__bg-blob dbm__bg-blob--1" /><div className="dbm__bg-blob dbm__bg-blob--2" /><div className="dbm__bg-grid" /></div>
+      <div className="dbm__bg">
+        <div className="dbm__bg-blob dbm__bg-blob--1" /><div className="dbm__bg-blob dbm__bg-blob--2" /><div className="dbm__bg-grid" />
+        {[{ x: 10, s: 4, d: 13, delay: 0 }, { x: 24, s: 3, d: 16, delay: 2.4 }, { x: 38, s: 5, d: 12, delay: 1.1 },
+          { x: 54, s: 3, d: 17, delay: 3.2 }, { x: 68, s: 4, d: 14, delay: 0.7 }, { x: 82, s: 3, d: 18, delay: 2.1 },
+          { x: 92, s: 5, d: 15, delay: 3.8 }].map((m, i) => (
+          <span key={i} className="dbm__bg-mote dbm-act3__mote" style={{ left: `${m.x}%`, width: m.s, height: m.s, animationDuration: `${m.d}s`, animationDelay: `${m.delay}s` }} />
+        ))}
+        {/* big rotating ring + floating quiz glyphs for an animated quiz backdrop */}
+        <span className="dbm-act3__ring dbm-act3__ring--1" />
+        <span className="dbm-act3__ring dbm-act3__ring--2" />
+        {['₹', '%', '✓', '50/30/20', '₹', '＝'].map((g, i) => (
+          <span key={i} className={`dbm-act3__glyph dbm-act3__glyph--${i}`}>{g}</span>
+        ))}
+      </div>
 
       <header className="dbm__topbar">
         <button className="dbm__home" onClick={onGoHome} title="Home"><Home size={16} /></button>
@@ -264,8 +238,14 @@ export default function DreamBedroomAct3({ onComplete, onGoHome }) {
                 <AnimatePresence>
                   {picked !== null && (
                     <motion.div className={`dbm-q__fb ${q.options[picked].correct ? 'is-right' : 'is-soft'}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                      <div className="dbm-q__fbicon">{q.options[picked].correct ? <Check size={18} /> : '💡'}</div>
-                      <p>{q.options[picked].correct ? q.right : q.wrong}</p>
+                      <div className="dbm-q__fbinner">
+                        <div className="dbm-q__fbhead">
+                          <span className="dbm-q__fbicon">{q.options[picked].correct ? <Check size={16} /> : '💡'}</span>
+                          <strong>{q.options[picked].correct ? 'Correct!' : `Not quite — the answer is ${String.fromCharCode(65 + q.options.findIndex((o) => o.correct))}. ${q.options.find((o) => o.correct).t}`}</strong>
+                        </div>
+                        <p>{q.options[picked].correct ? q.right : q.wrong}</p>
+                        {!q.options[picked].correct && <p className="dbm-q__fbwhy"><b>Why:</b> {q.right}</p>}
+                      </div>
                       <button className="dbm-q__next" onClick={next}>{idx + 1 >= QUESTIONS.length ? 'See result' : 'Next'} <ArrowRight size={15} /></button>
                     </motion.div>
                   )}
@@ -285,9 +265,10 @@ export default function DreamBedroomAct3({ onComplete, onGoHome }) {
                   <button className="dbm-cta" onClick={() => { try { localStorage.removeItem('lh.dbm.act1.v1'); } catch { /* noop */ } window.location.href = '/lesson2/act1'; }}>
                     <RotateCcw size={16} /> Play again — new room style
                   </button>
-                  <button className="dbm-q__btn2" onClick={() => downloadInvoice(a1)}><Download size={16} /> Download my spending snapshot</button>
+                  <button className="dbm-q__btn2" onClick={() => setShowInvoice((v) => !v)}><Download size={16} /> {showInvoice ? 'Hide' : 'Show'} my spending snapshot</button>
                   <button className="dbm-q__btn3" onClick={onGoHome}><Home size={15} /> Back to lessons</button>
                 </div>
+                <AnimatePresence>{showInvoice && <Invoice a1={a1} />}</AnimatePresence>
               </motion.div>
             )}
           </AnimatePresence>

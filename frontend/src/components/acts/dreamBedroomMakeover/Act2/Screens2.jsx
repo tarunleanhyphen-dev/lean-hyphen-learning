@@ -152,76 +152,101 @@ function CoinShower() {
   );
 }
 
+const RULE_VIDEO_ID = 'WE5Xxr1jY0g'; // YouTube Short
+
 function RuleTV() {
   const [stage, setStage] = useState(0);
-  // ~2.5s per stage → ~10s full loop.
+  const [playVideo, setPlayVideo] = useState(false);
+  // ~2.5s per stage → ~10s full loop. Pause the loop while the real video plays.
   useEffect(() => {
+    if (playVideo) return undefined;
     const id = setInterval(() => setStage((s) => (s + 1) % TV_STAGES.length), 2500);
     return () => clearInterval(id);
-  }, []);
+  }, [playVideo]);
   const st = TV_STAGES[stage];
   const filledUpTo = stage; // 0 = none, 1 = needs, 2 = +wants, 3 = +savings
   const done = stage === TV_STAGES.length - 1;
   const progress = ((stage + 1) / TV_STAGES.length) * 100;
 
+  const toggleVideo = () => { sfx(playVideo ? 'tap' : 'click'); setPlayVideo((v) => !v); };
+
   return (
     <div className="a2-tv">
       {/* player chrome */}
       <div className="a2-tv__bar">
-        <span className="a2-tv__rec" /> <span className="a2-tv__live">PLAYING</span>
-        <span className="a2-tv__clock">0:0{Math.min(9, stage * 3)} / 0:10</span>
+        <span className="a2-tv__rec" /> <span className="a2-tv__live">{playVideo ? 'VIDEO' : 'PLAYING'}</span>
+        <span className="a2-tv__clock">{playVideo ? '▶ with sound' : `0:0${Math.min(9, stage * 3)} / 0:10`}</span>
       </div>
 
       <div className="a2-tv__screen">
-        <div className="a2-tv__scan" />
-        <div className="a2-tv__vignette" />
+        {playVideo ? (
+          /* real YouTube Short — autoplay WITH sound (user clicked Play) */
+          <iframe
+            className="a2-tv__yt"
+            src={`https://www.youtube.com/embed/${RULE_VIDEO_ID}?autoplay=1&playsinline=1&rel=0&modestbranding=1&loop=1&playlist=${RULE_VIDEO_ID}`}
+            title="The 50/30/20 rule — video"
+            frameBorder="0"
+            allow="autoplay; encrypted-media; clipboard-write; picture-in-picture"
+            allowFullScreen
+          />
+        ) : (
+          <>
+            <div className="a2-tv__scan" />
+            <div className="a2-tv__vignette" />
 
-        {/* coins tumble on every money-moving stage */}
-        <AnimatePresence>{stage > 0 && <CoinShower key={stage} />}</AnimatePresence>
+            {/* coins tumble on every money-moving stage */}
+            <AnimatePresence>{stage > 0 && <CoinShower key={stage} />}</AnimatePresence>
 
-        {/* changing caption with a 3D-spinning icon */}
-        <AnimatePresence mode="wait">
-          <motion.div key={st.key} className="a2-tv__cap"
-            initial={{ opacity: 0, y: 14, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -14, scale: 0.9 }} transition={{ duration: 0.4 }}>
-            <motion.div className="a2-tv__bigico" animate={{ rotateY: [0, 360], y: [0, -8, 0] }} transition={{ rotateY: { duration: 2.2, repeat: Infinity, ease: 'linear' }, y: { duration: 2.2, repeat: Infinity, ease: 'easeInOut' } }}>{st.icon}</motion.div>
-            <div className="a2-tv__title">{st.title}</div>
-            <div className="a2-tv__sub">{st.sub}</div>
-          </motion.div>
-        </AnimatePresence>
-
-        {/* progressively-filling buckets */}
-        <div className="a2-tv__rows">
-          {TV_ROWS.map((r, i) => {
-            const active = filledUpTo >= i + 1;
-            return (
-              <motion.div className={`a2-tv__row ${active ? 'is-active' : ''}`} key={r.label} animate={{ opacity: active ? 1 : 0.55 }}>
-                <span className="a2-tv__ico">{r.icon}</span>
-                <div className="a2-tv__track">
-                  <motion.div className="a2-tv__fill" style={{ background: r.color }}
-                    animate={{ width: active ? `${r.pct}%` : '0%' }} transition={{ type: 'spring', stiffness: 90, damping: 18 }} />
-                  <span className="a2-tv__pct" style={{ color: active ? r.color : 'rgba(255,255,255,.4)' }}>{r.pct}%</span>
-                </div>
-                <span className="a2-tv__lbl">{r.label}</span>
+            {/* changing caption with a 3D-spinning icon */}
+            <AnimatePresence mode="wait">
+              <motion.div key={st.key} className="a2-tv__cap"
+                initial={{ opacity: 0, y: 14, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -14, scale: 0.9 }} transition={{ duration: 0.4 }}>
+                <motion.div className="a2-tv__bigico" animate={{ rotateY: [0, 360], y: [0, -8, 0] }} transition={{ rotateY: { duration: 2.2, repeat: Infinity, ease: 'linear' }, y: { duration: 2.2, repeat: Infinity, ease: 'easeInOut' } }}>{st.icon}</motion.div>
+                <div className="a2-tv__title">{st.title}</div>
+                <div className="a2-tv__sub">{st.sub}</div>
               </motion.div>
-            );
-          })}
-        </div>
+            </AnimatePresence>
 
-        <AnimatePresence>
-          {done && (
-            <motion.div className="a2-tv__badge" initial={{ opacity: 0, scale: 0.5, y: 8 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ type: 'spring', stiffness: 200, damping: 14 }}>
-              ✓ That's the 50/30/20 rule!
-            </motion.div>
-          )}
-        </AnimatePresence>
+            {/* progressively-filling buckets */}
+            <div className="a2-tv__rows">
+              {TV_ROWS.map((r, i) => {
+                const active = filledUpTo >= i + 1;
+                return (
+                  <motion.div className={`a2-tv__row ${active ? 'is-active' : ''}`} key={r.label} animate={{ opacity: active ? 1 : 0.55 }}>
+                    <span className="a2-tv__ico">{r.icon}</span>
+                    <div className="a2-tv__track">
+                      <motion.div className="a2-tv__fill" style={{ background: r.color }}
+                        animate={{ width: active ? `${r.pct}%` : '0%' }} transition={{ type: 'spring', stiffness: 90, damping: 18 }} />
+                      <span className="a2-tv__pct" style={{ color: active ? r.color : 'rgba(255,255,255,.4)' }}>{r.pct}%</span>
+                    </div>
+                    <span className="a2-tv__lbl">{r.label}</span>
+                  </motion.div>
+                );
+              })}
+            </div>
+
+            <AnimatePresence>
+              {done && (
+                <motion.div className="a2-tv__badge" initial={{ opacity: 0, scale: 0.5, y: 8 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ type: 'spring', stiffness: 200, damping: 14 }}>
+                  ✓ That's the 50/30/20 rule!
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </>
+        )}
       </div>
 
-      {/* video scrubber */}
-      <div className="a2-tv__scrub"><motion.div className="a2-tv__scrubfill" animate={{ width: `${progress}%` }} transition={{ duration: 0.4, ease: 'linear' }} /></div>
+      {/* video scrubber (animation mode only) */}
+      {!playVideo && <div className="a2-tv__scrub"><motion.div className="a2-tv__scrubfill" animate={{ width: `${progress}%` }} transition={{ duration: 0.4, ease: 'linear' }} /></div>}
 
       <div className="a2-tv__neck" />
       <div className="a2-tv__base" />
-      <div className="a2-tv__caption">📺 The 50/30/20 rule, explained · on loop</div>
+
+      {/* Play / Stop the real video (with sound) */}
+      <button className={`a2-tv__playbtn ${playVideo ? 'is-stop' : ''}`} onClick={toggleVideo}>
+        {playVideo ? '■ Stop video' : '▶ Play video with sound'}
+      </button>
+      <div className="a2-tv__caption">📺 {playVideo ? 'Real video · tap Stop to return to the animation' : 'The 50/30/20 rule, explained · on loop'}</div>
     </div>
   );
 }

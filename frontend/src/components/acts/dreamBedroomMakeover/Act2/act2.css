@@ -71,6 +71,14 @@
 .a2-tv__badge { margin-top: 14px; text-align: center; font-family: 'Sora', system-ui, sans-serif; font-weight: 800; font-size: 16px;
   color: #0b1020; background: linear-gradient(180deg, #ffe08a, #f4a91e); border-radius: 99px; padding: 8px 16px;
   box-shadow: 0 10px 22px -6px rgba(244,169,30,.7); position: relative; z-index: 3; }
+/* embedded YouTube video — fills the screen, portrait short pillar-boxed by YT */
+.a2-tv__yt { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; background: #000; }
+.a2-tv__playbtn { margin-top: 14px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+  font-family: 'Sora', system-ui, sans-serif; font-weight: 800; font-size: 14px; color: #0b1020;
+  background: linear-gradient(180deg, #ffe08a, #f4a91e); border: none; border-radius: 99px; padding: 11px 22px;
+  box-shadow: 0 14px 28px -10px rgba(244,169,30,.7); transition: transform .15s, box-shadow .2s; }
+.a2-tv__playbtn:hover { transform: translateY(-2px); box-shadow: 0 18px 34px -10px rgba(244,169,30,.8); }
+.a2-tv__playbtn.is-stop { color: #fff; background: linear-gradient(180deg, #ef4444, #b91c1c); box-shadow: 0 14px 28px -10px rgba(239,68,68,.6); }
 .a2-tv__scrub { width: 100%; max-width: 540px; height: 8px; background: #0a0f1d; border: 6px solid #0a0f1d; border-top: none; border-radius: 0 0 4px 4px; overflow: hidden; }
 .a2-tv__scrubfill { height: 100%; background: linear-gradient(90deg, #f4a91e, #ffd76a); box-shadow: 0 0 10px #f4a91e; }
 .a2-tv__neck { width: 52px; height: 18px; background: linear-gradient(180deg, #1a2030, #0a0f1d); }

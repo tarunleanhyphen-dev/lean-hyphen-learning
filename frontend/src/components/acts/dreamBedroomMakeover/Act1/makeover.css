@@ -391,29 +391,39 @@
 .dbm-sortcard__price { color: color-mix(in srgb, var(--accent) 82%, #000); font-weight: 800; font-size: 20px; margin-top: 2px; }
 .dbm-sortcard__grey { font-size: 11px; color: #d8920a; margin-top: 5px; font-weight: 600; }
 
-/* frosted-GLASS Need / Want boxes — items accumulate inside */
+/* clear GLASS display-cube Need / Want boxes — items sit inside, label on top */
 .dbm-sortbox {
-  --accent: #10b981; position: relative; display: flex; flex-direction: column; align-items: center; gap: 3px;
-  width: 100%; min-height: 220px; padding: 14px 12px 12px; border-radius: 22px; overflow: hidden;
-  background:
-    linear-gradient(160deg, color-mix(in srgb, var(--accent) 22%, rgba(255,255,255,0.55)) 0%, color-mix(in srgb, var(--accent) 9%, rgba(255,255,255,0.18)) 100%);
-  -webkit-backdrop-filter: blur(12px) saturate(1.3); backdrop-filter: blur(12px) saturate(1.3);
-  border: 1.5px solid color-mix(in srgb, var(--accent) 42%, rgba(255,255,255,0.6));
-  box-shadow: inset 0 1.5px 0 rgba(255,255,255,.7), inset 0 -14px 30px -16px color-mix(in srgb, var(--accent) 50%, transparent), 0 20px 44px -22px rgba(0,0,0,.45);
-  transition: transform .25s, box-shadow .25s, border-color .25s;
+  --accent: #10b981; position: relative; display: flex; flex-direction: column; align-items: stretch;
+  width: 100%; transition: transform .25s; padding-top: 16px;
 }
-/* glass sheen streak */
-.dbm-sortbox::before { content: ''; position: absolute; top: -40%; left: -20%; width: 50%; height: 180%;
-  background: linear-gradient(100deg, transparent, rgba(255,255,255,.45), transparent); transform: rotate(18deg); pointer-events: none; }
-.dbm-sortbox.is-active { transform: scale(1.04); border-color: var(--accent);
-  box-shadow: inset 0 1.5px 0 rgba(255,255,255,.7), 0 0 0 3px color-mix(in srgb, var(--accent) 24%, transparent), 0 22px 46px -18px var(--accent); }
-.dbm-sortbox__label { position: relative; font-family: 'Sora', system-ui, sans-serif; font-weight: 800; font-size: 17px; letter-spacing: .04em; color: color-mix(in srgb, var(--accent) 78%, #000); }
-.dbm-sortbox__sub { position: relative; font-size: 11px; color: var(--ink-faint); margin-top: -3px; }
-.dbm-sortbox__items { position: relative; flex: 1; width: 100%; display: flex; flex-wrap: wrap; align-content: flex-start; justify-content: center; gap: 5px; margin-top: 8px; }
-.dbm-sortbox__item { width: 42px; height: 42px; border-radius: 10px; background: rgba(255,255,255,.55);
-  border: 1px solid rgba(255,255,255,.7); box-shadow: 0 3px 8px -3px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.8);
-  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); display: grid; place-items: center; overflow: hidden; }
-.dbm-sortbox__count { position: relative; font-size: 11px; font-weight: 700; color: color-mix(in srgb, var(--accent) 80%, #000); }
+.dbm-sortbox.is-active { transform: scale(1.04); }
+/* solid colour tab on TOP — always readable */
+.dbm-sortbox__tab {
+  align-self: center; position: relative; z-index: 3; margin-bottom: -10px;
+  font-family: 'Sora', system-ui, sans-serif; font-weight: 800; font-size: 15px; letter-spacing: .12em; text-transform: uppercase;
+  color: #fff; background: var(--accent); padding: 7px 24px; border-radius: 11px;
+  box-shadow: 0 10px 22px -8px var(--accent), inset 0 1px 0 rgba(255,255,255,.4);
+}
+/* the clear glass cube */
+.dbm-sortbox__glass {
+  position: relative; min-height: 178px; padding: 20px 12px 14px; border-radius: 14px 14px 4px 4px; overflow: hidden;
+  background: linear-gradient(160deg, rgba(255,255,255,.42) 0%, color-mix(in srgb, var(--accent) 7%, rgba(255,255,255,.12)) 100%);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  border: 1.5px solid color-mix(in srgb, var(--accent) 30%, rgba(255,255,255,.75));
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.85), inset 2px 0 0 rgba(255,255,255,.4), inset -2px 0 0 rgba(255,255,255,.25), 0 16px 34px -20px rgba(0,0,0,.45);
+}
+.dbm-sortbox.is-active .dbm-sortbox__glass { border-color: var(--accent); box-shadow: inset 0 2px 0 rgba(255,255,255,.85), 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent), 0 18px 38px -18px var(--accent); }
+.dbm-sortbox__sheen { position: absolute; top: -30%; left: -10%; width: 38%; height: 160%; pointer-events: none;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,.5), transparent); transform: rotate(16deg); }
+.dbm-sortbox__items { position: relative; display: flex; flex-wrap: wrap; align-content: flex-start; justify-content: center; gap: 6px; }
+.dbm-sortbox__item { width: 42px; height: 42px; border-radius: 10px; background: rgba(255,255,255,.72);
+  border: 1px solid rgba(255,255,255,.85); box-shadow: 0 3px 8px -3px rgba(0,0,0,.22); display: grid; place-items: center; overflow: hidden; }
+/* base plinth */
+.dbm-sortbox__base { display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 7px 14px; border-radius: 0 0 12px 12px; background: linear-gradient(180deg, #6a5238, #4e3c28);
+  box-shadow: 0 12px 22px -12px rgba(0,0,0,.5); }
+.dbm-sortbox__sub { font-size: 11px; color: rgba(255,255,255,.72); }
+.dbm-sortbox__count { font-size: 11.5px; font-weight: 800; color: #fff; }
 .dbm-sort__skip { margin-top: 4px; display: inline-flex; align-items: center; gap: 5px; background: none; border: none;
   color: #f08a0a; font-weight: 700; font-size: 13px; cursor: pointer; opacity: .85; transition: opacity .15s; }
 .dbm-sort__skip:hover { opacity: 1; text-decoration: underline; text-underline-offset: 3px; }

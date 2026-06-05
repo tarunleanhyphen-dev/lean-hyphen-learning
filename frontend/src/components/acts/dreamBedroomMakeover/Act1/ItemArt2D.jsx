@@ -96,21 +96,30 @@ function GamingChair() {
 
 function Wardrobe({ premium }) {
   if (premium) {
+    // big premium wardrobe with 4 sliding doors
     return (
       <svg viewBox="0 0 100 100" width="100%" height="100%" aria-hidden>
-        <Defs id="wp" from="#d8b888" to="#b6905f" />
-        <ellipse cx="50" cy="90" rx="34" ry="4.5" fill="rgba(0,0,0,0.14)" />
-        <rect x="22" y="14" width="56" height="74" rx="4" fill="url(#wp)" />
-        {/* sliding doors */}
-        <rect x="25" y="18" width="24" height="66" rx="2" fill="#e6cda4" />
-        <rect x="51" y="18" width="24" height="66" rx="2" fill="#d9bd91" />
-        <rect x="25" y="18" width="24" height="66" rx="2" fill="none" stroke="#b6905f" strokeWidth="1" />
-        {/* glass sheen on sliding panel */}
-        <rect x="29" y="22" width="5" height="58" rx="2" fill="#fff" opacity="0.35" />
-        {/* recessed bar handles */}
-        <rect x="46" y="44" width="2.5" height="14" rx="1" fill="#7a5733" />
-        <rect x="51.5" y="44" width="2.5" height="14" rx="1" fill="#7a5733" />
-        <text x="60" y="30" fontSize="10">✨</text>
+        <Defs id="wp" from="#dcbf95" to="#ad8755" />
+        <ellipse cx="50" cy="93" rx="42" ry="4.5" fill="rgba(0,0,0,0.16)" />
+        {/* cabinet body */}
+        <rect x="9" y="9" width="82" height="82" rx="4" fill="url(#wp)" />
+        {/* top cornice */}
+        <rect x="6" y="6" width="88" height="8" rx="3" fill="#c9a673" />
+        {/* 4 sliding door panels */}
+        {[0, 1, 2, 3].map((i) => {
+          const x = 12 + i * 19.2;
+          return (
+            <g key={i}>
+              <rect x={x} y="16" width="17.4" height="68" rx="2" fill={i % 2 ? '#ead4ad' : '#dcc196'} stroke="#b6905f" strokeWidth="0.6" />
+              <rect x={x + 2} y="19" width="3" height="62" rx="1.5" fill="#fff" opacity="0.34" />
+              <rect x={x + 12.6} y="44" width="2.3" height="13" rx="1" fill="#7a5733" />
+            </g>
+          );
+        })}
+        <text x="80" y="26" fontSize="11">✨</text>
+        {/* legs */}
+        <rect x="14" y="91" width="5" height="6" fill="#8a6a45" />
+        <rect x="81" y="91" width="5" height="6" fill="#8a6a45" />
       </svg>
     );
   }

@@ -52,17 +52,22 @@ function Wardrobe({ premium }) {
   const c = premium ? '#caa06a' : '#9c8a6e';
   // right corner, against the front (door) wall, doors facing into the room
   return (
-    <group position={[2.5, 0, 2.3]} rotation={[0, Math.PI, 0]}>
-      <Box args={[1.3, 2.4, 0.7]} color={c} position={[0, 1.2, 0]} />
+    <group position={premium ? [2.0, 0, 2.2] : [2.5, 0, 2.3]} rotation={[0, Math.PI, 0]}>
       {premium ? (
         <>
-          {/* sliding-door panels */}
-          <Box args={[0.62, 2.2, 0.05]} color="#e6cda4" position={[-0.32, 1.2, 0.37]} />
-          <Box args={[0.62, 2.2, 0.05]} color="#d9bd91" position={[0.32, 1.2, 0.36]} />
-          <Box args={[0.04, 0.4, 0.04]} color="#7a5733" position={[0.02, 1.2, 0.4]} />
+          {/* bigger premium cabinet with 4 sliding doors */}
+          <Box args={[1.9, 2.6, 0.7]} color={c} position={[0, 1.3, 0]} />
+          <Box args={[2.0, 0.14, 0.74]} color="#c9a673" position={[0, 2.66, 0]} />
+          {[-0.69, -0.23, 0.23, 0.69].map((dx, i) => (
+            <Box key={i} args={[0.44, 2.3, 0.05]} color={i % 2 ? '#ead4ad' : '#dcc196'} position={[dx, 1.3, 0.37]} />
+          ))}
+          {[-0.69, -0.23, 0.23, 0.69].map((dx, i) => (
+            <Box key={`h${i}`} args={[0.03, 0.3, 0.04]} color="#7a5733" position={[dx + 0.16, 1.3, 0.4]} />
+          ))}
         </>
       ) : (
         <>
+          <Box args={[1.3, 2.4, 0.7]} color={c} position={[0, 1.2, 0]} />
           {/* two hinged doors + knobs */}
           <Box args={[0.6, 2.2, 0.04]} color="#8a755a" position={[-0.32, 1.2, 0.37]} />
           <Box args={[0.6, 2.2, 0.04]} color="#80694e" position={[0.32, 1.2, 0.37]} />
@@ -70,7 +75,6 @@ function Wardrobe({ premium }) {
           <Box args={[0.05, 0.18, 0.05]} color="#3b2f22" position={[0.06, 1.2, 0.4]} />
         </>
       )}
-      {premium && <Box args={[1.32, 0.12, 0.72]} color="#f5d18a" position={[0, 2.46, 0]} emissive="#caa06a" />}
     </group>
   );
 }

@@ -413,25 +413,33 @@ function SortBox({ kind, label, sub, accent, answers, active }) {
       animate={{ opacity: 1, y: 0, scale: active ? 1.04 : 1 }}
       transition={{ type: 'spring', stiffness: 240, damping: 18 }}
     >
-      <div className="dbm-sortbox__label">{label}</div>
-      <div className="dbm-sortbox__sub">{sub}</div>
-      <div className="dbm-sortbox__items">
-        <AnimatePresence>
-          {items.map((it) => (
-            <motion.div
-              key={it.id}
-              className="dbm-sortbox__item"
-              initial={{ scale: 0, opacity: 0, y: -12 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              transition={{ type: 'spring', stiffness: 320, damping: 18 }}
-              title={it.name}
-            >
-              <ItemArt2D art={it.art} size={38} />
-            </motion.div>
-          ))}
-        </AnimatePresence>
+      {/* label tab on TOP */}
+      <div className="dbm-sortbox__tab">{label}</div>
+      {/* clear glass cube — items sit inside */}
+      <div className="dbm-sortbox__glass">
+        <span className="dbm-sortbox__sheen" />
+        <div className="dbm-sortbox__items">
+          <AnimatePresence>
+            {items.map((it) => (
+              <motion.div
+                key={it.id}
+                className="dbm-sortbox__item"
+                initial={{ scale: 0, opacity: 0, y: -12 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                transition={{ type: 'spring', stiffness: 320, damping: 18 }}
+                title={it.name}
+              >
+                <ItemArt2D art={it.art} size={38} />
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
       </div>
-      <div className="dbm-sortbox__count">{items.length} item{items.length === 1 ? '' : 's'}</div>
+      {/* base */}
+      <div className="dbm-sortbox__base">
+        <span className="dbm-sortbox__sub">{sub}</span>
+        <span className="dbm-sortbox__count">{items.length} item{items.length === 1 ? '' : 's'}</span>
+      </div>
     </motion.div>
   );
 }

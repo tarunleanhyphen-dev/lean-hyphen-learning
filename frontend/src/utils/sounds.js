@@ -1137,18 +1137,24 @@ function cloudSpeakOnce(text, { who = 'shanaya', volume = SPEECH_VOLUME } = {}, 
   const chunks = chunkForTTS(stripEmoji(expandNumbersForTTS(text)));
   if (chunks.length === 0) { done?.(); return; }
   activeUtterances += 1;
-  // Pre-create EVERY chunk's <audio> up front so each is already buffering
-  // before its turn. Previously each chunk was only fetched when the prior
-  // one ended, leaving an audible network gap between phrases ("breaking").
-  const audios = chunks.map((c) => {
-    const a = new Audio(`${CLOUD_TTS_BASE}/api/tts?voice=${encodeURIComponent(who)}&v=12&text=${encodeURIComponent(c)}`);
+  // Build each chunk's <audio> lazily, prefetching only ONE chunk ahead. This
+  // keeps playback gap-free (the next chunk buffers while the current plays)
+  // while making at most 2 concurrent TTS requests. Firing EVERY chunk at once
+  // overloaded ElevenLabs, so some chunks fell back to a different voice
+  // mid-line — which is why Scenes 6/7 sounded inconsistent.
+  const audios = new Array(chunks.length);
+  const make = (i) => {
+    if (i >= chunks.length) return null;
+    if (audios[i]) return audios[i];
+    const a = new Audio(`${CLOUD_TTS_BASE}/api/tts?voice=${encodeURIComponent(who)}&v=12&text=${encodeURIComponent(chunks[i])}`);
     a.preload = 'auto';
     a.preservesPitch = true; // keep pitch natural at 1.0× rate
     a.playbackRate = 1.0;
     a.crossOrigin = 'anonymous';
     a.volume = volume;
+    audios[i] = a;
     return a;
-  });
+  };
   pendingAudios = audios;
   if (import.meta.env?.DEV) {
     // NB: `text` is this fn's string param (shadows the text() helper), so build
@@ -1157,7 +1163,8 @@ function cloudSpeakOnce(text, { who = 'shanaya', volume = SPEECH_VOLUME } = {}, 
     // eslint-disable-next-line no-console
     console.log('[cloudSpeak] 🔊', who, '→', preview);
   }
-  playChunkSequence(audios, 0, () => {
+  make(0); make(1); // current + 1-ahead
+  playChunkSequence(audios, 0, make, () => {
     activeUtterances = Math.max(0, activeUtterances - 1);
     done?.();
   });
@@ -1169,13 +1176,15 @@ export function cloudSpeak(text, opts = {}) {
   speak(text, opts);
 }
 
-function playChunkSequence(audios, i, onFinished) {
+function playChunkSequence(audios, i, make, onFinished) {
   if (i >= audios.length) {
     onFinished?.();
     return;
   }
-  const audio = audios[i];
+  const audio = make(i);
   currentCloudAudio = audio;
+  // Prefetch the NEXT chunk now (1-ahead) so it's buffered before this ends.
+  make(i + 1);
 
   // Route this chunk through the Web Audio analyser so the avatar can
   // read real-time amplitude (drives accurate mouth open/close instead
@@ -1198,14 +1207,14 @@ function playChunkSequence(audios, i, onFinished) {
     // utterance's next chunk on top of the new one.
     if (audio !== currentCloudAudio) return;
     if (i + 1 >= audios.length) stopAmplitudeLoop();
-    playChunkSequence(audios, i + 1, onFinished);
+    playChunkSequence(audios, i + 1, make, onFinished);
   };
   audio.onerror = () => {
     if (audio !== currentCloudAudio) return; // superseded
     // eslint-disable-next-line no-console
     console.warn('[cloudSpeak] audio error on chunk', i, '— skipping');
     if (i + 1 >= audios.length) stopAmplitudeLoop();
-    playChunkSequence(audios, i + 1, onFinished);
+    playChunkSequence(audios, i + 1, make, onFinished);
   };
   audio.play().then(() => {
     if (audio !== currentCloudAudio) {
@@ -1220,7 +1229,7 @@ function playChunkSequence(audios, i, onFinished) {
     if (audio !== currentCloudAudio) return; // superseded
     // eslint-disable-next-line no-console
     console.warn('[cloudSpeak] play() rejected', err.message);
-    playChunkSequence(audios, i + 1, onFinished);
+    playChunkSequence(audios, i + 1, make, onFinished);
   });
 }
 

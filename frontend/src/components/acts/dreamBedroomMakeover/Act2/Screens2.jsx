@@ -76,24 +76,30 @@ export function C1Reveal({ go, narration, accent }) {
       <h2 className="dbm-h2">The 50/30/20 Rule</h2>
       <NarratorCard narration={narration} lines={[d.intro, d.prompt]} accent={accent} done={n.done} onReplay={n.replay} onSkip={n.skip} compact />
 
-      <div className="a2-reveal">
-        <Pie slices={d.slices} unlocked={unlocked} onSlice={click} />
-        <div className="a2-reveal__panel">
-          {d.slices.map((s) => {
-            const open = unlocked.includes(s.id);
-            return (
-              <motion.button key={s.id} className={`a2-slicecard ${open ? 'is-open' : ''}`} style={{ '--c': s.color }}
-                onClick={() => click(s)} animate={{ opacity: open ? 1 : 0.6 }}>
-                <div className="a2-slicecard__pct">{s.pct}%</div>
-                <div className="a2-slicecard__body">
-                  <div className="a2-slicecard__label">{open ? s.label : 'Tap to reveal'}</div>
-                  {open && <p>{s.text.replace(/^\d+% — \w+\. /, '')}</p>}
-                </div>
-                {open && <Check size={16} className="a2-slicecard__check" />}
-              </motion.button>
-            );
-          })}
+      <div className="a2-reveal2">
+        <div className="a2-reveal2__left">
+          <Pie slices={d.slices} unlocked={unlocked} onSlice={click} />
+          <div className="a2-reveal__panel">
+            {d.slices.map((s) => {
+              const open = unlocked.includes(s.id);
+              return (
+                <motion.button key={s.id} className={`a2-slicecard ${open ? 'is-open' : ''}`} style={{ '--c': s.color }}
+                  onClick={() => click(s)} whileHover={{ scale: open ? 1 : 1.02 }} whileTap={{ scale: 0.98 }}
+                  animate={open ? { scale: [1, 1.04, 1] } : { opacity: 1 }} transition={{ duration: 0.4 }}>
+                  <div className="a2-slicecard__pct">{s.pct}%</div>
+                  <div className="a2-slicecard__body">
+                    <div className="a2-slicecard__label">{open ? s.label : '👆 Tap to reveal'}</div>
+                    {open && <p>{s.text.replace(/^\d+% — \w+\. /, '')}</p>}
+                  </div>
+                  {open && <Check size={16} className="a2-slicecard__check" />}
+                </motion.button>
+              );
+            })}
+          </div>
         </div>
+
+        {/* "Rule TV" — a looping 3D motion explainer on the right */}
+        <RuleTV />
       </div>
 
       <AnimatePresence>
@@ -109,37 +115,85 @@ export function C1Reveal({ go, narration, accent }) {
   );
 }
 
+/* A small TV/monitor that loops a 3D-style motion explainer of the rule:
+ * a spinning ₹ coin drops, and the three buckets fill to 50/30/20 on repeat. */
+function RuleTV() {
+  const rows = [
+    { pct: 50, label: 'Needs', color: '#10B981', icon: '🏠' },
+    { pct: 30, label: 'Wants', color: '#A855F7', icon: '🎮' },
+    { pct: 20, label: 'Savings', color: '#F59E0B', icon: '🐷' },
+  ];
+  return (
+    <div className="a2-tv">
+      <div className="a2-tv__screen">
+        <div className="a2-tv__scan" />
+        <div className="a2-tv__title">Where ₹50,000 goes</div>
+        <motion.div className="a2-tv__coin" animate={{ rotateY: [0, 360] }} transition={{ repeat: Infinity, duration: 2.4, ease: 'linear' }}>₹</motion.div>
+        <div className="a2-tv__rows">
+          {rows.map((r, i) => (
+            <div className="a2-tv__row" key={r.label}>
+              <span className="a2-tv__ico">{r.icon}</span>
+              <div className="a2-tv__track">
+                <motion.div className="a2-tv__fill" style={{ background: r.color }}
+                  initial={{ width: '0%' }}
+                  animate={{ width: ['0%', `${r.pct}%`, `${r.pct}%`, '0%'] }}
+                  transition={{ repeat: Infinity, duration: 4, times: [0, 0.35, 0.85, 1], delay: i * 0.25, ease: 'easeInOut' }} />
+                <span className="a2-tv__pct" style={{ color: r.color }}>{r.pct}%</span>
+              </div>
+              <span className="a2-tv__lbl">{r.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="a2-tv__neck" />
+      <div className="a2-tv__base" />
+      <div className="a2-tv__caption">📺 The rule, on loop</div>
+    </div>
+  );
+}
+
 function Pie({ slices, unlocked, onSlice }) {
-  const size = 230, r = 80, cx = size / 2, cy = size / 2, c = 2 * Math.PI * r;
+  const size = 240, r = 82, cx = size / 2, cy = size / 2, c = 2 * Math.PI * r;
   let acc = 0;
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="a2-pie">
-      <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,.08)" strokeWidth="44" />
-      {slices.map((s) => {
-        const frac = s.pct / 100;
-        const dash = frac * c;
-        const open = unlocked.includes(s.id);
-        const el = (
-          <circle key={s.id} cx={cx} cy={cy} r={r} fill="none"
-            stroke={s.color} strokeWidth="44" strokeOpacity={open ? 1 : 0.28}
-            strokeDasharray={`${dash - 2} ${c - dash + 2}`} strokeDashoffset={-acc}
-            transform={`rotate(-90 ${cx} ${cy})`} style={{ cursor: 'pointer', transition: 'stroke-opacity .3s' }}
-            onClick={() => onSlice(s)} />
-        );
-        acc += dash;
-        return el;
-      })}
-      {/* labels */}
-      {(() => { let a = 0; return slices.map((s) => {
-        const mid = (a + s.pct / 2) / 100 * 2 * Math.PI - Math.PI / 2;
-        a += s.pct;
-        const lr = r;
-        const x = cx + Math.cos(mid) * lr, y = cy + Math.sin(mid) * lr;
-        const open = unlocked.includes(s.id);
-        return <text key={s.id} x={x} y={y} textAnchor="middle" dominantBaseline="middle" className="a2-pie__lbl">{open ? `${s.pct}%` : '?'}</text>;
-      }); })()}
-      <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle" className="a2-pie__center">50·30·20</text>
-    </svg>
+    <div className="a2-pie3d">
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="a2-pie">
+        <defs>
+          {slices.map((s) => (
+            <linearGradient key={s.id} id={`pg-${s.id}`} x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stopColor={s.color} stopOpacity="1" />
+              <stop offset="1" stopColor={s.color} stopOpacity="0.5" />
+            </linearGradient>
+          ))}
+        </defs>
+        {/* depth shadow ring (the "3D" rim) */}
+        <circle cx={cx} cy={cy + 6} r={r} fill="none" stroke="rgba(0,0,0,.45)" strokeWidth="46" />
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,.06)" strokeWidth="46" />
+        {slices.map((s) => {
+          const frac = s.pct / 100;
+          const dash = frac * c;
+          const open = unlocked.includes(s.id);
+          const el = (
+            <motion.circle key={s.id} cx={cx} cy={cy} r={r} fill="none"
+              stroke={`url(#pg-${s.id})`} strokeWidth="46" strokeOpacity={open ? 1 : 0.32}
+              strokeDasharray={`${dash - 2} ${c - dash + 2}`} strokeDashoffset={-acc}
+              transform={`rotate(-90 ${cx} ${cy})`} style={{ cursor: 'pointer' }}
+              animate={open ? { strokeWidth: [46, 54, 46] } : { strokeWidth: 46 }} transition={{ duration: 0.5 }}
+              onClick={() => onSlice(s)} />
+          );
+          acc += dash;
+          return el;
+        })}
+        {(() => { let a = 0; return slices.map((s) => {
+          const mid = (a + s.pct / 2) / 100 * 2 * Math.PI - Math.PI / 2;
+          a += s.pct;
+          const x = cx + Math.cos(mid) * r, y = cy + Math.sin(mid) * r;
+          const open = unlocked.includes(s.id);
+          return <text key={s.id} x={x} y={y} textAnchor="middle" dominantBaseline="middle" className="a2-pie__lbl">{open ? `${s.pct}%` : '?'}</text>;
+        }); })()}
+        <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle" className="a2-pie__center">50·30·20</text>
+      </svg>
+    </div>
   );
 }
 

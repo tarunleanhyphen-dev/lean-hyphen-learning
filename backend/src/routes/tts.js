@@ -189,24 +189,32 @@ router.get('/', async (req, res, next) => {
       }
     }
     if (!buf) {
-      try {
-        buf = await synthEdge(voice.neural, text, { pitch: voice.pitch, rate: voice.rate });
-        source = source || 'edge';
-      } catch (edgeErr) {
-        // eslint-disable-next-line no-console
-        console.warn('[tts] edge failed, falling back to google:', edgeErr?.message);
-        buf = await synthGoogle(voice.googleTl, text);
-        source = source || 'google';
+      // Retry Edge once too, so a transient Edge hiccup doesn't drop the line
+      // onto Google's (different-sounding) voice.
+      for (let attempt = 0; attempt < 2 && !buf; attempt += 1) {
+        try {
+          buf = await synthEdge(voice.neural, text, { pitch: voice.pitch, rate: voice.rate });
+          source = source || 'edge';
+        } catch (edgeErr) {
+          // eslint-disable-next-line no-console
+          console.warn(`[tts] edge attempt ${attempt + 1} failed:`, edgeErr?.message);
+          if (attempt === 0) await new Promise((r) => setTimeout(r, 300));
+        }
       }
     }
+    if (!buf) {
+      buf = await synthGoogle(voice.googleTl, text);
+      source = source || 'google';
+    }
 
-    // Only cache when the bytes came from the engine the cacheKey represents.
-    // Otherwise a transient ElevenLabs failure would cache the Edge fallback
-    // under the `el:` key — permanently giving that one line a different voice.
-    // Skipping the cache on fallback means the next request retries ElevenLabs,
-    // so every line converges on the real Kabir voice.
-    const elevenIntended = !!(elevenKey && elevenVoiceId);
-    if (!elevenIntended || source === 'elevenlabs') {
+    // Cache ONLY when the bytes came from the engine the cacheKey represents.
+    // The intended primary is ElevenLabs (if configured) else Edge. Caching a
+    // fallback (Edge-under-EL, or Google-under-Edge) would permanently give that
+    // one line a DIFFERENT voice than the rest. Skipping the cache on a fallback
+    // means the next request retries the intended engine, so every line in the
+    // lesson converges on the SAME voice.
+    const intendedSource = (elevenKey && elevenVoiceId) ? 'elevenlabs' : 'edge';
+    if (source === intendedSource) {
       cacheSet(cacheKey, buf);
     }
     res.set('X-TTS-Source', source || 'unknown');

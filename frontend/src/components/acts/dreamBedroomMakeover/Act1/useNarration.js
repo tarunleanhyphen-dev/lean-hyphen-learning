@@ -32,6 +32,7 @@ export function useNarration() {
   const timersRef  = useRef([]);    // pending fallback timers
   const safetyRef  = useRef(null);  // backstop timer in voice mode
   const lastRef    = useRef(null);  // {lines, onDone} of the most recent narrate()
+  const dedupeRef  = useRef({ key: '', t: 0 }); // guards StrictMode double-narrate
 
   const clearTimers = () => {
     timersRef.current.forEach(clearTimeout);
@@ -61,6 +62,15 @@ export function useNarration() {
 
   const narrate = useCallback((lines, onDone) => {
     const arr = (Array.isArray(lines) ? lines : [lines]).filter(Boolean);
+    // Dedupe: ignore an identical narrate() fired within 1.5s (e.g. React
+    // StrictMode mounting the screen effect twice) so the voice plays once.
+    const key = arr.join('|');
+    const now = Date.now();
+    if (key && dedupeRef.current.key === key && now - dedupeRef.current.t < 1500) {
+      if (onDone) onDone();
+      return;
+    }
+    dedupeRef.current = { key, t: now };
     lastRef.current = { lines: arr, onDone };
     // Reset any in-flight run WITHOUT triggering its onDone.
     doneRef.current = null;

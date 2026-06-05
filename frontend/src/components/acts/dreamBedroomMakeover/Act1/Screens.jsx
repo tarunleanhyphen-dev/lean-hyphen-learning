@@ -582,15 +582,20 @@ export function Screen4Shop({ mk, narration, vibe, accent }) {
   const [oppo, setOppo] = useState(null); // { oc, itemId }
   const [midPause, setMidPause] = useState(false); // halfway reflection card
   const midDone = useRef(false);
+  const midArmed = useRef(false); // only arm AFTER the cart reset lands (spend low)
   const toastTimer = useRef(null);
 
   const { spent, spendable, needsCount, cartItems } = mk;
   const inCart = (id) => mk.state.cart.includes(id);
   const valid = needsCount >= s.gates.minNeeds && spent <= spendable;
 
-  // Mid-period review — fires once when half the budget (₹24,000) is spent.
+  // Mid-period review — fires once when half the budget (₹24,000) is spent
+  // DURING this run. We arm only after spend has been below the threshold,
+  // so a previous run's leftover cart (cleared by resetShop on the next tick)
+  // can't trip it the instant the shop mounts.
   useEffect(() => {
-    if (!midDone.current && spent >= 24000) {
+    if (spent < 24000) midArmed.current = true;
+    if (midArmed.current && !midDone.current && spent >= 24000) {
       midDone.current = true;
       setMidPause(true);
       narration.say('Half the budget is gone. Are your Needs covered? Anything essential still missing? Checking in halfway is a real habit — budgeters call it a mid-period review.');
@@ -1000,7 +1005,7 @@ export function Screen6Snapshot({ mk, narration, accent, onComplete }) {
     if (mcq) return;
     sfx(id === biggest.id ? 'ding' : 'tap');
     setMcq(id); mk.setSnapshotMcq(id);
-    narration.say("You just felt what real budgeting is like. Now let's learn the rule that makes it easier — every time.");
+    // No extra voice here — Scene 7 narrates only once (the intro line).
   };
 
   return (

@@ -105,6 +105,13 @@ export function useMakeover() {
     ...s, reserve: RESERVE_INIT, savings: 0, budgetBonus: 0, removedByEvent: [],
     fixedEventChoice: null, randomEvent: null, randomEventChoice: null, snapshotMcq: null,
   })), []);
+  // Entering the shop = a fresh build: empty cart (room blank, ₹0 spent) AND
+  // cleared event effects, so each replay starts from zero and the halfway
+  // review pops only after the learner spends ₹24,000 in THIS run.
+  const resetShop = useCallback(() => setState((s) => ({
+    ...s, cart: [], reserve: RESERVE_INIT, savings: 0, budgetBonus: 0, removedByEvent: [],
+    fixedEventChoice: null, randomEvent: null, randomEventChoice: null, snapshotMcq: null,
+  })), []);
 
   const addItem = useCallback((itemId) => setState((s) => {
     const it = itemIndex[itemId];
@@ -177,7 +184,7 @@ export function useMakeover() {
     cartItems, spent, remaining, spendable,
     categoryTotals, needsTotal, wantsTotal, needsCount, wantsCount,
     budget: { total: budgetTotal, base: BUDGET_BASE, reserve: state.reserve, spendable, bonus: state.budgetBonus || 0 },
-    setScreen, pickVibe, setSortAnswer, resetSort, resetEvents,
+    setScreen, pickVibe, setSortAnswer, resetSort, resetEvents, resetShop,
     addItem, removeItem, toggleItem,
     applyEventEffect, setRandomEvent, setSnapshotMcq, reset,
   };

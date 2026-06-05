@@ -185,6 +185,33 @@ function Invoice({ a1 }) {
   );
 }
 
+/* count-up number for the score reveal */
+function CountUp({ to, dur = 900 }) {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    let raf, start;
+    const step = (t) => { if (!start) start = t; const p = Math.min(1, (t - start) / dur); setN(Math.round(p * to)); if (p < 1) raf = requestAnimationFrame(step); };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [to, dur]);
+  return <>{n}</>;
+}
+
+/* lightweight celebratory confetti (high scores only) */
+function Confetti() {
+  const bits = useMemo(() => Array.from({ length: 36 }, (_, i) => ({
+    x: (i * 53) % 100, c: ['#10B981', '#34d399', '#ffce3a', '#f0a90a', '#60a5fa', '#f472b6'][i % 6],
+    d: 2.4 + ((i * 7) % 18) / 10, delay: ((i * 11) % 20) / 10, r: (i * 37) % 360, s: 5 + (i % 4) * 2,
+  })), []);
+  return (
+    <div className="dbm-q__confetti" aria-hidden>
+      {bits.map((b, i) => (
+        <span key={i} style={{ left: `${b.x}%`, background: b.c, width: b.s, height: b.s * 1.6, animationDuration: `${b.d}s`, animationDelay: `${b.delay}s`, transform: `rotate(${b.r}deg)` }} />
+      ))}
+    </div>
+  );
+}
+
 export default function DreamBedroomAct3({ onComplete, onGoHome }) {
   const a1 = useMemo(loadAct1, []);
   const narration = useNarration();
@@ -192,6 +219,7 @@ export default function DreamBedroomAct3({ onComplete, onGoHome }) {
   const [idx, setIdx] = useState(0);
   const [picked, setPicked] = useState(null);
   const [score, setScore] = useState(0);
+  const [results, setResults] = useState([]); // 'right' | 'wrong' | 'skip' per question
   const [showInvoice, setShowInvoice] = useState(false);
   const [voiceOn, setVoiceOn] = useState(false);
   const prog = useMemo(loadProgress, [screen]); // re-read when reaching result
@@ -212,6 +240,7 @@ export default function DreamBedroomAct3({ onComplete, onGoHome }) {
     setPicked(oi);
     const correct = q.options[oi].correct;
     if (correct) setScore((s) => s + 1);
+    setResults((r) => { const n = [...r]; n[idx] = correct ? 'right' : 'wrong'; return n; });
     if (voiceOn) {
       const fb = correct ? `Correct. ${q.right}` : `Not quite. The answer is ${q.options.find((o) => o.correct).t}. ${q.right}`;
       narration.say(fb);
@@ -222,7 +251,11 @@ export default function DreamBedroomAct3({ onComplete, onGoHome }) {
     if (idx + 1 >= QUESTIONS.length) { markActDone('act3'); setScreen('result'); return; }
     setIdx((i) => i + 1); setPicked(null);
   };
-  const skip = () => { narration.stop(); setPicked(null); next(); };
+  const skip = () => {
+    narration.stop();
+    setResults((r) => { const n = [...r]; if (n[idx] == null) n[idx] = 'skip'; return n; });
+    next();
+  };
 
   const toggleVoice = async () => {
     if (voiceOn) { try { await unlockAudio(false); } catch { /* noop */ } try { localStorage.setItem(AUDIO_KEY, 'off'); } catch { /* noop */ } narration.stop(); setVoiceOn(false); }
@@ -274,9 +307,12 @@ export default function DreamBedroomAct3({ onComplete, onGoHome }) {
             {screen === 'intro' && (
               <motion.div key="intro" className="dbm-screen dbm-q__intro" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
                 <div className="dbm-eyebrow"><Sparkles size={14} /> Part 3 · Test your understanding</div>
-                <div className="dbm-q__introicon">🧠</div>
-                <h2 className="dbm-h2">Quick challenge — 6 questions</h2>
+                <motion.div className="dbm-q__introicon" animate={{ y: [0, -10, 0], rotate: [-4, 4, -4] }} transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}>🧠</motion.div>
+                <h2 className="dbm-h2">Quick challenge — <span className="dbm-q__hl">6 questions</span></h2>
                 <p className="dbm-q__introsub">Use everything you just learnt in the simulation and the 50/30/20 rule.</p>
+                <div className="dbm-q__chips">
+                  <span>📝 6 questions</span><span>⏱️ ~4 min</span><span>🏅 Earn a badge</span>
+                </div>
                 <button className="dbm-cta dbm-cta--big" onClick={() => setScreen('quiz')}>Start the quiz <ArrowRight size={17} /></button>
               </motion.div>
             )}
@@ -286,11 +322,17 @@ export default function DreamBedroomAct3({ onComplete, onGoHome }) {
               <motion.div key={`q${idx}`} className="dbm-screen dbm-q" initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }}>
                 <div className="dbm-q__top">
                   <span className="dbm-q__num">Question {idx + 1}<span>/{QUESTIONS.length}</span></span>
-                  <span className="dbm-q__tag">{q.tag}</span>
+                  <span className="dbm-q__score">⭐ {score} correct</span>
                 </div>
-                <div className="dbm-q__progress"><motion.div animate={{ width: `${((idx + (picked !== null ? 1 : 0)) / QUESTIONS.length) * 100}%` }} /></div>
-                <h2 className="dbm-q__question">{q.q}</h2>
-                <div className="dbm-q__options">
+                <div className="dbm-q__dots">
+                  {QUESTIONS.map((_, i) => (
+                    <span key={i} className={`dbm-q__dot ${results[i] ? `is-${results[i]}` : ''} ${i === idx ? 'is-now' : ''}`} />
+                  ))}
+                </div>
+                <div className="dbm-q__card">
+                  <span className="dbm-q__tag">{q.tag}</span>
+                  <h2 className="dbm-q__question">{q.q}</h2>
+                  <div className="dbm-q__options">
                   {q.options.map((o, oi) => {
                     const state = picked === null ? '' : o.correct ? 'is-correct' : oi === picked ? 'is-wrong' : 'is-dim';
                     return (
@@ -306,34 +348,45 @@ export default function DreamBedroomAct3({ onComplete, onGoHome }) {
                       </motion.button>
                     );
                   })}
-                </div>
-                {picked === null && (
-                  <button className="dbm-q__skip" onClick={skip}>Skip this question <SkipForward size={14} /></button>
-                )}
-                <AnimatePresence>
-                  {picked !== null && (
-                    <motion.div className={`dbm-q__fb ${q.options[picked].correct ? 'is-right' : 'is-soft'}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                      <div className="dbm-q__fbinner">
-                        <div className="dbm-q__fbhead">
-                          <span className="dbm-q__fbicon">{q.options[picked].correct ? <Check size={16} /> : '💡'}</span>
-                          <strong>{q.options[picked].correct ? 'Correct!' : `Not quite — the answer is ${String.fromCharCode(65 + q.options.findIndex((o) => o.correct))}. ${q.options.find((o) => o.correct).t}`}</strong>
-                        </div>
-                        <p>{q.options[picked].correct ? q.right : q.wrong}</p>
-                        {!q.options[picked].correct && <p className="dbm-q__fbwhy"><b>Why:</b> {q.right}</p>}
-                      </div>
-                      <button className="dbm-q__next" onClick={next}>{idx + 1 >= QUESTIONS.length ? 'See result' : 'Next'} <ArrowRight size={15} /></button>
-                    </motion.div>
+                  </div>
+                  {picked === null && (
+                    <button className="dbm-q__skip" onClick={skip}>Skip this question <SkipForward size={14} /></button>
                   )}
-                </AnimatePresence>
+                  <AnimatePresence>
+                    {picked !== null && (
+                      <motion.div className={`dbm-q__fb ${q.options[picked].correct ? 'is-right' : 'is-soft'}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                        <div className="dbm-q__fbinner">
+                          <div className="dbm-q__fbhead">
+                            <span className="dbm-q__fbicon">{q.options[picked].correct ? <Check size={16} /> : '💡'}</span>
+                            <strong>{q.options[picked].correct ? 'Correct!' : `Not quite — the answer is ${String.fromCharCode(65 + q.options.findIndex((o) => o.correct))}. ${q.options.find((o) => o.correct).t}`}</strong>
+                          </div>
+                          <p>{q.options[picked].correct ? q.right : q.wrong}</p>
+                          {!q.options[picked].correct && <p className="dbm-q__fbwhy"><b>Why:</b> {q.right}</p>}
+                        </div>
+                        <button className="dbm-q__next" onClick={next}>{idx + 1 >= QUESTIONS.length ? 'See result' : 'Next'} <ArrowRight size={15} /></button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </motion.div>
             )}
 
             {/* ---------- RESULT ---------- */}
             {screen === 'result' && (
               <motion.div key="result" className="dbm-screen dbm-q__result" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}>
-                <Trophy className="dbm-q__trophy" />
-                <div className="dbm-q__scorebig">{score}<span>/{QUESTIONS.length}</span></div>
-                <div className="dbm-q__badge"><span className="dbm-q__badgeicon">{badge.emoji}</span> {badge.name}</div>
+                {score >= 5 && <Confetti />}
+                <motion.div className="dbm-q__scorering" initial={{ scale: 0, rotate: -30 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 160, damping: 14 }}>
+                  <Trophy className="dbm-q__trophy" />
+                  <div className="dbm-q__scorebig"><CountUp to={score} /><span>/{QUESTIONS.length}</span></div>
+                  <div className="dbm-q__scorelabel">correct</div>
+                </motion.div>
+                {/* per-question review */}
+                <div className="dbm-q__review">
+                  {QUESTIONS.map((_, i) => (
+                    <span key={i} className={`dbm-q__rdot is-${results[i] || 'skip'}`} title={`Q${i + 1}`}>{results[i] === 'right' ? '✓' : results[i] === 'wrong' ? '✕' : '–'}</span>
+                  ))}
+                </div>
+                <motion.div className="dbm-q__badge" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}><span className="dbm-q__badgeicon">{badge.emoji}</span> {badge.name}</motion.div>
                 <p className="dbm-q__badgetext">{badge.text}</p>
                 {closing && <div className="dbm-q__closing">{closing}</div>}
                 <div className="dbm-q__actions">

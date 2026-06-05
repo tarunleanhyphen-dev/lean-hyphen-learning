@@ -27,9 +27,10 @@ function Bed({ premium }) {
     <svg viewBox="0 0 100 100" width="100%" height="100%" aria-hidden>
       <Defs id={g} from={quilt} to={premium ? '#d06f90' : '#6f93cf'} />
       <ellipse cx="50" cy="84" rx="42" ry="5" fill="rgba(0,0,0,0.14)" />
-      {/* headboard */}
-      <rect x="10" y="30" width="14" height="42" rx="3" fill={wood} />
-      <rect x="12.5" y="34" width="9" height="30" rx="2" fill={woodD} />
+      {/* headboard — tall + tufted for premium */}
+      <rect x="10" y={premium ? 18 : 30} width="15" height={premium ? 54 : 42} rx="4" fill={wood} />
+      <rect x="12.5" y={premium ? 22 : 34} width="10" height={premium ? 44 : 30} rx="3" fill={woodD} />
+      {premium && [26, 36, 46, 56].map((y) => <circle key={y} cx="17.5" cy={y} r="1.4" fill="#5a3f23" />)}
       {/* base + mattress */}
       <rect x="22" y="56" width="68" height="20" rx="4" fill={woodD} />
       <rect x="22" y="48" width="68" height="12" rx="5" fill={`url(#${g})`} />

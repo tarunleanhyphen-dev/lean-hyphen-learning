@@ -95,8 +95,6 @@ function CeilingFan() {
           );
         })}
       </group>
-      {/* light kit */}
-      <mesh position={[0, -1.0, 0]}><sphereGeometry args={[0.11, 18, 18]} /><meshStandardMaterial color="#fff6d8" emissive="#ffe9b0" emissiveIntensity={0.55} /></mesh>
     </group>
   );
 }

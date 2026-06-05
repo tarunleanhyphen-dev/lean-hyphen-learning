@@ -25,20 +25,51 @@ function Bed({ premium }) {
   const quilt = premium ? '#ef6aa0' : '#7aa2e8';
   return (
     <group position={[-1.35, 0, -1.5]}>
+      {/* frame + mattress */}
       <Box args={[1.7, 0.35, 2.5]} color={wood} position={[0, 0.18, 0]} />
       <Box args={[1.7, 0.28, 2.5]} color={quilt} position={[0, 0.45, 0.05]} rough={0.9} />
-      <Box args={[1.6, 0.45, 0.5]} color={wood} position={[0, 0.5, -1.15]} />
-      <Box args={[0.7, 0.18, 0.45]} color="#fff" position={[0, 0.62, -0.85]} rough={1} />
+      {/* headboard — tall for premium */}
+      {premium ? (
+        <>
+          <Box args={[1.8, 1.5, 0.16]} color={wood} position={[0, 0.85, -1.28]} />
+          <Box args={[1.5, 1.15, 0.07]} color="#a9794b" position={[0, 0.92, -1.2]} rough={0.55} />
+          <Box args={[1.5, 0.06, 0.07]} color="#7d5733" position={[0, 1.35, -1.19]} />
+          <Box args={[0.06, 1.0, 0.07]} color="#7d5733" position={[-0.5, 0.92, -1.19]} />
+          <Box args={[0.06, 1.0, 0.07]} color="#7d5733" position={[0.5, 0.92, -1.19]} />
+        </>
+      ) : (
+        <Box args={[1.6, 0.5, 0.16]} color={wood} position={[0, 0.45, -1.2]} />
+      )}
+      {/* pillows */}
+      <Box args={[0.66, 0.18, 0.42]} color="#fff" position={[-0.4, 0.62, -0.85]} rough={1} />
+      <Box args={[0.66, 0.18, 0.42]} color={premium ? '#ffd9e6' : '#eef3fb'} position={[0.4, 0.62, -0.85]} rough={1} />
+      {/* folded blanket */}
+      <Box args={[1.6, 0.1, 0.7]} color={premium ? '#d8567f' : '#5f86c8'} position={[0, 0.52, 0.7]} rough={1} />
     </group>
   );
 }
 function Wardrobe({ premium }) {
   const c = premium ? '#caa06a' : '#9c8a6e';
+  // right corner, against the front (door) wall, doors facing into the room
   return (
-    <group position={[1.85, 0, -2.15]}>
+    <group position={[2.5, 0, 2.3]} rotation={[0, Math.PI, 0]}>
       <Box args={[1.3, 2.4, 0.7]} color={c} position={[0, 1.2, 0]} />
-      <Box args={[0.05, 1.6, 0.04]} color="#3b2f22" position={[0.18, 1.2, 0.37]} />
-      <Box args={[0.05, 1.6, 0.04]} color="#3b2f22" position={[-0.18, 1.2, 0.37]} />
+      {premium ? (
+        <>
+          {/* sliding-door panels */}
+          <Box args={[0.62, 2.2, 0.05]} color="#e6cda4" position={[-0.32, 1.2, 0.37]} />
+          <Box args={[0.62, 2.2, 0.05]} color="#d9bd91" position={[0.32, 1.2, 0.36]} />
+          <Box args={[0.04, 0.4, 0.04]} color="#7a5733" position={[0.02, 1.2, 0.4]} />
+        </>
+      ) : (
+        <>
+          {/* two hinged doors + knobs */}
+          <Box args={[0.6, 2.2, 0.04]} color="#8a755a" position={[-0.32, 1.2, 0.37]} />
+          <Box args={[0.6, 2.2, 0.04]} color="#80694e" position={[0.32, 1.2, 0.37]} />
+          <Box args={[0.05, 0.18, 0.05]} color="#3b2f22" position={[-0.06, 1.2, 0.4]} />
+          <Box args={[0.05, 0.18, 0.05]} color="#3b2f22" position={[0.06, 1.2, 0.4]} />
+        </>
+      )}
       {premium && <Box args={[1.32, 0.12, 0.72]} color="#f5d18a" position={[0, 2.46, 0]} emissive="#caa06a" />}
     </group>
   );
@@ -55,13 +86,32 @@ function Desk() {
   );
 }
 function Chair({ gaming }) {
-  const c = gaming ? '#e0444c' : '#4b5563';
+  if (gaming) {
+    return (
+      <group position={[-1.6, 0, 0.6]} rotation={[0, -0.5, 0]}>
+        <Box args={[0.58, 0.12, 0.58]} color="#e0444c" position={[0, 0.55, 0]} />
+        <Box args={[0.58, 1.0, 0.1]} color="#2a2e38" position={[0, 1.1, -0.26]} />
+        <Box args={[0.22, 0.62, 0.08]} color="#e0444c" position={[0, 1.1, -0.24]} />
+        {/* headrest */}
+        <Box args={[0.36, 0.16, 0.1]} color="#15171f" position={[0, 1.7, -0.24]} />
+        {/* armrests */}
+        <Box args={[0.06, 0.1, 0.34]} color="#15171f" position={[-0.3, 0.78, 0]} />
+        <Box args={[0.06, 0.1, 0.34]} color="#15171f" position={[0.3, 0.78, 0]} />
+        {/* gas lift + 5-star base */}
+        <Box args={[0.09, 0.42, 0.09]} color="#222" position={[0, 0.3, 0]} />
+        <Box args={[0.62, 0.06, 0.12]} color="#111" position={[0, 0.06, 0]} metal={0.5} />
+        <Box args={[0.12, 0.06, 0.62]} color="#111" position={[0, 0.06, 0]} metal={0.5} />
+      </group>
+    );
+  }
+  // basic wooden chair — 4 wooden legs
   return (
     <group position={[-1.6, 0, 0.6]} rotation={[0, -0.5, 0]}>
-      <Box args={[0.55, 0.1, 0.55]} color={c} position={[0, 0.55, 0]} />
-      <Box args={[0.55, gaming ? 0.95 : 0.6, 0.1]} color={c} position={[0, gaming ? 1.05 : 0.85, -0.24]} />
-      <Box args={[0.08, 0.55, 0.08]} color="#222" position={[0, 0.27, 0]} />
-      {gaming && <Box args={[0.6, 0.06, 0.6]} color="#111" position={[0, 0.05, 0]} metal={0.5} />}
+      <Box args={[0.5, 0.08, 0.5]} color="#a07a4e" position={[0, 0.5, 0]} />
+      <Box args={[0.5, 0.55, 0.08]} color="#a07a4e" position={[0, 0.78, -0.21]} />
+      {[[-0.2, -0.2], [0.2, -0.2], [-0.2, 0.2], [0.2, 0.2]].map(([x, z], i) => (
+        <Box key={i} args={[0.06, 0.5, 0.06]} color="#7a5a39" position={[x, 0.25, z]} />
+      ))}
     </group>
   );
 }
@@ -100,28 +150,56 @@ function Mirror() {
 }
 function Fan() {
   const r = useRef();
-  useFrame((_, d) => { if (r.current) r.current.rotation.z += d * 6; });
+  useFrame((_, d) => { if (r.current) r.current.rotation.z -= d * 9; }); // clockwise
   return (
-    <group position={[-2.35, 1.05, 0.0]}>
-      <Box args={[0.08, 0.25, 0.08]} color="#444" position={[0, -0.1, 0]} />
-      <group ref={r}>
-        <Box args={[0.5, 0.08, 0.12]} color="#dfe6ee" position={[0, 0.05, 0]} />
-        <Box args={[0.12, 0.08, 0.5]} color="#cfd8e2" position={[0, 0.05, 0]} />
+    <group position={[-2.4, 0, 0.7]}>
+      {/* base + stem */}
+      <mesh position={[0, 0.04, 0]}><cylinderGeometry args={[0.26, 0.3, 0.08, 20]} /><meshStandardMaterial color="#3a3f48" /></mesh>
+      <Box args={[0.09, 1.0, 0.09]} color="#5a626e" position={[0, 0.55, 0]} />
+      {/* head, facing into the room (+z) */}
+      <group position={[0, 1.05, 0.14]}>
+        <mesh><torusGeometry args={[0.36, 0.028, 8, 30]} /><meshStandardMaterial color="#c3ccd6" metalness={0.3} /></mesh>
+        <group ref={r}>
+          {[0, 1, 2].map((i) => {
+            const a = (i * 2 * Math.PI) / 3;
+            return <Box key={i} args={[0.14, 0.42, 0.02]} color={i % 2 ? '#cfd8e2' : '#eef2f6'} position={[0.18 * Math.sin(a), 0.18 * Math.cos(a), 0]} rotation={[0, 0, -a]} />;
+          })}
+        </group>
+        <mesh position={[0, 0, 0.03]}><cylinderGeometry args={[0.06, 0.06, 0.06, 14]} /><meshStandardMaterial color="#5a626e" /></mesh>
       </group>
     </group>
   );
 }
 function Curtains() {
+  // centred on the back-wall window (window is at world x≈0)
   return (
-    <group position={[-0.6, 0, -2.92]}>
-      <Box args={[1.6, 1.4, 0.05]} color="#a7c7ff" position={[0, 1.5, 0]} rough={1} />
-      <Box args={[0.3, 1.7, 0.1]} color="#c98fd6" position={[-0.7, 1.5, 0.06]} rough={1} />
-      <Box args={[0.3, 1.7, 0.1]} color="#c98fd6" position={[0.7, 1.5, 0.06]} rough={1} />
+    <group position={[0, 1.7, -2.9]}>
+      {/* rod */}
+      <Box args={[2.5, 0.09, 0.1]} color="#3a2c20" position={[0, 1.05, 0.05]} />
+      {/* valance */}
+      <Box args={[2.5, 0.4, 0.12]} color="#4a1c36" position={[0, 0.86, 0.07]} rough={1} />
+      {/* dark cloth panels framing the window */}
+      <Box args={[0.55, 2.0, 0.14]} color="#5a2342" position={[-0.96, -0.1, 0.06]} rough={1} />
+      <Box args={[0.55, 2.0, 0.14]} color="#5a2342" position={[0.96, -0.1, 0.06]} rough={1} />
+      {/* soft fold highlights */}
+      <Box args={[0.06, 1.9, 0.15]} color="#7a3a5e" position={[-0.96, -0.1, 0.07]} rough={1} />
+      <Box args={[0.06, 1.9, 0.15]} color="#7a3a5e" position={[0.96, -0.1, 0.07]} rough={1} />
     </group>
   );
 }
 function Poster() {
-  return <Box args={[0.9, 1.1, 0.04]} color="#ffd166" position={[1.4, 1.7, -2.92]} emissive="#ff9f1c" />;
+  // front (door) wall, to the LEFT of the door; faces into the room
+  return (
+    <group position={[-1.7, 1.7, 2.92]} rotation={[0, Math.PI, 0]}>
+      <Box args={[0.98, 1.18, 0.05]} color="#6b4f33" />
+      <Box args={[0.82, 1.02, 0.02]} color="#bfe0f5" position={[0, 0, 0.03]} />
+      <Box args={[0.82, 0.34, 0.02]} color="#ffd9a0" position={[0, 0.34, 0.035]} />
+      <mesh position={[0.22, 0.4, 0.05]}><circleGeometry args={[0.1, 20]} /><meshStandardMaterial color="#fff3bf" emissive="#fff3bf" emissiveIntensity={0.6} /></mesh>
+      <Box args={[0.82, 0.18, 0.02]} color="#cdd9e6" position={[0, 0.05, 0.04]} />
+      <Box args={[0.82, 0.18, 0.02]} color="#3a7d4a" position={[0, -0.18, 0.04]} />
+      <Box args={[0.82, 0.16, 0.02]} color="#6fb0d2" position={[0, -0.4, 0.04]} />
+    </group>
+  );
 }
 function Speaker() {
   return (
@@ -170,7 +248,6 @@ function CeilingFan() {
           );
         })}
       </group>
-      <mesh position={[0, -1.0, 0]}><sphereGeometry args={[0.11, 18, 18]} /><meshStandardMaterial color="#fff6d8" emissive="#ffe9b0" emissiveIntensity={0.55} /></mesh>
     </group>
   );
 }
@@ -282,7 +359,14 @@ function RoomScene({ vibe, cart, hasLed, hasCeiling, ctrl }) {
             <Box args={[0.08, 0.08, 2 * SR]} color="#ff5fae" position={[-SR + 0.05, SH - 0.2, 0]} emissive="#ff5fae" />
           </>
         )}
-        {hasCeiling && <Box args={[0.7, 0.12, 0.7]} color="#fffbe8" position={[0, SH - 0.12, 0]} emissive="#fff3c4" />}
+        {hasCeiling && (
+          <>
+            {/* ceiling light centred over the bed, glowing warm yellow */}
+            <mesh position={[-1.95, SH - 0.16, -2.1]}><cylinderGeometry args={[0.42, 0.42, 0.12, 24]} /><meshStandardMaterial color="#fff3b0" emissive="#ffe066" emissiveIntensity={1.4} toneMapped={false} /></mesh>
+            <mesh position={[-1.95, SH - 0.05, -2.1]}><cylinderGeometry args={[0.46, 0.46, 0.06, 24]} /><meshStandardMaterial color="#cfd6df" metalness={0.4} /></mesh>
+            <pointLight position={[-1.95, SH - 0.6, -2.1]} intensity={1.8} color="#ffe066" distance={9} />
+          </>
+        )}
 
         {/* purchased furniture — authored for a 6×6 layout, scaled to fill 9×9 */}
         <group scale={[1.45, 1.35, 1.45]}>

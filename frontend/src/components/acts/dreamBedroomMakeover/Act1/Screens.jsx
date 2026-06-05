@@ -303,6 +303,9 @@ export function Screen3Sort({ mk, narration, accent }) {
   const [drop, setDrop] = useState(null); // 'need' | 'want' burst
   const [fly, setFly] = useState(null);   // card flying into a bucket
 
+  // Start every visit with empty boxes (clears a previous run on replay).
+  useEffect(() => { mk.resetSort(); setIdx(0); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const item = sortItems[idx];
   const finished = idx >= sortItems.length;
 
@@ -571,6 +574,12 @@ export function Screen4Shop({ mk, narration, vibe, accent }) {
 
   const handleClick = (item) => {
     if (inCart(item.id)) { sfx('tap'); mk.removeItem(item.id); return; }
+    // a table fan needs a desk to sit on — ask the learner to add a Study Desk first
+    if (item.id === 'table-fan' && !inCart('study-desk')) {
+      flashToast('Add a Study Desk first — the table fan sits on the desk.', 'warn');
+      setShake(true); setTimeout(() => setShake(false), 500);
+      return;
+    }
     const projected = spent - priceOfSiblingInCart(item) + item.price;
     if (projected > spendable) {
       flashToast(s.gates.overBudgetMessage);

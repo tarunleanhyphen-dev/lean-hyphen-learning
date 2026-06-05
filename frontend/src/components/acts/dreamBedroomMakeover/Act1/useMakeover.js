@@ -98,6 +98,7 @@ export function useMakeover() {
   const pickVibe      = useCallback((vibe)   => setState((s) => ({ ...s, vibe })),   []);
   const setSortAnswer = useCallback((itemId, choice) =>
     setState((s) => ({ ...s, sortAnswers: { ...s.sortAnswers, [itemId]: choice } })), []);
+  const resetSort = useCallback(() => setState((s) => ({ ...s, sortAnswers: {} })), []);
 
   const addItem = useCallback((itemId) => setState((s) => {
     const it = itemIndex[itemId];
@@ -170,7 +171,7 @@ export function useMakeover() {
     cartItems, spent, remaining, spendable,
     categoryTotals, needsTotal, wantsTotal, needsCount, wantsCount,
     budget: { total: budgetTotal, base: BUDGET_BASE, reserve: state.reserve, spendable, bonus: state.budgetBonus || 0 },
-    setScreen, pickVibe, setSortAnswer,
+    setScreen, pickVibe, setSortAnswer, resetSort,
     addItem, removeItem, toggleItem,
     applyEventEffect, setRandomEvent, setSnapshotMcq, reset,
   };

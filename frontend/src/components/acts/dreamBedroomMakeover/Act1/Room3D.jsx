@@ -295,8 +295,9 @@ function OrbitRig({ ctrl }) {
   const { camera } = useThree();
   useFrame((_, d) => {
     const c = ctrl.current;
-    // only rotate while the user is hovering (or dragging) — static otherwise
-    if (c.hovered && !c.dragging) c.yaw += d * 0.3;
+    // auto-rotate (celebration) always spins; otherwise only on hover. Dragging
+    // always pauses the spin so the learner can look around freely.
+    if (!c.dragging && (c.autoRotate || c.hovered)) c.yaw += d * (c.autoRotate ? 0.22 : 0.3);
     const radius = 10.5;
     const cp = Math.cos(c.pitch);
     camera.position.set(Math.sin(c.yaw) * cp * radius, 2.0 + Math.sin(c.pitch) * radius, Math.cos(c.yaw) * cp * radius);
@@ -415,12 +416,12 @@ class GLErrorBoundary extends Component {
   render() { return this.state.failed ? this.props.fallback : this.props.children; }
 }
 
-export function Room3D({ vibe, cart = [], className = '' }) {
+export function Room3D({ vibe, cart = [], className = '', autoRotate = false }) {
   const hasLed = cart.includes('led-strips');
   const hasCeiling = cart.includes('ceiling-light');
   const fallback = <IsoRoom2D vibe={vibe} cart={cart} className={className} />;
   // Start at a corner angle that frames the whole room; drag to look around.
-  const ctrl = useRef({ yaw: 0.7, pitch: 0.42, dragging: false, hovered: false, lx: 0, ly: 0 });
+  const ctrl = useRef({ yaw: 0.7, pitch: 0.42, dragging: false, hovered: false, autoRotate, lx: 0, ly: 0 });
 
   const onDown = (e) => { const c = ctrl.current; c.dragging = true; c.lx = e.clientX; c.ly = e.clientY; e.currentTarget.setPointerCapture?.(e.pointerId); };
   const onMove = (e) => {
@@ -457,7 +458,7 @@ export function Room3D({ vibe, cart = [], className = '' }) {
           </Suspense>
         </Canvas>
       </GLErrorBoundary>
-      <div className="dbm-room3d__hint">🖱️ Hover to rotate · drag to look</div>
+      <div className="dbm-room3d__hint">{autoRotate ? '🖱️ Drag to look around' : '🖱️ Hover to rotate · drag to look'}</div>
     </div>
   );
 }

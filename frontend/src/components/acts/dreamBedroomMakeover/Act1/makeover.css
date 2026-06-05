@@ -647,7 +647,19 @@
 /* ===================== SCREEN 6 — snapshot ===================== */
 .dbm-screen--snapshot .dbm-h2, .dbm-snap__title { color: #fff; font-family: 'Sora', 'Plus Jakarta Sans', system-ui, sans-serif; }
 .dbm-snap__grid { display: grid; grid-template-columns: 1fr; gap: 18px; width: 100%; max-width: 980px; align-items: center; }
-.dbm-snap__panel { background: #fff; border: 1px solid var(--card-bd); border-radius: 22px; padding: 22px; box-shadow: 0 26px 60px -30px #000; }
+
+/* hero: finished 3D room + the headline numbers */
+.dbm-snap__hero { display: grid; grid-template-columns: 1fr; gap: 18px; width: 100%; max-width: 980px; align-items: stretch; }
+.dbm-snap__roomcard { position: relative; border-radius: 22px; overflow: hidden; border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  box-shadow: 0 30px 70px -34px #000, inset 0 0 0 1px rgba(255,255,255,.05); min-height: 320px; }
+.dbm-snap__room, .dbm-snap__roomcard .dbm-room3d { width: 100%; height: 100%; min-height: 320px; }
+.dbm-snap__roomtag { position: absolute; left: 14px; bottom: 12px; z-index: 2; font-family: 'Sora', system-ui, sans-serif;
+  font-weight: 800; font-size: 13px; color: #fff; background: color-mix(in srgb, var(--accent) 40%, rgba(0,0,0,.45));
+  border: 1px solid rgba(255,255,255,.25); border-radius: 99px; padding: 7px 14px; backdrop-filter: blur(6px); }
+.dbm-snap__panel { background: #fff; border: 1px solid var(--card-bd); border-radius: 22px; padding: 22px; box-shadow: 0 26px 60px -30px #000;
+  display: flex; flex-direction: column; gap: 16px; justify-content: center; }
+.dbm-snap__catpanel { width: 100%; max-width: 980px; background: #fff; border: 1px solid var(--card-bd); border-radius: 20px; padding: 20px 22px; box-shadow: 0 22px 54px -30px #000; }
+.dbm-snap__catpanel-title { font-family: 'Sora', system-ui, sans-serif; font-weight: 800; font-size: 14px; color: var(--ink); margin-bottom: 12px; }
 .dbm-snap__donut { display: grid; place-items: center; }
 .dbm-snap__stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .dbm-snapstat { background: #f4f7fb; border: 1px solid var(--card-bd); border-radius: 14px; padding: 12px 14px; border-left: 3px solid var(--c); }
@@ -682,6 +694,9 @@
 .dbm-snap__transition span { font-size: 14px; color: var(--ink-faint); }
 @media (min-width: 820px) {
   .dbm-snap__grid { grid-template-columns: auto 1fr 1.2fr; }
+  .dbm-snap__hero { grid-template-columns: 1.25fr 1fr; }
+  .dbm-snap__panel { flex-direction: row; align-items: center; }
+  .dbm-snap__panel .dbm-snap__stats { flex: 1; }
   .dbm-mcq__opts { grid-template-columns: repeat(5, 1fr); }
 }
 

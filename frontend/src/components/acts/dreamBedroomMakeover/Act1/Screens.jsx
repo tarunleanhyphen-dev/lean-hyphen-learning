@@ -986,7 +986,7 @@ function ConsequenceModal({ text, accent, onClose }) {
 /* ======================================================================
  * SCREEN 6 — Spending Snapshot
  * ====================================================================== */
-export function Screen6Snapshot({ mk, narration, accent, onComplete }) {
+export function Screen6Snapshot({ mk, narration, vibe, accent, onComplete }) {
   const s = scene('screen-6-snapshot');
   const n = useScreenNarration(narration, [s.intro]);
   useEffect(() => { sfx('reveal'); }, []);
@@ -1016,32 +1016,43 @@ export function Screen6Snapshot({ mk, narration, accent, onComplete }) {
       <h2 className="dbm-h2 dbm-snap__title">Here's your spending breakdown</h2>
       <NarratorCard narration={narration} lines={[s.intro]} accent={accent} done={n.done} onReplay={n.replay} onSkip={n.skip} compact />
 
-      <div className="dbm-snap__grid dbm-snap__panel">
-        <div className="dbm-snap__donut">
-          <Donut categoryTotals={categoryTotals} spent={spent} size={180} />
-        </div>
+      {/* Hero — the finished room (auto-rotating reward) beside the numbers */}
+      <div className="dbm-snap__hero">
+        <motion.div className="dbm-snap__roomcard" initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', stiffness: 120, damping: 18 }}>
+          <Room3D vibe={vibe} cart={mk.state.cart} autoRotate className="dbm-snap__room" />
+          <div className="dbm-snap__roomtag">✨ Your finished room</div>
+        </motion.div>
 
-        <div className="dbm-snap__stats">
-          <SnapStat label="Spent" value={spent} color={accent} />
-          <SnapStat label="Saved / left" value={Math.max(0, saved)} color="#10B981" />
-          <SnapStat label="Needs" value={needsTotal} color="#10B981" />
-          <SnapStat label="Wants" value={wantsTotal} color="#A855F7" />
-          <div className={`dbm-snap__reserve ${reserveStatus}`}>
-            <Lock size={14} /> Reserve {reserveStatus === 'intact' ? 'kept safe' : 'used'} · {fmt(mk.state.reserve)}
+        <motion.div className="dbm-snap__panel" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+          <div className="dbm-snap__donut">
+            <Donut categoryTotals={categoryTotals} spent={spent} size={172} />
           </div>
-        </div>
+          <div className="dbm-snap__stats">
+            <SnapStat label="Spent" value={spent} color={accent} />
+            <SnapStat label="Saved / left" value={Math.max(0, saved)} color="#10B981" />
+            <SnapStat label="Needs" value={needsTotal} color="#10B981" />
+            <SnapStat label="Wants" value={wantsTotal} color="#A855F7" />
+            <div className={`dbm-snap__reserve ${reserveStatus}`}>
+              <Lock size={14} /> Reserve {reserveStatus === 'intact' ? 'kept safe' : 'used'} · {fmt(mk.state.reserve)}
+            </div>
+          </div>
+        </motion.div>
+      </div>
 
+      {/* Per-category bars */}
+      <motion.div className="dbm-snap__catpanel" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}>
+        <div className="dbm-snap__catpanel-title">Where each rupee went</div>
         <div className="dbm-snap__cats">
-          {catRows.map((c) => (
-            <div key={c.id} className="dbm-snap__catrow">
+          {catRows.map((c, i) => (
+            <motion.div key={c.id} className="dbm-snap__catrow" initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.22 + i * 0.05 }}>
               <span className="dbm-snap__catdot" style={{ background: c.color }} />
               <span className="dbm-snap__catlbl">{c.label}</span>
-              <div className="dbm-snap__catbar"><motion.div animate={{ width: `${spent ? (c.val / spent) * 100 : 0}%` }} style={{ background: c.color }} /></div>
+              <div className="dbm-snap__catbar"><motion.div initial={{ width: 0 }} animate={{ width: `${spent ? (c.val / spent) * 100 : 0}%` }} transition={{ duration: 0.9, ease: 'easeOut', delay: 0.3 + i * 0.05 }} style={{ background: c.color }} /></div>
               <span className="dbm-snap__catval">{fmt(c.val)}</span>
-            </div>
+            </motion.div>
           ))}
         </div>
-      </div>
+      </motion.div>
 
       <div className="dbm-snap__insights">
         {insights.map((t, i) => (

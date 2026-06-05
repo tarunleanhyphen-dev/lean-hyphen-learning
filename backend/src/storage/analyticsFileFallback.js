@@ -13,7 +13,18 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DATA_PATH = path.resolve(__dirname, '..', '..', 'data', 'analytics.json');
+// Vercel's serverless filesystem is read-only EXCEPT for /tmp, which
+// is writable but ephemeral (lives ~minutes per warm instance). For
+// local dev we keep the durable `backend/data/analytics.json` so the
+// file survives backend restarts. On Vercel we transparently fall over
+// to /tmp; data lasts as long as the warm instance does. Production-
+// grade durable storage is the Postgres backend (migration 004 ships
+// with this commit — run `npm run migrate` against Supabase to enable,
+// then flip `usingPg()` in routes/analytics.js).
+const isServerlessRO = !!(process.env.VERCEL || process.env.VERCEL_ENV);
+const DATA_PATH = isServerlessRO
+  ? '/tmp/lh-analytics.json'
+  : path.resolve(__dirname, '..', '..', 'data', 'analytics.json');
 
 function readStore() {
   if (!fs.existsSync(DATA_PATH)) return blank();
@@ -205,11 +216,18 @@ export const analyticsFileStore = {
   // ── report-time bulk reads ──────────────────────────────────
   readSessionTree({ sessionId, lessonId, attemptNo }) {
     const store = readStore();
-    const session = store.user_lesson_sessions.find(
+    // When no attempt is specified, return the LATEST attempt (highest
+    // attempt_no). Previously this returned `.find()`'s first match,
+    // which is the EARLIEST attempt — wrong for the default report
+    // view where students expect to see their most recent try.
+    const matching = store.user_lesson_sessions.filter(
       (r) => r.session_id === sessionId && r.lesson_id === lessonId
             && (attemptNo == null || r.attempt_no === attemptNo),
     );
-    if (!session) return null;
+    if (!matching.length) return null;
+    const session = attemptNo == null
+      ? matching.reduce((a, b) => (b.attempt_no > a.attempt_no ? b : a))
+      : matching[0];
     const acts = store.user_act_sessions.filter((r) => r.lesson_session_id === session.id);
     const sceneIds = new Set(acts.map((a) => a.id));
     const scenes = store.user_scene_sessions.filter((r) => sceneIds.has(r.act_session_id));
@@ -220,6 +238,31 @@ export const analyticsFileStore = {
       (r) => r.session_id === sessionId && r.lesson_id === lessonId,
     );
     return { session, acts, scenes, attempts, badges, history };
+  },
+
+  /**
+   * List EVERY attempt this learner has on this lesson, latest first.
+   * Each item is a mini-report (score + completion + time + badges) —
+   * not the full report tree (cheaper to compute, smaller payload).
+   * Use the `/lesson?attempt=N` endpoint to drill into one.
+   */
+  listAttempts({ sessionId, lessonId }) {
+    const store = readStore();
+    const matching = store.user_lesson_sessions
+      .filter((r) => r.session_id === sessionId && r.lesson_id === lessonId)
+      .sort((a, b) => b.attempt_no - a.attempt_no);
+    return matching.map((s) => ({
+      attemptNo:       s.attempt_no,
+      completed:       !!s.completed_at,
+      startedAt:       s.started_at,
+      completedAt:     s.completed_at,
+      totalScore:      s.total_score,
+      learningScore:   s.learning_score,
+      engagementScore: s.engagement_score,
+      completionPct:   Number(s.completion_pct ?? 0),
+      timeMs:          s.total_time_ms,
+      badgeCount:      store.user_badges.filter((b) => b.lesson_session_id === s.id).length,
+    }));
   },
 
   upsertScore(lessonSessionId, patch) {

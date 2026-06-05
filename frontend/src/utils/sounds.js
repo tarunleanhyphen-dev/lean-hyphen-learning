@@ -52,12 +52,17 @@ export async function unlockAudio(enabled) {
   const target = enabled ? MASTER_VOLUME : 0;
   master.gain.cancelScheduledValues(ctx.currentTime);
   master.gain.linearRampToValueAtTime(target, ctx.currentTime + 0.15);
-  if (!enabled) {
+  if (enabled) {
+    // Claim the user-gesture autoplay permission for the persistent
+    // background-track <audio> element while we still have it. Without
+    // this, the first mid-lesson mood transition to a URL-backed track
+    // (Act 2/3/4 lo-fi) creates an Audio element OUTSIDE of any
+    // gesture and the browser silently rejects play().
+    ensureBgAudio();
+    try { startMusic(); } catch { /* noop */ }
+  } else {
     stopMusic();
     cancelSpeech();
-  } else {
-    // Start the calm background music under the narration (idempotent).
-    try { startMusic(); } catch { /* noop */ }
   }
 }
 
@@ -658,68 +663,74 @@ function fadeAudioTo(audio, targetVol, durationMs, onDone) {
   bgFadeRaf = requestAnimationFrame(tick);
 }
 
+/**
+ * Lazy-init the persistent <audio> element. MUST be called from inside
+ * a user gesture (the audio-enable click) — that's the only way the
+ * browser will grant autoplay permission to subsequent src swaps. Once
+ * the element has been .play()'d under a gesture, swapping its src and
+ * calling play() again works freely.
+ *
+ * If this is called outside a user gesture the play() may reject; we
+ * swallow it so the rest of the audio pipeline keeps working, but mid-
+ * lesson mood transitions to a URL-backed mood will then be silent —
+ * which is exactly the bug this function exists to prevent.
+ */
+function ensureBgAudio() {
+  if (bgAudio) return;
+  const el = new Audio();
+  el.loop = true;
+  el.volume = 0;
+  el.preload = 'auto';
+  bgAudio = el;
+}
+
 function startBgTrack(mood) {
   const url = MUSIC_TRACKS[mood];
   if (!url || muted) return;
-  if (bgAudio && bgAudioMood === mood) {
-    // Same track already playing — just make sure it's audible.
-    cancelBgFade();
-    if (bgAudio.paused) bgAudio.play().catch(() => {});
+  ensureBgAudio();
+  cancelBgFade();
+  if (bgAudioMood === mood && bgAudio.src && !bgAudio.paused) {
+    // Same track playing — just refade up.
     fadeAudioTo(bgAudio, BG_MUSIC_VOLUME, 800);
     return;
   }
-  // New track — build it and cross-fade against the previous one (if any).
-  const next = new Audio(url);
-  next.loop = true;
-  next.volume = 0;
-  next.crossOrigin = 'anonymous';
-  next.preload = 'auto';
-  // If the real track can't load (e.g. /api/music 503 with no ElevenLabs key),
-  // fall back to the built-in synth ambient engine so calm music still plays.
-  next.addEventListener('error', () => {
-    if (bgAudio !== next) return;
-    MUSIC_TRACKS[mood] = null; // disable the URL so startMusic() uses the synth
-    bgAudio = null; bgAudioMood = null;
-    try { startMusic(); } catch { /* noop */ }
-  }, { once: true });
-  next.play().catch(() => { /* autoplay may need a gesture; we'll retry on the next unlock */ });
-  const prev = bgAudio;
-  const prevMood = bgAudioMood;
-  bgAudio = next;
   bgAudioMood = mood;
-  cancelBgFade();
-  // Sequenced fade: ramp the new track up; once that's underway, ramp
-  // the previous track out and dispose of it.
-  fadeAudioTo(next, BG_MUSIC_VOLUME, 1200);
-  if (prev) {
-    // Run the prev fade-out on its own RAF chain so it doesn't fight
-    // the bgFadeRaf used by the new track. Direct setInterval is fine.
-    const startVol = prev.volume;
-    const startAt = performance.now();
-    const dur = 1200;
-    const id = setInterval(() => {
-      const t = Math.min(1, (performance.now() - startAt) / dur);
-      prev.volume = Math.max(0, startVol * (1 - t));
-      if (t >= 1) {
-        clearInterval(id);
-        try { prev.pause(); } catch {}
-        prev.src = '';
+  // If we're mid-playback on a different URL, fade out, swap, fade in.
+  // If we have no src yet (first track of the session), swap + fade in.
+  const swap = () => {
+    bgAudio.src = url;
+    bgAudio.volume = 0;
+    bgAudio.play().catch((err) => {
+      // Autoplay blocked — the user hasn't gestured yet. We can't fix
+      // it here; the next user click anywhere on the page will let the
+      // browser retry. Logging in dev so we know if it's hitting this
+      // branch on real users.
+      if (import.meta.env?.DEV) {
+        // eslint-disable-next-line no-console
+        console.warn('[bgAudio] play() blocked:', err?.message);
       }
-    }, 33);
-    // Side-note: prevMood unused except for debug breadcrumbs.
-    void prevMood;
+    });
+    fadeAudioTo(bgAudio, BG_MUSIC_VOLUME, 1200);
+  };
+  if (bgAudio.src && !bgAudio.paused) {
+    fadeAudioTo(bgAudio, 0, 500, swap);
+  } else {
+    swap();
   }
 }
 
 function stopBgTrack(fadeMs = 800) {
   if (!bgAudio) return;
-  const a = bgAudio;
-  bgAudio = null;
   bgAudioMood = null;
   cancelBgFade();
-  fadeAudioTo(a, 0, fadeMs, () => {
-    try { a.pause(); } catch {}
-    a.src = '';
+  // Pause and clear the src so the next mood change starts fresh, BUT
+  // keep the <audio> element itself alive in `bgAudio` — that's what
+  // retains the user-gesture autoplay permission. Tossing the element
+  // here would force the next mood change to create a fresh one, which
+  // browsers then refuse to play without a brand-new gesture.
+  fadeAudioTo(bgAudio, 0, fadeMs, () => {
+    try { bgAudio.pause(); } catch {}
+    try { bgAudio.removeAttribute('src'); bgAudio.load(); } catch {}
   });
 }
 
@@ -1146,7 +1157,7 @@ function cloudSpeakOnce(text, { who = 'shanaya', volume = SPEECH_VOLUME } = {}, 
   const make = (i) => {
     if (i >= chunks.length) return null;
     if (audios[i]) return audios[i];
-    const a = new Audio(`${CLOUD_TTS_BASE}/api/tts?voice=${encodeURIComponent(who)}&v=12&text=${encodeURIComponent(chunks[i])}`);
+    const a = new Audio(`${CLOUD_TTS_BASE}/api/tts?voice=${encodeURIComponent(who)}&v=13&text=${encodeURIComponent(chunks[i])}`);
     a.preload = 'auto';
     a.preservesPitch = true; // keep pitch natural at 1.0× rate
     a.playbackRate = 1.0;

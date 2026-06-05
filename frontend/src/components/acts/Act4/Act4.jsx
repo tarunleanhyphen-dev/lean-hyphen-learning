@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { PauseCircle, PlayCircle, RotateCcw, ChevronRight, ChevronLeft, ArrowDown, Eye, Check, Target } from 'lucide-react';
 import ShanayaAvatar from '../../shared/ShanayaAvatar.jsx';
 import ThoughtBubble from '../../shared/ThoughtBubble.jsx';
@@ -195,10 +196,18 @@ export default function Act4({ onComplete }) {
     }
   }, [seq, setActStatus, analytics]);
 
+  const navigate = useNavigate();
   const finishAct = useCallback(() => {
     setShowCelebration(false);
     onComplete?.();
   }, [onComplete]);
+  // Take the learner to the standalone report page. Used by the
+  // primary CTA in the end-of-Act-4 LessonReport modal so they can
+  // bookmark / share / revisit it from the home page later.
+  const viewFullReport = useCallback(() => {
+    setShowReport(false);
+    navigate(`/lesson/${lesson.id}/report`);
+  }, [navigate]);
 
   /* Surface the picked Impulse-Meter zone in the celebration as a
    * personalised line. */
@@ -447,7 +456,11 @@ export default function Act4({ onComplete }) {
           <LessonReport
             sessionId={sessionId}
             lessonId={lesson.id}
-            onContinue={finishAct}
+            // Modal mode (default). Primary CTA now takes the learner
+            // to the standalone report page where they can revisit
+            // their score any time + share / bookmark the URL.
+            onContinue={viewFullReport}
+            ctaLabel="View full report"
           />
         )}
       </AnimatePresence>

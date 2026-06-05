@@ -4,10 +4,10 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Volume2, VolumeX, X, Home } from 'lucide-react';
+import { Volume2, VolumeX, Home, Play } from 'lucide-react';
 import { act2 } from '../../../../data/lessons/dreamBedroomMakeover.js';
 import { useNarration } from '../Act1/useNarration.js';
-import { unlockAudio, isAudioEnabled } from '../../../../utils/sounds.js';
+import { unlockAudio } from '../../../../utils/sounds.js';
 import { C1Reveal, C2Apply, C3Activity, C4Takeaway, loadAct1Spend } from './Screens2.jsx';
 import '../Act1/makeover.css';
 import './act2.css';
@@ -28,39 +28,28 @@ export default function DreamBedroomAct2({ onComplete, onGoHome }) {
     return 'c1-reveal';
   })();
   const [screen, setScreen] = useState(initial);
-  const go = useCallback((id) => { narration.stop(); setScreen(id); }, [narration]);
+  const go = useCallback((id) => { narration.stop(); setScreen(id); window.scrollTo({ top: 0 }); }, [narration]);
 
-  const initialPref = (() => { try { return localStorage.getItem(AUDIO_KEY); } catch { return null; } })();
-  const [audioAsked, setAudioAsked] = useState(initialPref !== null);
-  const [showCard, setShowCard] = useState(false);
   const [voiceOn, setVoiceOn] = useState(false);
+  const [started, setStarted] = useState(false); // gate: Act 2 begins on Start click
   useEffect(() => {
     if (import.meta.env.DEV && new URLSearchParams(window.location.search).get('dev')) document.documentElement.classList.add('dbm-reveal');
-    if (audioAsked) return undefined;
-    const t = setTimeout(() => setShowCard(true), 900);
-    return () => clearTimeout(t);
-  }, [audioAsked]);
+  }, []);
 
-  // Returning opted-in visitors: unlock the suspended AudioContext on first gesture.
-  useEffect(() => {
-    if (initialPref !== 'on') return undefined;
-    const handler = async () => {
-      if (isAudioEnabled()) return;
-      try { await unlockAudio(true); } catch { /* noop */ }
-      setVoiceOn(true); narration.restart();
-    };
-    window.addEventListener('pointerdown', handler, { once: true });
-    window.addEventListener('keydown', handler, { once: true });
-    return () => { window.removeEventListener('pointerdown', handler); window.removeEventListener('keydown', handler); };
-  }, [initialPref, narration]);
+  // Always open each screen at the very top (the previous act may have left the
+  // page scrolled down).
+  useEffect(() => { window.scrollTo({ top: 0, behavior: 'auto' }); }, [screen, started]);
 
-  const enableVoice = useCallback(async () => {
+  // Explicit Start gate — clicking Start is a real gesture, so audio + music
+  // unlock reliably, then the first scene mounts and Kabir begins.
+  const handleStart = useCallback(async () => {
     try { await unlockAudio(true); } catch { /* noop */ }
     try { localStorage.setItem(AUDIO_KEY, 'on'); } catch { /* noop */ }
-    setAudioAsked(true); setShowCard(false); setVoiceOn(true);
-    narration.restart();
-  }, [narration]);
-  const skipVoice = useCallback(() => { try { localStorage.setItem(AUDIO_KEY, 'off'); } catch { /* noop */ } setAudioAsked(true); setShowCard(false); setVoiceOn(false); }, []);
+    setVoiceOn(true);
+    setStarted(true);
+    window.scrollTo({ top: 0 });
+  }, []);
+
   const toggleVoice = useCallback(async () => {
     if (voiceOn) {
       try { await unlockAudio(false); } catch { /* noop */ }
@@ -69,7 +58,7 @@ export default function DreamBedroomAct2({ onComplete, onGoHome }) {
     } else {
       try { await unlockAudio(true); } catch { /* noop */ }
       try { localStorage.setItem(AUDIO_KEY, 'on'); } catch { /* noop */ }
-      setVoiceOn(true); setAudioAsked(true); setShowCard(false); narration.restart();
+      setVoiceOn(true); narration.restart();
     }
   }, [voiceOn, narration]);
 
@@ -83,43 +72,46 @@ export default function DreamBedroomAct2({ onComplete, onGoHome }) {
         <div className="dbm__bg-grid" />
       </div>
 
-      <header className="dbm__topbar">
-        <button className="dbm__home" onClick={onGoHome} title="Home"><Home size={16} /></button>
-        <div className="dbm__steps">
-          {ORDER.map((id, i) => (<span key={id} className={`dbm__step ${i <= stepIdx ? 'is-on' : ''} ${i === stepIdx ? 'is-now' : ''}`} />))}
-        </div>
-        <div className="dbm__nowtitle">Act 2 · {act2.scenes[stepIdx]?.title}</div>
-        <button className={`dbm__voice ${voiceOn ? 'is-on' : ''}`} onClick={toggleVoice} title={voiceOn ? "Mute Kabir's voice" : "Play Kabir's voice"}>
-          {voiceOn ? <Volume2 size={15} /> : <VolumeX size={15} />}
-        </button>
-      </header>
-
-      <main className="dbm__main">
-        <AnimatePresence mode="wait">
-          <motion.div key={screen} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }} className="dbm__screenwrap">
-            {screen === 'c1-reveal'   && <C1Reveal   go={go} narration={narration} accent={ACCENT} />}
-            {screen === 'c2-apply'    && <C2Apply    go={go} narration={narration} accent={ACCENT} act1={act1} />}
-            {screen === 'c3-activity' && <C3Activity go={go} narration={narration} accent={ACCENT} />}
-            {screen === 'c4-takeaway' && <C4Takeaway narration={narration} accent={ACCENT} act1={act1} onComplete={onComplete} />}
-          </motion.div>
-        </AnimatePresence>
-      </main>
-
+      {/* Start gate — Act 2 + Kabir's voice begin on click */}
       <AnimatePresence>
-        {!audioAsked && showCard && (
-          <motion.div className="dbm-audiocard" initial={{ opacity: 0, y: 20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20 }}>
-            <div className="dbm-audiocard__icon"><Volume2 size={20} /></div>
-            <div className="dbm-audiocard__body">
-              <strong>Turn on Kabir's voice?</strong>
-              <span>He'll narrate the 50/30/20 rule aloud as you go.</span>
-            </div>
-            <div className="dbm-audiocard__actions">
-              <button className="dbm-audiocard__ghost" onClick={skipVoice}><X size={14} /> No, just text</button>
-              <button className="dbm-audiocard__primary" onClick={enableVoice}>Yes, narrate</button>
-            </div>
+        {!started && (
+          <motion.div key="start" className="dbm__start" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div className="dbm__start-card" initial={{ opacity: 0, y: 18, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ delay: 0.05, type: 'spring', stiffness: 220, damping: 22 }}>
+              <span className="dbm__start-eyebrow">Lesson 2 · Act 2</span>
+              <h1 className="dbm__start-title">The <span className="dbm__gold">50 / 30 / 20</span> Rule</h1>
+              <p className="dbm__start-sub">Kabir explains the one rule smart budgeters use. Turn your sound on for the full experience.</p>
+              <button className="dbm__start-btn" onClick={handleStart}><Play size={18} /> Start Act 2</button>
+              <span className="dbm__start-note">🔊 Plays with voice narration</span>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {started && (
+        <>
+          <header className="dbm__topbar">
+            <button className="dbm__home" onClick={onGoHome} title="Home"><Home size={16} /></button>
+            <div className="dbm__steps">
+              {ORDER.map((id, i) => (<span key={id} className={`dbm__step ${i <= stepIdx ? 'is-on' : ''} ${i === stepIdx ? 'is-now' : ''}`} />))}
+            </div>
+            <div className="dbm__nowtitle">Act 2 · {act2.scenes[stepIdx]?.title}</div>
+            <button className={`dbm__voice ${voiceOn ? 'is-on' : ''}`} onClick={toggleVoice} title={voiceOn ? "Mute Kabir's voice" : "Play Kabir's voice"}>
+              {voiceOn ? <Volume2 size={15} /> : <VolumeX size={15} />}
+            </button>
+          </header>
+
+          <main className="dbm__main">
+            <AnimatePresence mode="wait">
+              <motion.div key={screen} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }} className="dbm__screenwrap">
+                {screen === 'c1-reveal'   && <C1Reveal   go={go} narration={narration} accent={ACCENT} />}
+                {screen === 'c2-apply'    && <C2Apply    go={go} narration={narration} accent={ACCENT} act1={act1} />}
+                {screen === 'c3-activity' && <C3Activity go={go} narration={narration} accent={ACCENT} />}
+                {screen === 'c4-takeaway' && <C4Takeaway narration={narration} accent={ACCENT} act1={act1} onComplete={onComplete} />}
+              </motion.div>
+            </AnimatePresence>
+          </main>
+        </>
+      )}
     </div>
   );
 }

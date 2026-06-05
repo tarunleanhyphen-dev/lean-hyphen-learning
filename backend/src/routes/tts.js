@@ -174,12 +174,18 @@ router.get('/', async (req, res, next) => {
     // silently through to Edge/Google if not set or fails (rate limit,
     // network, etc.) so the lesson never breaks.
     if (elevenKey && elevenVoiceId) {
-      try {
-        buf = await synthEleven(elevenKey, elevenVoiceId, text, elevenProfile);
-        source = 'elevenlabs';
-      } catch (elevenErr) {
-        // eslint-disable-next-line no-console
-        console.warn('[tts] elevenlabs failed, falling back to edge:', elevenErr?.message);
+      // Retry once on a transient failure (rate-limit/network) BEFORE falling
+      // back to Edge — keeps the voice consistent so one line doesn't end up in
+      // a different (Edge) voice than the rest.
+      for (let attempt = 0; attempt < 2 && !buf; attempt += 1) {
+        try {
+          buf = await synthEleven(elevenKey, elevenVoiceId, text, elevenProfile);
+          source = 'elevenlabs';
+        } catch (elevenErr) {
+          // eslint-disable-next-line no-console
+          console.warn(`[tts] elevenlabs attempt ${attempt + 1} failed:`, elevenErr?.message);
+          if (attempt === 0) await new Promise((r) => setTimeout(r, 350));
+        }
       }
     }
     if (!buf) {

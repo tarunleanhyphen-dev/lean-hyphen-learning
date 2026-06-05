@@ -5,7 +5,7 @@
  */
 import { useMemo, useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Home, Check, X, ArrowRight, RotateCcw, Download, Trophy, Sparkles, Volume2, VolumeX, SkipForward, Lock } from 'lucide-react';
+import { Home, Check, X, ArrowRight, RotateCcw, Download, Trophy, Sparkles, Volume2, VolumeX, SkipForward, Lock, Play } from 'lucide-react';
 import { catalogue } from '../../../../data/lessons/dreamBedroomMakeover.js';
 import { useNarration } from '../Act1/useNarration.js';
 import { unlockAudio } from '../../../../utils/sounds.js';
@@ -235,6 +235,19 @@ export default function DreamBedroomAct3({ onComplete, onGoHome }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idx, screen, voiceOn]);
 
+  // Open Act 3 at the top of the page (the previous act may have left it
+  // scrolled down) and on every screen change.
+  useEffect(() => { window.scrollTo({ top: 0, behavior: 'auto' }); }, [screen]);
+
+  // The intro's "Start" button doubles as the audio/music gate.
+  const startQuiz = async () => {
+    try { await unlockAudio(true); } catch { /* noop */ }
+    try { localStorage.setItem(AUDIO_KEY, 'on'); } catch { /* noop */ }
+    setVoiceOn(true);
+    setScreen('quiz');
+    window.scrollTo({ top: 0 });
+  };
+
   const choose = (oi) => {
     if (picked !== null) return;
     setPicked(oi);
@@ -313,7 +326,7 @@ export default function DreamBedroomAct3({ onComplete, onGoHome }) {
                 <div className="dbm-q__chips">
                   <span>📝 6 questions</span><span>⏱️ ~4 min</span><span>🏅 Earn a badge</span>
                 </div>
-                <button className="dbm-cta dbm-cta--big" onClick={() => setScreen('quiz')}>Start the quiz <ArrowRight size={17} /></button>
+                <button className="dbm-cta dbm-cta--big" onClick={startQuiz}><Play size={16} /> Start Act 3 <ArrowRight size={17} /></button>
               </motion.div>
             )}
 

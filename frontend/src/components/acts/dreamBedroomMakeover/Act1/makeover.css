@@ -751,42 +751,39 @@
 .dbm-split__n { color: #34d399; } .dbm-split__w { color: #c084fc; }
 .dbm-tracker--compact .dbm-grid { grid-template-columns: 1fr 1fr; }
 
-/* ---- Scene 6: premium expense-tracker styling ---- */
+/* ---- Scene 6: premium expense-tracker styling (WHITE card so every label is
+   dark-on-light and readable) ---- */
 .dbm-events__tracker { max-width: 860px; }
 .dbm-events__tracker .dbm-tracker {
-  background: linear-gradient(165deg, rgba(255,255,255,.10), rgba(255,255,255,.035));
-  border: 1px solid color-mix(in srgb, var(--accent) 26%, rgba(255,255,255,.12));
+  background: linear-gradient(180deg, #ffffff, #f4f6fb);
+  border: 1px solid var(--card-bd);
+  border-top: 4px solid var(--accent);
   border-radius: 22px; padding: 20px 22px; gap: 16px;
-  box-shadow: 0 30px 70px -34px #000, inset 0 1px 0 rgba(255,255,255,.07);
-  backdrop-filter: blur(8px);
+  box-shadow: 0 30px 70px -34px #000;
 }
 .dbm-events__tracker .dbm-tracker__head {
-  font-family: 'Sora', system-ui, sans-serif; font-size: 14px; letter-spacing: .02em; color: #fff;
-  padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,.1);
+  font-family: 'Sora', system-ui, sans-serif; font-size: 14px; letter-spacing: .02em; color: #241f33;
+  padding-bottom: 12px; border-bottom: 1px solid var(--card-bd);
 }
-.dbm-events__tracker .dbm-tracker__head svg { color: var(--glow); }
-.dbm-events__tracker .dbm-tracker__hero {
-  background: linear-gradient(160deg, color-mix(in srgb, var(--band) 22%, transparent), color-mix(in srgb, var(--band) 8%, transparent));
-  border-color: color-mix(in srgb, var(--band) 45%, transparent); padding: 16px;
-}
-.dbm-events__tracker .dbm-tracker__hero-val {
-  font-size: 40px; background: linear-gradient(180deg, #fff, var(--band)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
-}
-.dbm-events__tracker .dbm-stat {
-  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08); border-radius: 12px; padding: 10px 12px;
-  transition: .2s;
-}
-.dbm-events__tracker .dbm-stat:hover { background: rgba(255,255,255,.1); transform: translateY(-1px); }
-.dbm-events__tracker .dbm-stat__lbl { color: rgba(255,255,255,.6); }
-.dbm-events__tracker .dbm-stat__val { color: #fff; }
-.dbm-events__tracker .dbm-donut__num { fill: #fff; }
-.dbm-events__tracker .dbm-cat__lbl { color: rgba(255,255,255,.82); }
-.dbm-events__tracker .dbm-cat__val { color: #fff; }
-/* roomier 2-column body on desktop: bar+stats beside donut+cats */
+.dbm-events__tracker .dbm-tracker__head svg { color: var(--accent); }
+.dbm-events__tracker .dbm-tracker__hero-label { color: #6b6478; }
+.dbm-events__tracker .dbm-stat { background: #f4f7fb; border: 1px solid var(--card-bd); border-radius: 12px; padding: 10px 12px; transition: .2s; }
+.dbm-events__tracker .dbm-stat:hover { background: #eef2f9; transform: translateY(-1px); }
+.dbm-events__tracker .dbm-stat__lbl { color: #6b6478; }
+.dbm-events__tracker .dbm-stat__val { color: #241f33; }
+.dbm-events__tracker .dbm-bar { background: rgba(0,0,0,.07); }
+.dbm-events__tracker .dbm-bar__legend { color: #6b6478; }
+.dbm-events__tracker .dbm-bar__lockdot { background: repeating-linear-gradient(45deg, rgba(0,0,0,.3), rgba(0,0,0,.3) 2px, rgba(0,0,0,.12) 2px, rgba(0,0,0,.12) 4px); }
+.dbm-events__tracker .dbm-donut__num { fill: #241f33; }
+.dbm-events__tracker .dbm-donut__lbl { fill: #8e8699; }
+.dbm-events__tracker .dbm-cat__lbl { color: #4a4458; }
+.dbm-events__tracker .dbm-cat__val { color: #241f33; }
+.dbm-events__tracker .dbm-split__head { color: #4a4458; }
+.dbm-events__tracker .dbm-split__n { color: #0f9d6b; }
+.dbm-events__tracker .dbm-split__w { color: #8b3ff0; }
+/* roomier donut block on desktop */
 @media (min-width: 720px) {
-  .dbm-events__tracker .dbm-tracker__donutwrap {
-    background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07); border-radius: 14px; padding: 12px;
-  }
+  .dbm-events__tracker .dbm-tracker__donutwrap { background: #f7f9fc; border: 1px solid var(--card-bd); border-radius: 14px; padding: 12px; }
 }
 
 /* ===================== iso2d room ===================== */

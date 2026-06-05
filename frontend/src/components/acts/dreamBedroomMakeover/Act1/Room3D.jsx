@@ -242,6 +242,18 @@ const ART = {
   'curtains': () => <Curtains />, 'table-fan': () => <Fan />, 'posters': () => <Poster />,
   'bluetooth-speaker': () => <Speaker />, 'mini-fridge': () => <Fridge />, 'mirror': () => <Mirror />,
 };
+export { ART };
+/* the group position each model is authored at — used to re-centre it for a
+ * standalone spinning preview (negate to bring the model's origin to 0). */
+export const ITEM_POS = {
+  'bed-budget': [-1.35, 0, -1.5], 'bed-premium': [-1.35, 0, -1.5],
+  'wardrobe-budget': [2.5, 0, 2.3], 'wardrobe-premium': [2.0, 0, 2.2],
+  'study-desk': [-2.35, 0, 0.6], 'basic-chair': [-1.6, 0, 0.6], 'gaming-chair': [-1.6, 0, 0.6],
+  'bookshelf': [2.4, 0, -2.5], 'under-bed-box': [-1.35, 0, -0.2],
+  'desk-lamp': [-2.05, 1.04, 0.9], 'curtains': [0, 1.7, -2.9], 'table-fan': [-2.35, 1.04, 0.4],
+  'posters': [-1.7, 1.7, 2.92], 'bluetooth-speaker': [-2.35, 1.06, 0.45], 'mini-fridge': [2.4, 0, 1.3],
+  'mirror': [-2.92, 0, -1.0],
+};
 
 /* Ceiling fan — same build as Scene 1's room (hangs DOWN from its mount). */
 function CeilingFan() {

@@ -18,6 +18,8 @@ import { DustyRoom3D } from './DustyRoom3D.jsx';
 import { VibeRoom3D } from './VibeRoom3D.jsx';
 import { ItemArt } from './ItemArt.jsx';
 import { ItemArt2D } from './ItemArt2D.jsx';
+import { ItemPreview3D } from './ItemPreview3D.jsx';
+import { ITEM_POS } from './Room3D.jsx';
 import { Tracker, Donut, fmt, useCount } from './Tracker.jsx';
 import { NarratorCard } from './NarratorCard.jsx';
 
@@ -735,19 +737,24 @@ export function Screen4Shop({ mk, narration, vibe, accent }) {
 
 function ShopCard({ item, selected, wouldOver, color, onClick }) {
   const premium = item.tier === 'premium';
+  const [hover, setHover] = useState(false);
+  const has3D = !!ITEM_POS[item.id];
   return (
     <motion.button
       className={`dbm-shopcard ${selected ? 'is-selected' : ''} ${wouldOver ? 'is-over' : ''} ${premium ? 'is-premium' : ''} ${item.tier === 'budget' ? 'is-budget' : ''}`}
       style={{ '--c': color }}
       onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
       whileHover={{ y: -4 }}
       whileTap={{ scale: 0.97 }}
       layout
     >
       <div className="dbm-shopcard__badge" data-type={item.type}>{item.type === 'need' ? 'Need' : 'Want'}</div>
       {item.tierLabel && <div className={`dbm-shopcard__tier dbm-shopcard__tier--${item.tier}`}>{item.tierLabel}</div>}
-      <div className="dbm-shopcard__art">
+      <div className={`dbm-shopcard__art ${hover && has3D ? 'is-3d' : ''}`}>
         <ItemArt2D art={item.art} tier={item.tier} size={64} className="dbm-shopcard__art3d" />
+        {hover && has3D && <div className="dbm-shopcard__preview3d"><ItemPreview3D itemId={item.id} /></div>}
         {premium && <span className="dbm-shopcard__crown">👑</span>}
       </div>
       <div className="dbm-shopcard__name">{item.name}</div>

@@ -124,7 +124,7 @@ function loadAct1() {
 }
 
 /* completion tracking — the bill only unlocks once all three acts are done */
-function loadProgress() { try { return JSON.parse(localStorage.getItem('lh.dbm.progress.v1') || '{}'); } catch { return {}; } }
+export function loadProgress() { try { return JSON.parse(localStorage.getItem('lh.dbm.progress.v1') || '{}'); } catch { return {}; } }
 export function markActDone(id) {
   try { const p = loadProgress(); p[id] = true; localStorage.setItem('lh.dbm.progress.v1', JSON.stringify(p)); } catch { /* noop */ }
 }

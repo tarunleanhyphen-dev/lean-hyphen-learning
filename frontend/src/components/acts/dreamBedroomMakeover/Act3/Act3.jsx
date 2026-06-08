@@ -5,10 +5,13 @@
  */
 import { useMemo, useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Home, Check, X, ArrowRight, RotateCcw, Download, Trophy, Sparkles, Volume2, VolumeX, SkipForward, Lock, Play } from 'lucide-react';
+import { Home, Check, X, ArrowRight, RotateCcw, Download, Trophy, Sparkles, Volume2, VolumeX, Lock, Play, Clock } from 'lucide-react';
 import { catalogue } from '../../../../data/lessons/dreamBedroomMakeover.js';
 import { useNarration } from '../Act1/useNarration.js';
-import { unlockAudio } from '../../../../utils/sounds.js';
+import { unlockAudio, sounds, isAudioReady } from '../../../../utils/sounds.js';
+
+const QUIZ_SECONDS = 45;
+function qsfx(n) { try { if (isAudioReady()) sounds[n]?.(); } catch { /* noop */ } }
 import '../Act1/makeover.css';
 import './act3.css';
 
@@ -218,6 +221,8 @@ export default function DreamBedroomAct3({ onComplete, onGoHome }) {
   const [screen, setScreen] = useState('intro'); // intro | quiz | result
   const [idx, setIdx] = useState(0);
   const [picked, setPicked] = useState(null);
+  const [timeLeft, setTimeLeft] = useState(QUIZ_SECONDS);
+  const [timedOut, setTimedOut] = useState(false);
   const [score, setScore] = useState(0);
   const [results, setResults] = useState([]); // 'right' | 'wrong' | 'skip' per question
   const [showInvoice, setShowInvoice] = useState(true);
@@ -242,6 +247,30 @@ export default function DreamBedroomAct3({ onComplete, onGoHome }) {
   // scrolled down) and on every screen change.
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'auto' }); }, [screen]);
 
+  // Reset the 45s clock for each new question (and when the quiz starts).
+  useEffect(() => {
+    if (screen !== 'quiz') return;
+    setTimeLeft(QUIZ_SECONDS);
+    setTimedOut(false);
+  }, [idx, screen]);
+
+  // Countdown: ticks once a second while the question is unanswered. Stops at 0
+  // (time's up — reveal the answer) and stops the instant the learner answers.
+  useEffect(() => {
+    if (screen !== 'quiz' || picked !== null || timedOut) return undefined;
+    if (timeLeft <= 0) {
+      setTimedOut(true);
+      setResults((r) => { const n = [...r]; if (n[idx] == null) n[idx] = 'skip'; return n; });
+      narration.stop();
+      qsfx('alert');
+      return undefined;
+    }
+    if (timeLeft <= 6) qsfx('tap'); // tick under pressure
+    const t = setTimeout(() => setTimeLeft((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeLeft, picked, timedOut, screen, idx]);
+
   // The intro's "Start" button doubles as the audio/music gate.
   const startQuiz = async () => {
     try { await unlockAudio(true); } catch { /* noop */ }
@@ -252,7 +281,7 @@ export default function DreamBedroomAct3({ onComplete, onGoHome }) {
   };
 
   const choose = (oi) => {
-    if (picked !== null) return;
+    if (picked !== null || timedOut) return; // locked once answered or timed out
     setPicked(oi);
     const correct = q.options[oi].correct;
     if (correct) setScore((s) => s + 1);
@@ -267,11 +296,6 @@ export default function DreamBedroomAct3({ onComplete, onGoHome }) {
     if (idx + 1 >= QUESTIONS.length) { markActDone('act3'); setScreen('result'); return; }
     setIdx((i) => i + 1); setPicked(null);
   };
-  const skip = () => {
-    narration.stop();
-    setResults((r) => { const n = [...r]; if (n[idx] == null) n[idx] = 'skip'; return n; });
-    next();
-  };
 
   const toggleVoice = async () => {
     if (voiceOn) { try { await unlockAudio(false); } catch { /* noop */ } try { localStorage.setItem(AUDIO_KEY, 'off'); } catch { /* noop */ } narration.stop(); setVoiceOn(false); }
@@ -285,6 +309,12 @@ export default function DreamBedroomAct3({ onComplete, onGoHome }) {
 
   const badge = BADGES.find((b) => score >= b.min);
   const closing = closingLine(a1);
+
+  // Quiz answer/lock state (answered OR the 45s clock ran out).
+  const answered = picked !== null;
+  const locked = answered || timedOut;
+  const correctIdx = q.options.findIndex((o) => o.correct);
+  const isRight = answered && q.options[picked].correct;
 
   return (
     <div className="dbm dbm--study dbm-act3" style={{ '--accent': ACCENT, '--glow': GLOW }}>
@@ -339,6 +369,11 @@ export default function DreamBedroomAct3({ onComplete, onGoHome }) {
                 <div className="dbm-q__top">
                   <span className="dbm-q__num">Question {idx + 1}<span>/{QUESTIONS.length}</span></span>
                   <span className="dbm-q__score">⭐ {score} correct</span>
+                  {/* 45s countdown — top-right, urgent in the final seconds */}
+                  <div className={`dbm-q__timer ${timedOut ? 'is-out' : ''} ${!locked && timeLeft <= 15 ? 'is-warn' : ''} ${!locked && timeLeft <= 7 ? 'is-danger' : ''}`}>
+                    <Clock size={15} />
+                    <span>{timedOut ? "Time's up" : `0:${String(Math.max(0, timeLeft)).padStart(2, '0')}`}</span>
+                  </div>
                 </div>
                 <div className="dbm-q__dots">
                   {QUESTIONS.map((_, i) => (
@@ -350,34 +385,31 @@ export default function DreamBedroomAct3({ onComplete, onGoHome }) {
                   <h2 className="dbm-q__question">{q.q}</h2>
                   <div className="dbm-q__options">
                   {q.options.map((o, oi) => {
-                    const state = picked === null ? '' : o.correct ? 'is-correct' : oi === picked ? 'is-wrong' : 'is-dim';
+                    const state = !locked ? '' : o.correct ? 'is-correct' : oi === picked ? 'is-wrong' : 'is-dim';
                     return (
                       <motion.button
-                        key={oi} className={`dbm-q__opt ${state}`} onClick={() => choose(oi)} disabled={picked !== null}
+                        key={oi} className={`dbm-q__opt ${state}`} onClick={() => choose(oi)} disabled={locked}
                         initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06 * oi, type: 'spring', stiffness: 260, damping: 22 }}
-                        whileHover={picked === null ? { scale: 1.015, x: 3 } : {}} whileTap={picked === null ? { scale: 0.98 } : {}}
+                        whileHover={!locked ? { scale: 1.015, x: 3 } : {}} whileTap={!locked ? { scale: 0.98 } : {}}
                       >
                         <span className="dbm-q__letter">{String.fromCharCode(65 + oi)}</span>
                         <span className="dbm-q__opttext">{o.t}</span>
-                        {picked !== null && o.correct && <Check size={18} className="dbm-q__mark" />}
-                        {picked !== null && !o.correct && oi === picked && <X size={18} className="dbm-q__mark" />}
+                        {locked && o.correct && <Check size={18} className="dbm-q__mark" />}
+                        {answered && !o.correct && oi === picked && <X size={18} className="dbm-q__mark" />}
                       </motion.button>
                     );
                   })}
                   </div>
-                  {picked === null && (
-                    <button className="dbm-q__skip" onClick={skip}>Skip this question <SkipForward size={14} /></button>
-                  )}
                   <AnimatePresence>
-                    {picked !== null && (
-                      <motion.div className={`dbm-q__fb ${q.options[picked].correct ? 'is-right' : 'is-soft'}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                    {locked && (
+                      <motion.div className={`dbm-q__fb ${isRight ? 'is-right' : 'is-soft'}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
                         <div className="dbm-q__fbinner">
                           <div className="dbm-q__fbhead">
-                            <span className="dbm-q__fbicon">{q.options[picked].correct ? <Check size={16} /> : '💡'}</span>
-                            <strong>{q.options[picked].correct ? 'Correct!' : `Not quite — the answer is ${String.fromCharCode(65 + q.options.findIndex((o) => o.correct))}. ${q.options.find((o) => o.correct).t}`}</strong>
+                            <span className="dbm-q__fbicon">{isRight ? <Check size={16} /> : timedOut ? '⏰' : '💡'}</span>
+                            <strong>{isRight ? 'Correct!' : `${timedOut ? "Time's up!" : 'Not quite'} — the answer is ${String.fromCharCode(65 + correctIdx)}. ${q.options[correctIdx].t}`}</strong>
                           </div>
-                          <p>{q.options[picked].correct ? q.right : q.wrong}</p>
-                          {!q.options[picked].correct && <p className="dbm-q__fbwhy"><b>Why:</b> {q.right}</p>}
+                          <p>{isRight ? q.right : q.wrong}</p>
+                          {!isRight && <p className="dbm-q__fbwhy"><b>Why:</b> {q.right}</p>}
                         </div>
                         <button className="dbm-q__next" onClick={next}>{idx + 1 >= QUESTIONS.length ? 'See result' : 'Next'} <ArrowRight size={15} /></button>
                       </motion.div>

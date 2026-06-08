@@ -27,9 +27,23 @@
 
 /* quiz */
 .dbm-q { align-items: stretch; }
-.dbm-q__top { display: flex; align-items: center; justify-content: space-between; }
+.dbm-q__top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .dbm-q__num { font-family: 'Sora', system-ui, sans-serif; font-weight: 800; font-size: 15px; color: #fff; }
 .dbm-q__num span { color: rgba(255,255,255,.55); font-weight: 600; }
+
+/* per-question 45s countdown (top-right) */
+.dbm-q__timer { display: inline-flex; align-items: center; gap: 6px; font-family: 'Sora', system-ui, sans-serif;
+  font-weight: 800; font-size: 14px; color: #fff; background: rgba(255,255,255,.10);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 999px; padding: 6px 13px;
+  font-variant-numeric: tabular-nums; transition: color .2s, background .2s, border-color .2s; }
+.dbm-q__timer.is-warn { color: #ffd56b; background: rgba(245,158,11,.16); border-color: rgba(245,158,11,.5); }
+.dbm-q__timer.is-danger { color: #fff; background: rgba(239,68,68,.22); border-color: rgba(239,68,68,.7);
+  animation: dbm-q-tick .85s ease-in-out infinite; }
+.dbm-q__timer.is-out { color: #fff; background: rgba(239,68,68,.34); border-color: #ef4444; animation: none; }
+@keyframes dbm-q-tick {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239,68,68,.55); }
+  50% { transform: scale(1.07); box-shadow: 0 0 0 7px rgba(239,68,68,0); }
+}
 .dbm-q__tag { font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--glow);
   background: color-mix(in srgb, var(--accent) 22%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); border-radius: 99px; padding: 4px 11px; }
 .dbm-q__progress { height: 5px; background: rgba(255,255,255,.12); border-radius: 99px; overflow: hidden; }

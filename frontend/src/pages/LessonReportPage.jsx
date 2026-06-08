@@ -26,7 +26,7 @@ export default function LessonReportPage() {
           mode="page"
           sessionId={sessionId}
           lessonId={lessonId}
-          onContinue={() => navigate('/')}
+          onContinue={() => navigate('/lesson1')}
         />
       </div>
     </div>

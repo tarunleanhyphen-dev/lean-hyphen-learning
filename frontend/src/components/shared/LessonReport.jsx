@@ -128,10 +128,21 @@ export default function LessonReport({
               Your Lesson Report
             </h2>
             <p className="mt-1 text-[13px] text-ink-700">
-              Think Before You Spend — full performance breakdown
+              {({ 'think-before-you-spend': 'Think Before You Spend', 'where-does-my-money-go': 'Where Does My Money Go?' }[lessonId] || 'Your lesson')} — full performance breakdown
             </p>
           </div>
-          <Trophy className="h-10 w-10 text-saffron-500" strokeWidth={2.2} />
+          <div className="flex shrink-0 items-center gap-2">
+            <Trophy className="hidden h-10 w-10 text-saffron-500 sm:block" strokeWidth={2.2} />
+            {onContinue && (
+              <button
+                type="button"
+                onClick={onContinue}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-ink-300/20 bg-white px-3 py-2 text-[13px] font-bold text-ink-800 transition hover:bg-cream-100"
+              >
+                <ArrowLeft className="h-4 w-4" /> Home
+              </button>
+            )}
+          </div>
         </header>
 
         {loading && !report && !error && (

@@ -9,6 +9,7 @@ import { act2 } from '../../../../data/lessons/dreamBedroomMakeover.js';
 import { useNarration } from '../Act1/useNarration.js';
 import { unlockAudio } from '../../../../utils/sounds.js';
 import { C1Reveal, C2Apply, C3Activity, C4Takeaway, loadAct1Spend } from './Screens2.jsx';
+import { useL2Analytics } from '../useL2Analytics.js';
 import '../Act1/makeover.css';
 import './act2.css';
 
@@ -32,9 +33,20 @@ export default function DreamBedroomAct2({ onComplete, onGoHome }) {
 
   const [voiceOn, setVoiceOn] = useState(false);
   const [started, setStarted] = useState(false); // gate: Act 2 begins on Start click
+
+  /* ---- analytics: act/scene lifecycle + the First-Salary answers ---- */
+  const analytics = useL2Analytics('act2');
   useEffect(() => {
     if (import.meta.env.DEV && new URLSearchParams(window.location.search).get('dev')) document.documentElement.classList.add('dbm-reveal');
   }, []);
+
+  // scene_entered on each screen, scene_completed on leaving it
+  useEffect(() => {
+    if (!started) return undefined;
+    analytics.sceneEntered(screen);
+    return () => analytics.sceneCompleted(screen);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [started, screen]);
 
   // Always open each screen at the very top (the previous act may have left the
   // page scrolled down).
@@ -47,8 +59,18 @@ export default function DreamBedroomAct2({ onComplete, onGoHome }) {
     try { localStorage.setItem(AUDIO_KEY, 'on'); } catch { /* noop */ }
     setVoiceOn(true);
     setStarted(true);
+    analytics.actStarted();
     window.scrollTo({ top: 0 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // act_completed (+ flush) when Act 2's takeaway finishes.
+  const handleComplete = useCallback(() => {
+    analytics.actCompleted();
+    analytics.flush?.();
+    onComplete?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onComplete]);
 
   const toggleVoice = useCallback(async () => {
     if (voiceOn) {
@@ -105,8 +127,8 @@ export default function DreamBedroomAct2({ onComplete, onGoHome }) {
               <motion.div key={screen} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }} className="dbm__screenwrap">
                 {screen === 'c1-reveal'   && <C1Reveal   go={go} narration={narration} accent={ACCENT} />}
                 {screen === 'c2-apply'    && <C2Apply    go={go} narration={narration} accent={ACCENT} act1={act1} />}
-                {screen === 'c3-activity' && <C3Activity go={go} narration={narration} accent={ACCENT} />}
-                {screen === 'c4-takeaway' && <C4Takeaway narration={narration} accent={ACCENT} act1={act1} onComplete={onComplete} />}
+                {screen === 'c3-activity' && <C3Activity go={go} narration={narration} accent={ACCENT} analytics={analytics} />}
+                {screen === 'c4-takeaway' && <C4Takeaway narration={narration} accent={ACCENT} act1={act1} onComplete={handleComplete} />}
               </motion.div>
             </AnimatePresence>
           </main>

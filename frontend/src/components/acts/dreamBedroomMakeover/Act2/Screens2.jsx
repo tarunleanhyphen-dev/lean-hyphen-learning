@@ -360,141 +360,239 @@ export function C2Apply({ go, narration, accent, act1 }) {
   );
 }
 
-/* ============ C3 — Sort Kabir's Expenses ============ */
-export function C3Activity({ go, narration, accent }) {
-  const d = act2.activity;
-  const n = useNarr(narration, [d.intro, d.task]);
-  const [idx, setIdx] = useState(0);
-  const [placed, setPlaced] = useState({}); // expenseId -> bucketId chosen
-  const [feedback, setFeedback] = useState(null);
-  const [saveAns, setSaveAns] = useState(null);
+/* ============ C3 — Mini Activity: Who's Nailing Their First Salary? ============ */
+const FS_SALARY = 60000;
+const FS_RULE = { needs: 30000, wants: 18000, savings: 12000 }; // 50/30/20 of ₹60,000
+const FS_PEOPLE = [
+  {
+    id: 'arjun', name: 'Arjun', emoji: '🧑🏽‍💼', color: '#ef4444', vibe: 'Lives for today',
+    needs: 20500, wants: 25000, savings: 0,
+    fb: "Arjun didn't even spend his full salary — yet saved nothing. All his extra money just quietly disappeared. No savings means no safety net. One medical bill or a broken phone and he's calling home.",
+  },
+  {
+    id: 'priya', name: 'Priya', emoji: '👩🏻‍💼', color: '#f59e0b', vibe: 'Saves it all',
+    needs: 19500, wants: 1500, savings: 39000,
+    fb: "Priya has money in the bank — but she spent almost nothing on Wants. The rule isn't about saving as much as possible, it's about balance. She hasn't been to a single birthday dinner this year. That's not a budget, that's a punishment.",
+  },
+  {
+    id: 'sneha', name: 'Sneha', emoji: '👩🏽‍🦰', color: '#10b981', vibe: 'Balanced & consistent', correct: true,
+    needs: 25000, wants: 8500, savings: 16500,
+    fb: "Correct! Sneha's Needs land around ₹25,000, Wants around ₹8,500 and Savings ₹16,500 — not a perfect 50/30/20, but the most balanced of the three. She shows up for her friends, her savings are growing, and she sleeps without worrying about next month. One good habit, started early, is all it takes.",
+  },
+];
+const FS_FIX_OPTIONS = [
+  { id: 'A', text: 'Cut Swiggy from ₹6,000 to ₹2,000', good: true },
+  { id: 'B', text: 'Move to a cheaper PG — save ₹3,000 on rent' },
+  { id: 'C', text: 'Pause the iPhone EMI — buy a budget phone instead', good: true },
+  { id: 'D', text: 'Cancel all outings entirely' },
+  { id: 'E', text: 'Stop buying clothes for 6 months' },
+];
+const FS_FIX_RIGHT = "Smart choices. Cutting Swiggy saves ₹4,000. Dropping the iPhone EMI saves ₹8,000. That's ₹12,000 freed up — enough to hit his savings target and still enjoy his weekends. He doesn't have to give up his life. He just has to make smarter trade-offs.";
+const FS_FIX_WRONG = "Those cuts would help — but A and C are the highest-impact changes with the least lifestyle sacrifice. Big Wants like EMIs drain a budget quietly, every single month.";
+const FS_CLOSING = "Three people, same salary, three completely different financial lives. Arjun is enjoying today at the cost of tomorrow. Priya is protecting tomorrow at the cost of today. Sneha is doing both — not perfectly, but consistently. The 50/30/20 rule isn't about being perfect. It's about being deliberate.";
 
-  const exp = d.expenses[idx];
-  const finished = idx >= d.expenses.length;
-
-  const totals = useMemo(() => {
-    const t = { needs: 0, wants: 0, savings: 0 };
-    Object.entries(placed).forEach(([eid, b]) => {
-      const e = d.expenses.find((x) => x.id === eid); if (e) t[b] += e.amount;
-    });
-    return t;
-  }, [placed, d.expenses]);
-
-  const choose = (bucket) => {
-    if (!exp || feedback) return;
-    sfx(bucket === exp.bucket ? 'ding' : 'tap');
-    setPlaced((p) => ({ ...p, [exp.id]: exp.bucket })); // always file in the CORRECT bucket so the lesson stays accurate
-    narration.say(exp.feedback);
-    setFeedback({ exp, chosen: bucket, correct: bucket === exp.bucket, text: exp.feedback, grey: exp.grey });
-  };
-  const next = () => { sfx('click'); setFeedback(null); setIdx((i) => i + 1); };
-
-  if (finished) {
-    return <ActivityResults d={d} totals={totals} saveAns={saveAns} setSaveAns={setSaveAns} narration={narration} accent={accent} go={go} />;
-  }
-
+function PersonBars({ p, max = 39000, reveal = true }) {
+  const rows = [
+    { k: 'Needs', v: p.needs, c: '#10b981' },
+    { k: 'Wants', v: p.wants, c: '#a855f7' },
+    { k: 'Savings', v: p.savings, c: '#f59e0b' },
+  ];
   return (
-    <div className="dbm-screen dbm-a2">
-      <h2 className="dbm-h2">Sort Kabir's expenses</h2>
-      <NarratorCard narration={narration} lines={[d.intro, d.task]} accent={accent} done compact size={92}
-        onReplay={() => narration.replay([d.intro, d.task])} onSkip={() => narration.skip()} />
-
-      <button className="a2-skip" onClick={() => { sfx('tap'); narration.stop(); go('c4-takeaway'); }}>
-        Skip sorting → Takeaway <ArrowRight size={14} />
-      </button>
-
-      <div className="a2-buckets">
-        {d.buckets.map((b) => (
-          <div key={b.id} className="a2-bucket" style={{ '--c': b.color }}>
-            <div className="a2-bucket__head"><span>{b.label}</span><small>target {fmt(b.target)}</small></div>
-            <div className="a2-bucket__barwrap"><motion.div className="a2-bucket__bar" animate={{ width: `${Math.min(100, (totals[b.id] / (b.target * 1.6)) * 100)}%` }} /></div>
-            <div className="a2-bucket__val">{fmt(totals[b.id])}</div>
+    <div className="a2-fs__bars">
+      {rows.map((r) => (
+        <div className="a2-fs__bar" key={r.k}>
+          <span className="a2-fs__barlbl">{r.k}</span>
+          <div className="a2-fs__bartrack">
+            <motion.div className="a2-fs__barfill" style={{ background: r.c }}
+              initial={{ width: 0 }} animate={{ width: reveal ? `${Math.min(100, (r.v / max) * 100)}%` : 0 }}
+              transition={{ type: 'spring', stiffness: 90, damping: 18 }} />
           </div>
-        ))}
-      </div>
-
-      <div className="a2-act__progress">Expense {idx + 1} of {d.expenses.length}
-        <div className="dbm-sort__progressbar"><motion.div animate={{ width: `${(idx / d.expenses.length) * 100}%` }} /></div>
-      </div>
-
-      <AnimatePresence mode="wait">
-        <motion.div key={exp.id} className="a2-expcard" initial={{ opacity: 0, y: -18, rotateX: 14 }} animate={{ opacity: 1, y: 0, rotateX: 0 }} exit={{ opacity: 0, scale: 0.85 }}
-          whileHover={{ rotateX: -6, rotateY: 6, scale: 1.03 }} transition={{ type: 'spring', stiffness: 160, damping: 16 }}>
-          <div className="a2-expcard__art">
-            <motion.div className="a2-expcard__art3d" animate={{ rotateY: [0, 12, -12, 0], y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 3.2, ease: 'easeInOut' }} whileHover={{ scale: 1.15 }}>
-              <ItemArt art={exp.art} size={108} />
-            </motion.div>
-          </div>
-          <div className="a2-expcard__name">{exp.name}</div>
-          <div className="a2-expcard__amt">{fmt(exp.amount)}</div>
-          {exp.grey && <div className="a2-expcard__grey">🤔 grey area</div>}
-        </motion.div>
-      </AnimatePresence>
-
-      {!feedback ? (
-        <div className="a2-choices">
-          {d.buckets.map((b) => (
-            <button key={b.id} className="a2-choice" style={{ '--c': b.color }} onClick={() => choose(b.id)}>{b.label}</button>
-          ))}
+          <span className="a2-fs__barval">{fmt(r.v)}</span>
         </div>
-      ) : (
-        <motion.div className={`dbm-feedback ${feedback.correct ? 'is-right' : 'is-soft'} ${feedback.grey ? 'is-grey' : ''}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="dbm-feedback__icon">{feedback.grey ? '🤔' : feedback.correct ? <Check size={18} /> : <Info size={18} />}</div>
-          <p>{feedback.text}</p>
-          <button className="dbm-feedback__next" onClick={next}>Next <ArrowRight size={15} /></button>
-        </motion.div>
-      )}
+      ))}
     </div>
   );
 }
 
-function statusOf(spent, target) {
-  const diff = Math.abs(spent - target) / target;
-  if (diff <= 0.15) return { label: spent <= target ? 'On track' : 'Close', cls: 'ok' };
-  if (diff <= 0.4)  return { label: spent > target ? 'Slightly over' : 'A bit under', cls: 'warn' };
-  return { label: spent > target ? 'Over' : 'Under', cls: 'bad' };
-}
+export function C3Activity({ go, narration, accent, analytics }) {
+  const [phase, setPhase] = useState('intro'); // intro | rule | decide | fix | summary
+  const [whoPick, setWhoPick] = useState(null);
+  const [fixSel, setFixSel] = useState([]);
+  const [fixDone, setFixDone] = useState(false);
+  const introLines = [
+    'Meet Arjun, Priya and Sneha. They all just got their first job — same city, same salary: ₹60,000 a month. Look at what they spent on, and figure out who is following the 50/30/20 rule.',
+  ];
+  const n = useNarr(narration, introLines);
 
-function ActivityResults({ d, totals, saveAns, setSaveAns, narration, accent, go }) {
-  useEffect(() => { sfx('reveal'); }, []);
-  const rows = d.buckets.map((b) => ({ ...b, spent: totals[b.id], status: statusOf(totals[b.id], b.target) }));
-
-  const pick = (yes) => { if (saveAns) return; sfx(yes ? 'ding' : 'tap'); setSaveAns(yes ? 'yes' : 'no'); narration.say(yes ? d.saveYes : d.saveNo); };
+  const pickWho = (id) => {
+    if (whoPick) return;
+    const person = FS_PEOPLE.find((p) => p.id === id);
+    sfx(person.correct ? 'ding' : 'tap');
+    setWhoPick(id);
+    narration.say(person.fb);
+  };
+  const toggleFix = (id) => {
+    if (fixDone) return;
+    setFixSel((s) => (s.includes(id) ? s.filter((x) => x !== id) : s.length < 2 ? [...s, id] : s));
+    sfx('tap');
+  };
+  const submitFix = () => {
+    if (fixSel.length !== 2 || fixDone) return;
+    const right = fixSel.includes('A') && fixSel.includes('C');
+    sfx(right ? 'ding' : 'tap');
+    setFixDone(true);
+    narration.say(right ? FS_FIX_RIGHT : FS_FIX_WRONG);
+  };
+  const goPhase = (p, line) => { sfx('click'); narration.stop(); setPhase(p); if (line) setTimeout(() => narration.say(line), 250); };
+  useEffect(() => { window.scrollTo({ top: 0 }); }, [phase]);
 
   return (
-    <div className="dbm-screen dbm-a2">
-      <h2 className="dbm-h2">Kabir's spending vs the rule</h2>
-      <div className="a2-results">
-        <div className="a2-results__head"><span>Bucket</span><span>Rule</span><span>Kabir spent</span><span>Status</span></div>
-        {rows.map((r) => (
-          <motion.div key={r.id} className="a2-results__row" style={{ '--c': r.color }} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}>
-            <span className="a2-results__b"><i style={{ background: r.color }} /> {r.label}</span>
-            <span>{fmt(r.target)}</span>
-            <span className="a2-results__spent">{fmt(r.spent)}</span>
-            <span className={`a2-status a2-status--${r.status.cls}`}>{r.status.label}</span>
-          </motion.div>
-        ))}
-        <div className="a2-results__row a2-results__row--left">
-          <span className="a2-results__b">Unspent</span><span>—</span><span className="a2-results__spent">{fmt(d.leftover)}</span><span>—</span>
-        </div>
-      </div>
+    <div className="dbm-screen dbm-a2 dbm-a2--fs">
+      <motion.div className="dbm-eyebrow" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
+        <Sparkles size={14} /> Mini Activity · First Salary
+      </motion.div>
+      <h2 className="dbm-h2">Who's Nailing Their First Salary?</h2>
 
-      <div className="a2-save">
-        <div className="a2-save__q">{d.saveQuestion}</div>
-        <div className="a2-save__btns">
-          <button className={`a2-save__btn a2-save__btn--yes ${saveAns === 'yes' ? 'is-on' : ''}`} disabled={!!saveAns} onClick={() => pick(true)}>Yes, save it!</button>
-          <button className={`a2-save__btn a2-save__btn--no ${saveAns === 'no' ? 'is-on' : ''}`} disabled={!!saveAns} onClick={() => pick(false)}>No, spend it on something fun</button>
-        </div>
-        <AnimatePresence>
-          {saveAns && (
-            <motion.div className="a2-save__fb" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-              {saveAns === 'yes' ? d.saveYes : d.saveNo}
+      {/* ---------- INTRO ---------- */}
+      {phase === 'intro' && (
+        <>
+          <NarratorCard narration={narration} lines={introLines} accent={accent} done={n.done} onReplay={n.replay} onSkip={n.skip} compact />
+          <div className="a2-fs__cast">
+            {FS_PEOPLE.map((p, i) => (
+              <motion.div key={p.id} className="a2-fs__castcard" style={{ '--c': p.color }}
+                initial={{ opacity: 0, y: 30, rotateY: 40 }} animate={{ opacity: 1, y: 0, rotateY: 0 }}
+                transition={{ delay: 0.15 * i, type: 'spring', stiffness: 120, damping: 14 }}
+                whileHover={{ y: -6, rotateX: -6, rotateY: 6, scale: 1.04 }}>
+                <motion.div className="a2-fs__avatar" animate={{ y: [0, -7, 0], rotateY: [0, 14, -14, 0] }} transition={{ repeat: Infinity, duration: 3 + i * 0.4, ease: 'easeInOut' }}>{p.emoji}</motion.div>
+                <div className="a2-fs__name">{p.name}</div>
+                <div className="a2-fs__vibe">{p.vibe}</div>
+                <div className="a2-fs__salary">₹60,000 / mo</div>
+              </motion.div>
+            ))}
+          </div>
+          <CTA accent={accent} onClick={() => goPhase('rule', 'Keep this in mind as you look at each person’s spending.')}>Show me the rule</CTA>
+        </>
+      )}
+
+      {/* ---------- RULE REMINDER ---------- */}
+      {phase === 'rule' && (
+        <motion.div className="a2-fs__rule" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
+          <p className="a2-fs__lead">On a ₹60,000 salary, the 50 / 30 / 20 rule means:</p>
+          <div className="a2-fs__rulecards">
+            {[
+              { k: 'Needs', pct: 50, v: FS_RULE.needs, c: '#10b981', icon: '🏠' },
+              { k: 'Wants', pct: 30, v: FS_RULE.wants, c: '#a855f7', icon: '🎮' },
+              { k: 'Savings', pct: 20, v: FS_RULE.savings, c: '#f59e0b', icon: '🐷' },
+            ].map((r, i) => (
+              <motion.div key={r.k} className="a2-fs__rulecard" style={{ '--c': r.c }}
+                initial={{ opacity: 0, scale: 0.8, rotateX: 20 }} animate={{ opacity: 1, scale: 1, rotateX: 0 }} transition={{ delay: 0.12 * i, type: 'spring', stiffness: 140 }}>
+                <motion.span className="a2-fs__ruleicon" animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 2.4, delay: i * 0.3 }}>{r.icon}</motion.span>
+                <div className="a2-fs__rulepct">{r.pct}%</div>
+                <div className="a2-fs__rulek">{r.k}</div>
+                <div className="a2-fs__rulev">{fmt(r.v)}</div>
+              </motion.div>
+            ))}
+          </div>
+          <CTA accent={accent} onClick={() => goPhase('decide', 'Sort each person’s spending in your head — who is closest to the rule?')}>I’ll keep it in mind</CTA>
+        </motion.div>
+      )}
+
+      {/* ---------- DECIDE: who's closest ---------- */}
+      {phase === 'decide' && (
+        <motion.div className="a2-fs__decide" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <p className="a2-fs__lead">Here's where each person's ₹60,000 actually went. <b>Who is closest to 50/30/20?</b></p>
+          <div className="a2-fs__people">
+            {FS_PEOPLE.map((p) => {
+              const picked = whoPick === p.id;
+              const dim = whoPick && !picked && !p.correct;
+              return (
+                <motion.button key={p.id} className={`a2-fs__person ${whoPick ? (p.correct ? 'is-correct' : picked ? 'is-wrong' : 'is-dim') : ''}`}
+                  style={{ '--c': p.color }} onClick={() => pickWho(p.id)} disabled={!!whoPick}
+                  whileHover={!whoPick ? { y: -5, scale: 1.02 } : {}} animate={{ opacity: dim ? 0.5 : 1 }}>
+                  <div className="a2-fs__phead">
+                    <motion.span className="a2-fs__pavatar" animate={!whoPick ? { y: [0, -5, 0] } : {}} transition={{ repeat: Infinity, duration: 2.8 }}>{p.emoji}</motion.span>
+                    <div><div className="a2-fs__name">{p.name}</div><div className="a2-fs__vibe">{p.vibe}</div></div>
+                    {whoPick && p.correct && <Check size={20} className="a2-fs__tick" />}
+                    {picked && !p.correct && <X size={20} className="a2-fs__cross" />}
+                  </div>
+                  <PersonBars p={p} reveal />
+                </motion.button>
+              );
+            })}
+          </div>
+          <AnimatePresence>
+            {whoPick && (
+              <motion.div className={`dbm-feedback ${FS_PEOPLE.find((p) => p.id === whoPick).correct ? 'is-right' : 'is-soft'}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                <div className="dbm-feedback__icon">{FS_PEOPLE.find((p) => p.id === whoPick).correct ? <Check size={18} /> : <Info size={18} />}</div>
+                <p>{FS_PEOPLE.find((p) => p.id === whoPick).fb}</p>
+                <button className="dbm-feedback__next" onClick={() => goPhase('fix', 'Arjun wants to fix his spending next month. He’s willing to cut — but not give up everything he enjoys.')}>Fix Arjun's budget <ArrowRight size={15} /></button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      )}
+
+      {/* ---------- FIX ARJUN: pick 2 ---------- */}
+      {phase === 'fix' && (
+        <motion.div className="a2-fs__fix" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
+          <div className="a2-fs__fixhead">
+            <motion.span className="a2-fs__pavatar" animate={{ rotate: [-4, 4, -4] }} transition={{ repeat: Infinity, duration: 2.5 }}>🧑🏽‍💼</motion.span>
+            <p className="a2-fs__lead">Which <b>two</b> changes would bring Arjun closest to 50/30/20? <span className="a2-fs__count">{fixSel.length}/2</span></p>
+          </div>
+          <div className="a2-fs__opts">
+            {FS_FIX_OPTIONS.map((o) => {
+              const sel = fixSel.includes(o.id);
+              const show = fixDone && o.good;
+              const wrongSel = fixDone && sel && !o.good;
+              return (
+                <button key={o.id} className={`a2-fs__opt ${sel ? 'is-sel' : ''} ${show ? 'is-good' : ''} ${wrongSel ? 'is-bad' : ''}`}
+                  onClick={() => toggleFix(o.id)} disabled={fixDone}>
+                  <span className="a2-fs__optid">{o.id}</span>
+                  <span className="a2-fs__opttext">{o.text}</span>
+                  {fixDone && o.good && <Check size={16} />}
+                </button>
+              );
+            })}
+          </div>
+          {!fixDone ? (
+            <CTA accent={accent} disabled={fixSel.length !== 2} onClick={submitFix}>Lock in my 2 changes</CTA>
+          ) : (
+            <motion.div className={`dbm-feedback ${fixSel.includes('A') && fixSel.includes('C') ? 'is-right' : 'is-soft'}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+              <div className="dbm-feedback__icon">{fixSel.includes('A') && fixSel.includes('C') ? <Check size={18} /> : <Info size={18} />}</div>
+              <p>{fixSel.includes('A') && fixSel.includes('C') ? FS_FIX_RIGHT : FS_FIX_WRONG}</p>
+              <button className="dbm-feedback__next" onClick={() => { try { analytics?.activityCompleted('a2-firstsalary', { sceneId: 'c3-activity', payload: { sceneId: 'c3-activity', detail: { correct: (whoPick === 'sneha' ? 1 : 0) + ((fixSel.includes('A') && fixSel.includes('C')) ? 1 : 0), total: 2 } } }); } catch { /* noop */ } goPhase('summary', FS_CLOSING); }}>See the results <ArrowRight size={15} /></button>
             </motion.div>
           )}
-        </AnimatePresence>
-      </div>
+        </motion.div>
+      )}
 
-      <CTA accent={accent} disabled={!saveAns} onClick={() => go('c4-takeaway')}>{d.cta}</CTA>
+      {/* ---------- SUMMARY ---------- */}
+      {phase === 'summary' && (
+        <motion.div className="a2-fs__summary" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <p className="a2-fs__lead">Same salary. Three different futures.</p>
+          <div className="a2-fs__table">
+            <div className="a2-fs__trow a2-fs__trow--head">
+              <span></span><span>Arjun</span><span>Priya</span><span>Sneha</span><span>Rule</span>
+            </div>
+            {[
+              { k: 'Needs', vals: [20500, 19500, 25000], rule: FS_RULE.needs },
+              { k: 'Wants', vals: [25000, 1500, 8500], rule: FS_RULE.wants },
+              { k: 'Savings', vals: [0, 39000, 16500], rule: FS_RULE.savings },
+            ].map((row, i) => (
+              <motion.div key={row.k} className="a2-fs__trow" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 * i }}>
+                <span className="a2-fs__tk">{row.k}</span>
+                {row.vals.map((v, j) => (
+                  <span key={j} className={`a2-fs__tv ${j === 2 ? 'is-best' : ''}`}>{fmt(v)}</span>
+                ))}
+                <span className="a2-fs__tv a2-fs__tv--rule">{fmt(row.rule)}</span>
+              </motion.div>
+            ))}
+          </div>
+          <div className="a2-fs__close"><Trophy size={16} /> {FS_CLOSING}</div>
+          <p className="a2-fs__goal">The goal isn't to be Priya. It isn't to be Arjun. It's to be a version of <b>Sneha</b> — on your first salary, and every salary after.</p>
+          <CTA accent={accent} onClick={() => go('c4-takeaway')}>See the takeaway</CTA>
+        </motion.div>
+      )}
     </div>
   );
 }

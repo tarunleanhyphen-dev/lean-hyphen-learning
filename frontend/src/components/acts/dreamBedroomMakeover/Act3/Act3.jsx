@@ -8,6 +8,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Home, Check, X, ArrowRight, RotateCcw, Download, Trophy, Sparkles, Volume2, VolumeX, Lock, Play, Clock } from 'lucide-react';
 import { catalogue } from '../../../../data/lessons/dreamBedroomMakeover.js';
 import { useNarration } from '../Act1/useNarration.js';
+import { useL2Analytics } from '../useL2Analytics.js';
 import { unlockAudio, sounds, isAudioReady } from '../../../../utils/sounds.js';
 
 const QUIZ_SECONDS = 45;
@@ -218,6 +219,7 @@ function Confetti() {
 export default function DreamBedroomAct3({ onComplete, onGoHome }) {
   const a1 = useMemo(loadAct1, []);
   const narration = useNarration();
+  const analytics = useL2Analytics('act3');
   const [screen, setScreen] = useState('intro'); // intro | quiz | result
   const [idx, setIdx] = useState(0);
   const [picked, setPicked] = useState(null);
@@ -276,6 +278,8 @@ export default function DreamBedroomAct3({ onComplete, onGoHome }) {
     try { await unlockAudio(true); } catch { /* noop */ }
     try { localStorage.setItem(AUDIO_KEY, 'on'); } catch { /* noop */ }
     setVoiceOn(true);
+    analytics.actStarted();
+    analytics.sceneEntered('quiz');
     setScreen('quiz');
     window.scrollTo({ top: 0 });
   };
@@ -293,7 +297,17 @@ export default function DreamBedroomAct3({ onComplete, onGoHome }) {
   };
   const next = () => {
     narration.stop();
-    if (idx + 1 >= QUESTIONS.length) { markActDone('act3'); setScreen('result'); return; }
+    if (idx + 1 >= QUESTIONS.length) {
+      markActDone('act3');
+      const total = QUESTIONS.length;
+      analytics.sceneCompleted('quiz');
+      analytics.activityCompleted('a3-quiz', { sceneId: 'quiz', payload: { sceneId: 'quiz', detail: { correct: score, total, accuracyPct: Math.round((score / total) * 100) } } });
+      analytics.actCompleted();
+      analytics.lessonCompleted();
+      analytics.flush?.();
+      setScreen('result');
+      return;
+    }
     setIdx((i) => i + 1); setPicked(null);
   };
 

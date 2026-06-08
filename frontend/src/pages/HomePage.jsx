@@ -20,11 +20,12 @@ function computeUnlocks(progress) {
   return { completed, unlocked };
 }
 
-export default function HomePage() {
+export default function HomePage({ forceLessonId }) {
   const { state } = useLesson();
   // Landing on the home/catalog stops any background music left playing by an act.
   useEffect(() => { try { stopMusic(); cancelSpeech(); } catch { /* noop */ } }, []);
-  const featured = getFeaturedLesson();
+  // /lesson1 forces Lesson 1 regardless of the deploy's featured-lesson env.
+  const featured = (forceLessonId && LESSONS.find((l) => l.data.id === forceLessonId)) || getFeaturedLesson();
   const others = LESSONS.filter((l) => l !== featured);
 
   const lesson = featured.data;
@@ -84,7 +85,14 @@ export default function HomePage() {
           ))}
         </section>
 
-        {others.length > 0 && (
+        <Link
+          to={`/lesson/${lesson.id}/report`}
+          className="mt-4 inline-flex items-center gap-2 self-start rounded-xl border border-white/15 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-white transition hover:border-saffron-500/50 hover:bg-white/[0.07]"
+        >
+          📊 View my performance report
+        </Link>
+
+        {!forceLessonId && others.length > 0 && (
           <section className="mt-12">
             <div className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-white/40">
               Other lessons

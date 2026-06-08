@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PauseCircle, PlayCircle, RotateCcw, ChevronRight, ChevronLeft, Sparkles } from 'lucide-react';
 import ShanayaAvatar from '../../shared/ShanayaAvatar.jsx';
+import SpafaLogo from '../../shared/SpafaLogo.jsx';
 import ThoughtBubble from '../../shared/ThoughtBubble.jsx';
 import LiveStatus from '../../shared/LiveStatus.jsx';
 import SceneProgress from '../../shared/SceneProgress.jsx';
@@ -269,13 +270,8 @@ export default function Act2({ onComplete, onGoHome }) {
       {/* Top bar */}
       <header className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
         <div className="flex items-center gap-3 sm:gap-4">
-          <a href="/" aria-label="Lean Hyphen home" className="shrink-0">
-            <img
-              src="/lean-hyphen-logo.svg"
-              alt="Lean Hyphen"
-              className="h-8 w-auto sm:h-9"
-              draggable={false}
-            />
+          <a href="/" aria-label="SPAFA home" className="shrink-0">
+            <SpafaLogo size="sm" />
           </a>
           <span aria-hidden className="h-5 w-px bg-white/15 sm:h-6" />
           <h1 className="text-[13px] font-semibold text-white/85 sm:text-base">{act.title}</h1>

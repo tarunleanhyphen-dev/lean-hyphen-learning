@@ -2,6 +2,7 @@ import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PauseCircle, PlayCircle, RotateCcw, ChevronRight, ChevronLeft } from 'lucide-react';
 import PhoneFrame from '../../shared/PhoneFrame.jsx';
+import SpafaLogo from '../../shared/SpafaLogo.jsx';
 import ThoughtBubble from '../../shared/ThoughtBubble.jsx';
 import ThoughtImagery from '../../shared/ThoughtImagery.jsx';
 import SceneVignette from '../../shared/SceneVignette.jsx';
@@ -458,13 +459,8 @@ export default function Act1({ onComplete, onGoHome }) {
       {/* Top bar */}
       <header className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
         <div className="flex items-center gap-3 sm:gap-4">
-          <a href="/" aria-label="Lean Hyphen home" className="shrink-0">
-            <img
-              src="/lean-hyphen-logo.svg"
-              alt="Lean Hyphen"
-              className="h-8 w-auto sm:h-9"
-              draggable={false}
-            />
+          <a href="/" aria-label="SPAFA home" className="shrink-0">
+            <SpafaLogo size="sm" />
           </a>
           <span aria-hidden className="h-5 w-px bg-white/15 sm:h-6" />
           <h1 className="text-[13px] font-semibold text-white/85 sm:text-base">{act.title}</h1>

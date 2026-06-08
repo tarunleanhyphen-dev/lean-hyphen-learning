@@ -160,11 +160,17 @@ export default function LessonReport({
         {!loading && !report && !error && (
           <div className="mt-6 rounded-2xl bg-cream-100 p-5 text-center ring-1 ring-ink-300/15">
             <Sparkles className="mx-auto h-8 w-8 text-saffron-500" />
-            <h3 className="mt-2 text-lg font-extrabold text-ink-900">Lesson complete!</h3>
+            <h3 className="mt-2 text-lg font-extrabold text-ink-900">No report yet</h3>
             <p className="mt-1 text-[13px] text-ink-700">
-              You walked through all four Acts. Your score sync is still catching up — refresh the
-              home page in a moment to see the full report.
+              Play through an Act and your report appears here — score, accuracy and badges, filling
+              in act by act. If you just finished an Act, give it a moment to sync, then refresh.
             </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-saffron-500 px-4 py-2 text-[13px] font-bold text-white hover:bg-saffron-600"
+            >
+              Refresh
+            </button>
           </div>
         )}
 

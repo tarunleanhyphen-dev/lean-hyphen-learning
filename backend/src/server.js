@@ -35,8 +35,13 @@ app.use(['/api/analytics', '/api/tts', '/api/music'], (req, res, next) => {
   next();
 });
 
+// Reflect ANY origin (no credentials/cookies, so this is safe) — the lessons
+// and LMS embed the API from many origins, and a restricted list silently broke
+// the analytics events POST preflight. `allowed` is kept for reference but the
+// app is intentionally open-CORS.
+void allowed;
 app.use(cors({
-  origin: allowed.length ? allowed : true,
+  origin: true,
   credentials: false,
 }));
 app.use(express.json({ limit: '64kb' }));

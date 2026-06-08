@@ -112,6 +112,13 @@ function Lesson2Home() {
           })}
         </section>
 
+        <Link
+          to="/lesson2/report"
+          className="mt-4 inline-flex items-center gap-2 self-start rounded-xl border border-white/15 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-white transition hover:border-emerald-400/50 hover:bg-white/[0.07]"
+        >
+          📊 View my performance report <ArrowRight className="h-4 w-4" />
+        </Link>
+
         <footer className="mt-auto pt-16 text-xs text-white/40">© Lean Hyphen · {lesson.title}</footer>
       </div>
     </div>

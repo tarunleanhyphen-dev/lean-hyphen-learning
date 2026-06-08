@@ -4,6 +4,7 @@ import HomePage from './pages/HomePage.jsx';
 import LessonPage from './pages/LessonPage.jsx';
 import Lesson2Page from './pages/Lesson2Page.jsx';
 import LessonReportPage from './pages/LessonReportPage.jsx';
+import Lesson2ReportPage from './pages/Lesson2ReportPage.jsx';
 
 export default function App() {
   return (
@@ -12,6 +13,7 @@ export default function App() {
         <Route path="/" element={<HomePage />} />
         {/* Lesson 2 — "Where Does My Money Go?" — its own home page + acts */}
         <Route path="/lesson2" element={<Lesson2Page />} />
+        <Route path="/lesson2/report" element={<Lesson2ReportPage />} />
         <Route path="/lesson2/:actId" element={<Lesson2Page />} />
         <Route path="/lesson/:lessonId" element={<LessonPage />} />
         <Route path="/lesson/:lessonId/report" element={<LessonReportPage />} />

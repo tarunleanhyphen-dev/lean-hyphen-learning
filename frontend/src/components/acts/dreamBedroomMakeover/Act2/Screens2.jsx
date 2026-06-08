@@ -600,7 +600,7 @@ export function C3Activity({ go, narration, accent, analytics }) {
             <motion.div className={`dbm-feedback ${fixSel.includes('A') && fixSel.includes('C') ? 'is-right' : 'is-soft'}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
               <div className="dbm-feedback__icon">{fixSel.includes('A') && fixSel.includes('C') ? <Check size={18} /> : <Info size={18} />}</div>
               <p>{fixSel.includes('A') && fixSel.includes('C') ? FS_FIX_RIGHT : FS_FIX_WRONG}</p>
-              <button className="dbm-feedback__next" onClick={() => { try { analytics?.activityCompleted('a2-firstsalary', { sceneId: 'c3-activity', payload: { sceneId: 'c3-activity', detail: { correct: (whoPick === 'sneha' ? 1 : 0) + ((fixSel.includes('A') && fixSel.includes('C')) ? 1 : 0), total: 2 } } }); } catch { /* noop */ } goPhase('summary', FS_CLOSING); }}>See the results <ArrowRight size={15} /></button>
+              <button className="dbm-feedback__next" onClick={() => { try { analytics?.activityCompleted('a2-firstsalary', { sceneId: 'c3-activity', detail: { correct: (whoPick === 'sneha' ? 1 : 0) + ((fixSel.includes('A') && fixSel.includes('C')) ? 1 : 0), total: 2 } }); } catch { /* noop */ } goPhase('summary', FS_CLOSING); }}>See the results <ArrowRight size={15} /></button>
             </motion.div>
           )}
         </motion.div>

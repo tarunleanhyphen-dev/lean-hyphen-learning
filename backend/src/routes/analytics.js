@@ -319,6 +319,7 @@ async function projectEvent(e) {
     // event but happened inside a scene bumps the count, so the
     // "interaction density" engagement metric has a value.
     if (
+      kind === EVENT_KINDS.SCENE_ENTERED ||
       kind === EVENT_KINDS.MCQ_ANSWERED ||
       kind === EVENT_KINDS.DRAG_DROP_COMPLETED ||
       kind === EVENT_KINDS.OPTION_SELECTED ||
@@ -413,15 +414,13 @@ async function recomputeAndPersistScore(lessonSessionId) {
   const participationPct = totalActivities
     ? Math.min(100, (tree.attempts.length / totalActivities) * 100)
     : 0;
-  const totalTimeMs = tree.acts.reduce((s, a) => s + (a.total_time_ms || 0), 0);
-  const clicksPerMinute = totalTimeMs > 0
-    ? (tree.scenes.reduce((s, sc) => s + (sc.interaction_count || 0), 0) /
-        (totalTimeMs / 60000))
-    : 0;
+  // Engagement is count-based, NOT time-based — sum of every interaction the
+  // learner made (clicking through scenes, answering, selecting options).
+  const interactionCount = tree.scenes.reduce((s, sc) => s + (sc.interaction_count || 0), 0);
 
   const learning = learningScore({ accuracyPct, scenarioQualityPct, completionPct });
   const engagement = engagementScore({
-    completionPct, clicksPerMinute, activityParticipationPct: participationPct,
+    completionPct, interactionCount, activityParticipationPct: participationPct,
   });
 
   await store.updateLessonSession(lessonSessionId, {

@@ -200,13 +200,8 @@ function deriveInsights({ acts, attempts }) {
     });
   }
 
-  const slowestAct = [...playedActs].sort((a, b) => b.timeMs - a.timeMs)[0];
-  if (slowestAct && slowestAct.timeMs > 0) {
-    out.push({
-      kind: 'time-spent',
-      message: `You spent more time in ${slowestAct.title}, indicating deeper engagement.`,
-    });
-  }
+  // (Time-on-task is intentionally NOT framed as engagement — engagement is
+  // measured by interaction count + completion, never by how long it took.)
 
   // Most-retried activity.
   const byActivity = attempts.reduce((acc, a) => {

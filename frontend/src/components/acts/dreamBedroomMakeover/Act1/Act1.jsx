@@ -64,7 +64,7 @@ export default function DreamBedroomAct1({ onComplete, onGoHome }) {
     const correct = sortItems.filter((it) => ans[it.id] === it.correct).length;
     analytics.activityCompleted('a1-sort', {
       sceneId: 'screen-3-sort',
-      payload: { sceneId: 'screen-3-sort', detail: { correct, total, accuracyPct: total ? Math.round((correct / total) * 100) : 0 } },
+      detail: { correct, total, accuracyPct: total ? Math.round((correct / total) * 100) : 0 },
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mk.state.screen]);
@@ -78,7 +78,7 @@ export default function DreamBedroomAct1({ onComplete, onGoHome }) {
     const correct = mk.state.snapshotMcq === biggest ? 1 : 0;
     analytics.activityCompleted('a1-snapshot-mcq', {
       sceneId: 'screen-6-snapshot',
-      payload: { sceneId: 'screen-6-snapshot', detail: { correct, total: 1, accuracyPct: correct * 100 } },
+      detail: { correct, total: 1, accuracyPct: correct * 100 },
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mk.state.snapshotMcq]);

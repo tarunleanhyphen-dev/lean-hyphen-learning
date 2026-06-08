@@ -222,7 +222,7 @@ export default function LessonReport({
                 tone="from-burgundy-500 to-coral-500"
                 label="Engagement"
                 value={`${report.engagementScore} / 100`}
-                sub="Time + interaction density"
+                sub="Interaction + completion"
               />
             </section>
 

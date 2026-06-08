@@ -287,6 +287,8 @@ export default function DreamBedroomAct3({ onComplete, onGoHome }) {
   const choose = (oi) => {
     if (picked !== null) return; // locked only once the learner has answered
     setPicked(oi);
+    // Every answer is an interaction → feeds the (count-based) engagement score.
+    try { analytics.interaction('mcq_answered', { sceneId: 'quiz' }); } catch { /* noop */ }
     const correct = q.options[oi].correct;
     if (correct) setScore((s) => s + 1);
     setResults((r) => { const n = [...r]; n[idx] = correct ? 'right' : 'wrong'; return n; });
@@ -301,7 +303,7 @@ export default function DreamBedroomAct3({ onComplete, onGoHome }) {
       markActDone('act3');
       const total = QUESTIONS.length;
       analytics.sceneCompleted('quiz');
-      analytics.activityCompleted('a3-quiz', { sceneId: 'quiz', payload: { sceneId: 'quiz', detail: { correct: score, total, accuracyPct: Math.round((score / total) * 100) } } });
+      analytics.activityCompleted('a3-quiz', { sceneId: 'quiz', detail: { correct: score, total, accuracyPct: Math.round((score / total) * 100) } });
       analytics.actCompleted();
       analytics.lessonCompleted();
       analytics.flush?.();

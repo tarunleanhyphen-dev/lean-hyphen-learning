@@ -272,16 +272,20 @@ export function rollUpScores({ scenes = [], activities, attempts }, config = SCO
  * with a tuned model once we have enough real session data to fit one.
  *
  *   60 pts — completion% (full credit at 100%)
- *   25 pts — interaction density (mapped from clicks-per-minute)
+ *   25 pts — interaction density (raw interaction COUNT — NOT time-based, so a
+ *            learner earns these by clicking through / answering, at any pace)
  *   15 pts — activity participation (% of activities attempted)
  */
 export function engagementScore({
   completionPct = 0,
-  clicksPerMinute = 0,
+  interactionCount = 0,
   activityParticipationPct = 0,
 }) {
   const completion = (completionPct / 100) * 60;
-  const interactions = clamp(clicksPerMinute / 8, 0, 1) * 25;
+  // Pure count — every click/answer/scene-advance adds engagement, saturating
+  // at full credit (~15 interactions). Deliberately NOT divided by time, so
+  // pace never penalises a learner who clicks through everything.
+  const interactions = clamp(interactionCount / 15, 0, 1) * 25;
   const participation = (activityParticipationPct / 100) * 15;
   return clamp(Math.round(completion + interactions + participation), 0, 100);
 }

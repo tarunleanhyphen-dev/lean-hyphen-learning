@@ -270,7 +270,7 @@ export default function Act2({ onComplete, onGoHome }) {
       {/* Top bar */}
       <header className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
         <div className="flex items-center gap-3 sm:gap-4">
-          <a href="/" aria-label="SPAFA home" className="shrink-0">
+          <a href="/lesson1" aria-label="SPAFA home" className="shrink-0">
             <SpafaLogo size="sm" />
           </a>
           <span aria-hidden className="h-5 w-px bg-white/15 sm:h-6" />

@@ -283,7 +283,7 @@ export default function Act4({ onComplete }) {
     <div className="relative mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-3 px-3 py-4 sm:gap-4 sm:px-5 sm:py-5 md:px-6 md:py-6 lg:px-8 xl:px-10">
       <header className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
         <div className="flex items-center gap-3 sm:gap-4">
-          <a href="/" aria-label="SPAFA home" className="shrink-0">
+          <a href="/lesson1" aria-label="SPAFA home" className="shrink-0">
             <SpafaLogo size="sm" />
           </a>
           <span aria-hidden className="h-5 w-px bg-white/15 sm:h-6" />

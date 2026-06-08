@@ -27,8 +27,11 @@ If you're integrating an LMS dashboard, the only sections you strictly need are 
 13. [Authentication, rate limits, edge cases](#13-authentication-rate-limits-edge-cases)
 14. [Versioning](#14-versioning)
 15. [Contact & support](#15-contact--support)
+16. [Webhooks (intentionally not built yet)](#16-webhooks-intentionally-not-built-yet)
 
 > **Identity model in one paragraph:** a *student* has a stable `learnerId` you pass at iframe launch (`?learnerId=…`). Each *play* of the lesson by that student is a new *session* with its own `attemptNo`. The report endpoints show the **latest** session by default. The new `/sessions` endpoint lists every session that student ever had on this lesson — use it for session history, growth charts, leaderboards.
+
+> **Integration pattern: pull, not push.** Every metric lives behind a read endpoint (§10). The LMS *polls* what it needs. There are **no webhooks today** — we deliberately kept the contract one-way until a customer specifically asks for sub-second push (live class teacher views, real-time gradebook sync). For parent reports and daily dashboards, polling once on lesson-end plus every ~30 s while the learner is active delivers identical UX. See §12 for the exact polling recipe and §16 for the "if you really need push" plan.
 
 ---
 
@@ -860,6 +863,62 @@ All endpoints return `200` for "no data yet" (not `404`). Treat null/empty as a 
 - UTC timestamp of the request
 
 That gives us a one-shot path to the event in our log.
+
+---
+
+## 16. Webhooks (intentionally not built yet)
+
+We **don't** push metrics to your LMS today. Every endpoint in §10 is pull-only. This is a deliberate choice for the pilot — webhooks add real complexity (HMAC verification, retry queue, dead-letter handling, idempotency) and most LMS dashboards don't need sub-second push latency. A 30-second polling cadence delivers the same UX for parent reports, transcripts, and growth charts.
+
+### Polling recipe (the "equivalent of webhooks")
+
+| You want to know when… | Poll this | At this cadence |
+|---|---|---|
+| A learner has *finished* the lesson | `GET /api/analytics/lms-export/:lessonId?sessionId=X` — check if `lesson.completed === true` | Every 30 s while the iframe is open; stop on first `true` |
+| A learner just *started* a new attempt | `GET /api/analytics/sessions/:lessonId?sessionId=X` — check the latest `attemptNo` | Every 60 s |
+| A learner finished a specific *act* | `GET /api/analytics/lesson/:lessonId?sessionId=X` — check `acts[i].completed` | Every 30 s while active |
+| New *badges* earned | `GET /api/analytics/lms-export/:lessonId?sessionId=X` — diff `badges[]` vs your last snapshot | Once after lesson completion is enough |
+| Class roster live overview | Loop over all active learners, hit `/lesson` per learner | Every 60 s, stagger requests so you don't hit the rate limit |
+
+### Diff pattern (so polling doesn't double-process)
+
+Most use cases want to fire a downstream action (parent email, gradebook write, notification) **exactly once** per state change. Keep a tiny per-learner snapshot on your side:
+
+```js
+// Pseudocode
+const last = await db.lastSnapshot(learnerId);  // { completed: bool, attemptNo: N, badges: [...] }
+const next = await fetch(`/api/analytics/lms-export/think-before-you-spend?sessionId=${learnerId}`);
+
+if (next.completed && !last.completed) {
+  await sendParentEmail(next);             // first-time completion
+  await db.markCompleted(learnerId, next);
+}
+if (next.attemptNo > (last.attemptNo ?? 0)) {
+  await db.markNewAttempt(learnerId, next);
+}
+const newBadges = next.badges.filter((b) => !last.badgeIds.includes(b.badgeId));
+if (newBadges.length) await notifyBadges(learnerId, newBadges);
+
+await db.saveSnapshot(learnerId, next);
+```
+
+That's the equivalent of webhook handling — with the difference that *you* decide the cadence and don't need to keep a public endpoint up 24/7.
+
+### When we'll add webhooks
+
+We'll build them when a customer LMS explicitly asks for sub-second push. Triggers that would unlock the work:
+
+- A teacher dashboard needs to see "Aarav just finished" inside 1–2 seconds for live class intervention.
+- The LMS doesn't run a polling worker and can only accept incoming HTTP.
+- Email send-on-completion needs to be sub-30-seconds.
+
+When that happens, the spec is straightforward: HMAC-SHA256 signed POSTs (Stripe / GitHub pattern) on three trigger events — `lesson.completed`, `act.completed`, `lesson.session.started`. The payload for `lesson.completed` will be byte-for-byte identical to today's `GET /lms-export` shape, so you can reuse your parser. Estimated effort: ~1 week including LMS-side handler scaffolding and a verification walkthrough.
+
+### What to tell the LMS engineer
+
+> *"Use the pull endpoints in §10. Poll `/lms-export` every 30 s while a learner is active and once after they log out. Diff against your last snapshot before firing downstream actions. We'll add webhooks only when sub-second latency is a hard requirement."*
+
+If you're hitting that hard requirement now, email **info@leanhyphen.com** and we'll prioritise.
 
 ---
 

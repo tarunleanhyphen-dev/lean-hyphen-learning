@@ -11,6 +11,8 @@ export default function App() {
     <LessonProvider>
       <Routes>
         <Route path="/" element={<HomePage />} />
+        {/* Lesson 1 — "Think Before You Spend" — clean standalone home URL */}
+        <Route path="/lesson1" element={<HomePage />} />
         {/* Lesson 2 — "Where Does My Money Go?" — its own home page + acts */}
         <Route path="/lesson2" element={<Lesson2Page />} />
         <Route path="/lesson2/report" element={<Lesson2ReportPage />} />

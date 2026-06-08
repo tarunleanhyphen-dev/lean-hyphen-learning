@@ -19,6 +19,22 @@ const allowed = (process.env.CORS_ORIGINS || '')
   .map((s) => s.trim())
   .filter(Boolean);
 
+// Public, no-credential endpoints (analytics events/reports, TTS, music) are
+// embedded in arbitrary LMS / lesson-frontend origins, so they must accept ANY
+// origin — including the CORS preflight. This runs BEFORE the stricter global
+// cors() below and short-circuits the OPTIONS preflight, otherwise the global
+// cors() answers the preflight with no Access-Control-Allow-Origin for origins
+// not in CORS_ORIGINS and the browser silently blocks the request (which made
+// the analytics events POST fail → empty reports).
+app.use(['/api/analytics', '/api/tts', '/api/music'], (req, res, next) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+  res.set('Vary', 'Origin');
+  if (req.method === 'OPTIONS') { res.sendStatus(204); return; }
+  next();
+});
+
 app.use(cors({
   origin: allowed.length ? allowed : true,
   credentials: false,

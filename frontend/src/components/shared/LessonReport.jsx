@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, Trophy, Clock, Target, TrendingUp, Award, ArrowLeft, History, ChevronRight } from 'lucide-react';
 import { BADGES, SCORING_CONFIG } from '../../config/scoringConfig.js';
+import { flush } from '../../utils/analytics.js';
 
 /**
  * End-of-lesson dashboard. Two render modes:
@@ -56,15 +57,28 @@ export default function LessonReport({
     let cancelled = false;
     async function load() {
       setLoading(true);
+      setError(null);
       try {
+        // Push any analytics events still queued from the act the learner just
+        // played, so the report reflects them (the queue flushes on a 2s
+        // debounce otherwise — racing this read).
+        try { await flush(); } catch { /* best-effort */ }
+
         const params = new URLSearchParams({ sessionId });
         if (selectedAttempt != null) params.set('attempt', String(selectedAttempt));
-        const r = await fetch(
-          `${API_BASE}/api/analytics/lesson/${encodeURIComponent(lessonId)}?${params}`,
-        );
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        const j = await r.json();
-        if (!cancelled) setReport(j.report ?? null);
+        const url = `${API_BASE}/api/analytics/lesson/${encodeURIComponent(lessonId)}?${params}`;
+
+        // Retry a few times — a just-finished act's write may still be landing.
+        let rep = null;
+        for (let i = 0; i < 4 && !cancelled; i += 1) {
+          const r = await fetch(url);
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          const j = await r.json();
+          rep = j.report ?? null;
+          if (rep || selectedAttempt != null) break;
+          await new Promise((res) => setTimeout(res, 1200));
+        }
+        if (!cancelled) setReport(rep);
       } catch (err) {
         if (!cancelled) setError(err.message || 'failed to load report');
       } finally {

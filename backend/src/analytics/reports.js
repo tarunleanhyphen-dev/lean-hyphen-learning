@@ -10,7 +10,7 @@
  *                    breaking the top-level keys.
  */
 
-import { SCORING_CONFIG, findActMax } from './scoring.js';
+import { getScoringConfig, findActMax } from './scoring.js';
 
 /**
  * The big end-of-lesson dashboard. Caller supplies the rolled-up
@@ -19,14 +19,15 @@ import { SCORING_CONFIG, findActMax } from './scoring.js';
  */
 export function buildLessonReport(ctx) {
   const { session, acts, scenes, attempts, badges, history } = ctx;
-  const config = SCORING_CONFIG;
+  const config = getScoringConfig(session.lesson_id);
+  const lessonId = session.lesson_id;
 
   const actSummary = Object.keys(config.acts).map((actId) => {
     const a = acts.find((row) => row.act_id === actId);
     const max = findActMax(actId, config);
     return {
       actId,
-      title: prettyActTitle(actId),
+      title: prettyActTitle(actId, lessonId),
       pointsEarned: a?.points_earned ?? 0,
       pointsMax:    a?.points_max ?? max,
       score:        a?.score ?? 0,
@@ -72,10 +73,10 @@ export function buildLessonReport(ctx) {
  * Per-act post-completion card.
  */
 export function buildActReport(ctx) {
-  const { actSession, scenes, attempts, prevActSession } = ctx;
+  const { actSession, scenes, attempts, prevActSession, lessonId } = ctx;
   return {
     actId:        actSession.act_id,
-    title:        prettyActTitle(actSession.act_id),
+    title:        prettyActTitle(actSession.act_id, lessonId ?? actSession.lesson_id),
     score:        actSession.score,
     pointsEarned: actSession.points_earned,
     pointsMax:    actSession.points_max,
@@ -152,13 +153,24 @@ export function buildLmsExport(ctx) {
 // helpers
 // ─────────────────────────────────────────────────────────────────────
 
-function prettyActTitle(actId) {
-  return {
+const ACT_TITLES = {
+  'think-before-you-spend': {
     act1: 'Act 1 — Temptation',
     act2: 'Act 2 — Understanding Impulse Buying',
     act3: 'Act 3 — Real-life Simulation',
     act4: 'Act 4 — Reflect & Realise',
-  }[actId] || actId;
+  },
+  'where-does-my-money-go': {
+    act1: 'Act 1 — Dream Bedroom Makeover',
+    act2: 'Act 2 — The 50/30/20 Rule',
+    act3: 'Act 3 — Test Your Understanding',
+  },
+};
+
+function prettyActTitle(actId, lessonId) {
+  return ACT_TITLES[lessonId]?.[actId]
+    || ACT_TITLES['think-before-you-spend'][actId]
+    || actId;
 }
 
 /**

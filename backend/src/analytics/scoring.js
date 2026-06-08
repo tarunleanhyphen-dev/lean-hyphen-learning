@@ -87,7 +87,67 @@ export const SCORING_CONFIG = {
  * Per-activity rule for converting a raw attempt result into points.
  * The handler returns an integer in [0, max].
  */
+/**
+ * Scoring config for "Where Does My Money Go?" (Lesson 2). Weighted toward
+ * ANSWERS — the Act 3 quiz carries the most marks — while still rewarding
+ * engagement (completing each scene). Lesson max stays 100 so the LMS can
+ * compare lessons on the same scale.
+ *
+ *   Act 1 (Dream Bedroom sim)  → 30   Act 2 (50/30/20)  → 30   Act 3 (Quiz) → 40
+ */
+export const SCORING_CONFIG_WDMMG = {
+  configVersion: 'wdmmg-v1',
+  lessonId: 'where-does-my-money-go',
+  lessonMax: 100,
+  acts: {
+    act1: {
+      max: 30,
+      scenes: {
+        'screen-1-intro': 2, 'screen-2-vibe': 3, 'screen-2-rules': 2, 'screen-3-sort': 3,
+        'screen-4-shop': 5, 'screen-5-events': 3, 'screen-6-snapshot': 2,
+      },
+      activities: { 'a1-sort': 6, 'a1-snapshot-mcq': 4 },
+    },
+    act2: {
+      max: 30,
+      scenes: { 'c1-reveal': 4, 'c2-apply': 4, 'c3-activity': 4, 'c4-takeaway': 3 },
+      activities: { 'a2-bucket-sort': 12, 'a2-save': 3 },
+    },
+    act3: {
+      max: 40,
+      scenes: { quiz: 4 },
+      activities: { 'a3-quiz': 36 },
+    },
+  },
+};
+
+/** Registry of every lesson's scoring config, keyed by lessonId. */
+export const SCORING_CONFIGS = {
+  'think-before-you-spend': SCORING_CONFIG,
+  'where-does-my-money-go': SCORING_CONFIG_WDMMG,
+};
+
+export function getScoringConfig(lessonId) {
+  return SCORING_CONFIGS[lessonId] || SCORING_CONFIG;
+}
+
+/** Accuracy-based points: full marks at 100% correct, proportional otherwise. */
+function accuracyPoints(max, detail = {}) {
+  const { correct = 0, total = 0, accuracyPct } = detail;
+  const pct = typeof accuracyPct === 'number'
+    ? accuracyPct / 100
+    : (total ? Math.min(correct, total) / total : 0);
+  return Math.round(Math.max(0, Math.min(1, pct)) * max);
+}
+
 const ACTIVITY_POINT_RULES = {
+  // ── Lesson 2 (Where Does My Money Go?) — answer-graded activities ──
+  'a1-sort':         (max, d) => accuracyPoints(max, d),
+  'a1-snapshot-mcq': (max, d) => accuracyPoints(max, d),
+  'a2-bucket-sort':  (max, d) => accuracyPoints(max, d),
+  'a2-save':         (max, d = {}) => (d.decided ? max : 0),
+  'a3-quiz':         (max, d) => accuracyPoints(max, d),
+
   // Mind-trap drag game (Act 2). The detail object carries
   // { correct, total } — full marks when all 12 thoughts placed
   // correctly; proportional otherwise.

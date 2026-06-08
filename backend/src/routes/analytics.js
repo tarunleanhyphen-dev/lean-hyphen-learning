@@ -45,6 +45,7 @@ const ANALYTICS_DATA_PATH = _isServerlessRO
 import { validateEvent, EVENT_KINDS } from '../analytics/events.js';
 import {
   SCORING_CONFIG,
+  getScoringConfig,
   computeActivityPoints,
   findActMax,
   findSceneMax,
@@ -153,7 +154,7 @@ router.get('/act/:lessonId/:actId', async (req, res, next) => {
     const scenes = tree.scenes.filter((s) => s.act_session_id === actSession.id);
     const sceneIds = new Set(scenes.map((s) => s.id));
     const attempts = tree.attempts.filter((a) => sceneIds.has(a.scene_session_id));
-    const report = buildActReport({ actSession, scenes, attempts });
+    const report = buildActReport({ actSession, scenes, attempts, lessonId });
     res.json({ report });
   } catch (err) {
     next(err);
@@ -239,6 +240,7 @@ export default router;
 // without touching the route shape.
 function projectEvent(e) {
   const { kind, sessionId, lessonId, actId, sceneId, activityId, attemptNo = 1, clientTs } = e;
+  const config = getScoringConfig(lessonId); // per-lesson scoring map
 
   // Top-level lesson session (created lazily on the first lesson-scoped
   // event).
@@ -274,7 +276,7 @@ function projectEvent(e) {
   if (lessonSession && actId) {
     actSession = store.getOrCreateActSession({ lessonSessionId: lessonSession.id, actId });
     if (kind === EVENT_KINDS.ACT_STARTED) {
-      store.updateActSession(actSession.id, { started_at: clientTs, points_max: findActMax(actId) });
+      store.updateActSession(actSession.id, { started_at: clientTs, points_max: findActMax(actId, config) });
     }
     if (kind === EVENT_KINDS.ACT_COMPLETED) {
       store.updateActSession(actSession.id, {
@@ -294,7 +296,7 @@ function projectEvent(e) {
       store.updateSceneSession(sceneSession.id, { entered_at: clientTs });
     }
     if (kind === EVENT_KINDS.SCENE_COMPLETED) {
-      const pts = findSceneMax(sceneId);
+      const pts = findSceneMax(sceneId, config);
       store.updateSceneSession(sceneSession.id, {
         exited_at: clientTs,
         completed: true,
@@ -348,7 +350,7 @@ function projectEvent(e) {
         kind === EVENT_KINDS.ACTIVITY_FAILED) {
       const success = kind !== EVENT_KINDS.ACTIVITY_FAILED;
       const detail = e.payload?.detail ?? {};
-      const points = computeActivityPoints({ activityId, success, detail });
+      const points = computeActivityPoints({ activityId, success, detail }, config);
       const accuracyPct = typeof detail.accuracyPct === 'number'
         ? detail.accuracyPct
         : (detail.correct && detail.total
@@ -398,11 +400,12 @@ function recomputeAndPersistScore(lessonSessionId) {
   const tree = readTreeById(lessonSessionId);
   if (!tree) return;
 
-  const rolled = rollUpScores(tree, SCORING_CONFIG);
+  const config = getScoringConfig(tree.session?.lesson_id); // per-lesson scoring
+  const rolled = rollUpScores(tree, config);
   const accuracyPct = avgAccuracy(tree.attempts);
   const scenarioQualityPct = pick3Accuracy(tree.attempts);
-  const completionPct = computeCompletionPct(tree, SCORING_CONFIG);
-  const totalActivities = countDefinedActivities(SCORING_CONFIG);
+  const completionPct = computeCompletionPct(tree, config);
+  const totalActivities = countDefinedActivities(config);
   const participationPct = totalActivities
     ? Math.min(100, (tree.attempts.length / totalActivities) * 100)
     : 0;
@@ -435,7 +438,7 @@ function recomputeAndPersistScore(lessonSessionId) {
   // Per-act score rows.
   for (const act of tree.acts) {
     const earned = rolled.actScores[act.act_id] ?? 0;
-    const max = findActMax(act.act_id, SCORING_CONFIG);
+    const max = findActMax(act.act_id, config);
     store.updateActSession(act.id, {
       points_earned: earned,
       points_max: max,
@@ -449,7 +452,7 @@ function recomputeAndPersistScore(lessonSessionId) {
     acts: tree.acts.map((a) => ({
       ...a,
       points_earned: rolled.actScores[a.act_id] ?? 0,
-      points_max: findActMax(a.act_id, SCORING_CONFIG),
+      points_max: findActMax(a.act_id, config),
     })),
     attempts: tree.attempts,
   });

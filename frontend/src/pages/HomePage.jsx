@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Play, Clock, Sparkles, Lock, CheckCircle2 } from 'lucide-react';
 import { LESSONS, getFeaturedLesson } from '../data/lessons/registry.js';
 import { useLesson } from '../context/LessonContext.jsx';
+import SpafaLogo from '../components/shared/SpafaLogo.jsx';
 
 const ACT_ORDER = ['act1', 'act2', 'act3', 'act4'];
 
@@ -34,8 +35,8 @@ export default function HomePage() {
        * FloatingBubbles removed per request (the bright blobs read as too dark/busy). */}
       <div className="relative mx-auto flex min-h-screen w-full max-w-5xl flex-col px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
         <header className="flex items-center justify-between">
-          <a href="/" aria-label="Lean Hyphen home" className="inline-flex shrink-0">
-            <img src="/lean-hyphen-logo.svg" alt="Lean Hyphen" className="h-10 w-auto sm:h-12 md:h-14" draggable={false} />
+          <a href="/" aria-label="SPAFA home" className="inline-flex shrink-0">
+            <SpafaLogo size="md" />
           </a>
           <div className="flex items-center gap-4">
             <Link

@@ -42,22 +42,6 @@ export default function HomePage() {
           <a href="/" aria-label="SPAFA home" className="inline-flex shrink-0">
             <SpafaLogo size="md" />
           </a>
-          <div className="flex items-center gap-4">
-            <Link
-              to="/lesson2"
-              className="text-xs font-semibold text-amber-300 underline-offset-4 hover:text-amber-200 hover:underline"
-            >
-              Where Does My Money Go? →
-            </Link>
-            <a
-              href="https://lean-hyphen-user-web-4zrf.vercel.app/#home"
-              target="_blank"
-              rel="noreferrer"
-              className="text-xs text-white/60 underline-offset-4 hover:text-white hover:underline"
-            >
-              ← back to leanhyphen.com
-            </a>
-          </div>
         </header>
 
         <main className="mt-6 flex flex-col items-start gap-6 sm:mt-8">

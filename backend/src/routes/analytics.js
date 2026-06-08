@@ -28,20 +28,12 @@
  */
 
 import { Router } from 'express';
-import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { hasDb } from '../db/index.js';
-import { analyticsFileStore as store } from '../storage/analyticsFileFallback.js';
+import { analyticsStore as store } from '../storage/analyticsStore.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-// Mirrors the path-pick in storage/analyticsFileFallback.js — Vercel
-// is read-only outside /tmp, so we fall over there for the report
-// reads as well as the writes. Same caveat: /tmp is per-instance.
-const _isServerlessRO = !!(process.env.VERCEL || process.env.VERCEL_ENV);
-const ANALYTICS_DATA_PATH = _isServerlessRO
-  ? '/tmp/lh-analytics.json'
-  : path.resolve(__dirname, '..', '..', 'data', 'analytics.json');
 import { validateEvent, EVENT_KINDS } from '../analytics/events.js';
 import {
   SCORING_CONFIG,
@@ -74,7 +66,7 @@ router.use((req, res, next) => {
 // Postgres lands we'll fork the surface inside each handler with
 // `hasDb() ? pgStore.foo(...) : store.foo(...)` — keeping the route
 // shape stable so the frontend never has to care which backend is on.
-const usingPg = () => false && hasDb();
+const usingPg = () => hasDb();
 
 // ─────────────────────────────────────────────────────────────────────
 // POST /api/analytics/events — batch ingest
@@ -102,13 +94,13 @@ router.post('/events', async (req, res, next) => {
         rejected.push({ clientEventId: e?.clientEventId ?? null, reason: v.reason });
         continue;
       }
-      const r = store.insertEventIfNew(e, userAgent);
+      const r = await store.insertEventIfNew(e, userAgent);
       if (!r.inserted) {
         rejected.push({ clientEventId: e.clientEventId, reason: r.reason });
         continue;
       }
       try {
-        projectEvent(e);
+        await projectEvent(e);
       } catch (projErr) {
         // Projection failures shouldn't fail the ingest; we already
         // persisted the raw event so reporting can recover later.
@@ -137,7 +129,7 @@ router.get('/lesson/:lessonId', async (req, res, next) => {
       err.status = 400;
       throw err;
     }
-    const tree = store.readSessionTree({ sessionId, lessonId, attemptNo });
+    const tree = await store.readSessionTree({ sessionId, lessonId, attemptNo });
     if (!tree) return res.json({ report: null, storage: usingPg() ? 'postgres' : 'file' });
 
     const report = buildLessonReport(tree);
@@ -159,7 +151,7 @@ router.get('/act/:lessonId/:actId', async (req, res, next) => {
       err.status = 400;
       throw err;
     }
-    const tree = store.readSessionTree({ sessionId, lessonId });
+    const tree = await store.readSessionTree({ sessionId, lessonId });
     if (!tree) return res.json({ report: null });
     const actSession = tree.acts.find((a) => a.act_id === actId);
     if (!actSession) return res.json({ report: null });
@@ -195,7 +187,7 @@ router.get('/sessions/:lessonId', async (req, res, next) => {
       err.status = 400;
       throw err;
     }
-    const sessions = store.listAttempts({ sessionId, lessonId });
+    const sessions = await store.listAttempts({ sessionId, lessonId });
     res.json({ sessions, storage: usingPg() ? 'postgres' : 'file' });
   } catch (err) {
     next(err);
@@ -214,7 +206,7 @@ router.get('/attempts/:lessonId', async (req, res, next) => {
       err.status = 400;
       throw err;
     }
-    const tree = store.readSessionTree({ sessionId, lessonId });
+    const tree = await store.readSessionTree({ sessionId, lessonId });
     res.json({ history: tree?.history ?? null });
   } catch (err) {
     next(err);
@@ -233,7 +225,7 @@ router.get('/lms-export/:lessonId', async (req, res, next) => {
       err.status = 400;
       throw err;
     }
-    const tree = store.readSessionTree({ sessionId, lessonId });
+    const tree = await store.readSessionTree({ sessionId, lessonId });
     if (!tree) return res.json({ export: null });
     res.json({ export: buildLmsExport(tree) });
   } catch (err) {
@@ -250,7 +242,7 @@ export default router;
 // Keep this function pure-side-effects against the store so we can
 // later run it from a worker (consuming `analytics_events` directly)
 // without touching the route shape.
-function projectEvent(e) {
+async function projectEvent(e) {
   const { kind, sessionId, lessonId, actId, sceneId, activityId, attemptNo = 1, clientTs } = e;
   const config = getScoringConfig(lessonId); // per-lesson scoring map
 
@@ -258,58 +250,58 @@ function projectEvent(e) {
   // event).
   let lessonSession = null;
   if (lessonId) {
-    lessonSession = store.getOrCreateLessonSession({
+    lessonSession = await store.getOrCreateLessonSession({
       sessionId, lessonId, attemptNo: e.lessonAttemptNo ?? 1,
     });
   }
 
   if (kind === EVENT_KINDS.LESSON_STARTED && lessonSession) {
-    store.updateLessonSession(lessonSession.id, { started_at: clientTs });
+    await store.updateLessonSession(lessonSession.id, { started_at: clientTs });
     return;
   }
 
   if (kind === EVENT_KINDS.LESSON_COMPLETED && lessonSession) {
     const totalTimeMs = e.payload?.totalTimeMs ?? 0;
-    store.updateLessonSession(lessonSession.id, {
+    await store.updateLessonSession(lessonSession.id, {
       completed_at: clientTs,
       total_time_ms: totalTimeMs || lessonSession.total_time_ms,
     });
-    recomputeAndPersistScore(lessonSession.id);
+    await recomputeAndPersistScore(lessonSession.id);
     return;
   }
 
   if (kind === EVENT_KINDS.LESSON_ABANDONED && lessonSession) {
-    store.updateLessonSession(lessonSession.id, { abandoned_at: clientTs });
+    await store.updateLessonSession(lessonSession.id, { abandoned_at: clientTs });
     return;
   }
 
   // Act-scoped events.
   let actSession = null;
   if (lessonSession && actId) {
-    actSession = store.getOrCreateActSession({ lessonSessionId: lessonSession.id, actId });
+    actSession = await store.getOrCreateActSession({ lessonSessionId: lessonSession.id, actId });
     if (kind === EVENT_KINDS.ACT_STARTED) {
-      store.updateActSession(actSession.id, { started_at: clientTs, points_max: findActMax(actId, config) });
+      await store.updateActSession(actSession.id, { started_at: clientTs, points_max: findActMax(actId, config) });
     }
     if (kind === EVENT_KINDS.ACT_COMPLETED) {
-      store.updateActSession(actSession.id, {
+      await store.updateActSession(actSession.id, {
         completed_at: clientTs,
         total_time_ms: e.payload?.timeMs ?? actSession.total_time_ms,
         completion_pct: 100,
       });
-      recomputeAndPersistScore(lessonSession.id);
+      await recomputeAndPersistScore(lessonSession.id);
     }
   }
 
   // Scene-scoped events.
   let sceneSession = null;
   if (actSession && sceneId) {
-    sceneSession = store.getOrCreateSceneSession({ actSessionId: actSession.id, sceneId });
+    sceneSession = await store.getOrCreateSceneSession({ actSessionId: actSession.id, sceneId });
     if (kind === EVENT_KINDS.SCENE_ENTERED) {
-      store.updateSceneSession(sceneSession.id, { entered_at: clientTs });
+      await store.updateSceneSession(sceneSession.id, { entered_at: clientTs });
     }
     if (kind === EVENT_KINDS.SCENE_COMPLETED) {
       const pts = findSceneMax(sceneId, config);
-      store.updateSceneSession(sceneSession.id, {
+      await store.updateSceneSession(sceneSession.id, {
         exited_at: clientTs,
         completed: true,
         total_time_ms: e.payload?.timeMs ?? sceneSession.total_time_ms,
@@ -317,7 +309,7 @@ function projectEvent(e) {
       });
     }
     if (kind === EVENT_KINDS.SCENE_SKIPPED) {
-      store.updateSceneSession(sceneSession.id, {
+      await store.updateSceneSession(sceneSession.id, {
         exited_at: clientTs,
         skipped: true,
         completed: false,
@@ -332,7 +324,7 @@ function projectEvent(e) {
       kind === EVENT_KINDS.OPTION_SELECTED ||
       kind === EVENT_KINDS.SCENARIO_DECISION
     ) {
-      store.updateSceneSession(sceneSession.id, {
+      await store.updateSceneSession(sceneSession.id, {
         interaction_count: (sceneSession.interaction_count ?? 0) + 1,
       });
     }
@@ -341,7 +333,7 @@ function projectEvent(e) {
   // Activity attempts.
   if (sceneSession && activityId) {
     if (kind === EVENT_KINDS.ACTIVITY_STARTED) {
-      store.recordActivityAttempt({
+      await store.recordActivityAttempt({
         scene_session_id: sceneSession.id,
         activity_id: activityId,
         activity_kind: e.payload?.kind ?? null,
@@ -368,7 +360,7 @@ function projectEvent(e) {
         : (detail.correct && detail.total
             ? Math.round((detail.correct / detail.total) * 100)
             : null);
-      store.recordActivityAttempt({
+      await store.recordActivityAttempt({
         scene_session_id: sceneSession.id,
         activity_id: activityId,
         activity_kind: e.payload?.kind ?? null,
@@ -385,14 +377,14 @@ function projectEvent(e) {
       });
       // Bump the act-level activities_completed counter.
       if (success && actSession) {
-        store.updateActSession(actSession.id, {
+        await store.updateActSession(actSession.id, {
           activities_completed: (actSession.activities_completed ?? 0) + 1,
         });
       }
-      recomputeAndPersistScore(lessonSession.id);
+      await recomputeAndPersistScore(lessonSession.id);
     }
     if (kind === EVENT_KINDS.ACTIVITY_RETRIED && sceneSession) {
-      store.updateSceneSession(sceneSession.id, {
+      await store.updateSceneSession(sceneSession.id, {
         retry_count: (sceneSession.retry_count ?? 0) + 1,
       });
     }
@@ -404,12 +396,12 @@ function projectEvent(e) {
 // single lesson session and write the materialised rows back. Called
 // from projection on any event that could move the needle.
 // ─────────────────────────────────────────────────────────────────────
-function recomputeAndPersistScore(lessonSessionId) {
+async function recomputeAndPersistScore(lessonSessionId) {
   // Aggregate tables are keyed by session+lesson everywhere except
   // here — the projection just produced an id, so we fetch the tree
   // by id directly. PG path will swap this for a single SELECT once
   // wired.
-  const tree = readTreeById(lessonSessionId);
+  const tree = await store.readTreeById(lessonSessionId);
   if (!tree) return;
 
   const config = getScoringConfig(tree.session?.lesson_id); // per-lesson scoring
@@ -432,13 +424,13 @@ function recomputeAndPersistScore(lessonSessionId) {
     completionPct, clicksPerMinute, activityParticipationPct: participationPct,
   });
 
-  store.updateLessonSession(lessonSessionId, {
+  await store.updateLessonSession(lessonSessionId, {
     total_score: rolled.totalScore,
     completion_pct: Number(completionPct.toFixed(2)),
     learning_score: learning,
     engagement_score: engagement,
   });
-  store.upsertScore(lessonSessionId, {
+  await store.upsertScore(lessonSessionId, {
     total_score: rolled.totalScore,
     act_scores: rolled.actScores,
     learning_score: learning,
@@ -451,7 +443,7 @@ function recomputeAndPersistScore(lessonSessionId) {
   for (const act of tree.acts) {
     const earned = rolled.actScores[act.act_id] ?? 0;
     const max = findActMax(act.act_id, config);
-    store.updateActSession(act.id, {
+    await store.updateActSession(act.id, {
       points_earned: earned,
       points_max: max,
       score: earned,
@@ -468,10 +460,10 @@ function recomputeAndPersistScore(lessonSessionId) {
     })),
     attempts: tree.attempts,
   });
-  store.upsertBadges(lessonSessionId, badges);
+  await store.upsertBadges(lessonSessionId, badges);
 
   if (tree.session.completed_at) {
-    store.upsertAttemptHistory({
+    await store.upsertAttemptHistory({
       sessionId: tree.session.session_id,
       lessonId:  tree.session.lesson_id,
       attemptNo: tree.session.attempt_no,
@@ -480,22 +472,6 @@ function recomputeAndPersistScore(lessonSessionId) {
       totalTimeMs: tree.session.total_time_ms,
     });
   }
-}
-
-// Direct id-keyed lookup against the file store. (Postgres will replace
-// this with a single SELECT once the pg branch lands.)
-function readTreeById(lessonSessionId) {
-  if (!fs.existsSync(ANALYTICS_DATA_PATH)) return null;
-  let raw;
-  try { raw = JSON.parse(fs.readFileSync(ANALYTICS_DATA_PATH, 'utf8')); } catch { return null; }
-  const session = raw.user_lesson_sessions?.find((r) => r.id === lessonSessionId);
-  if (!session) return null;
-  const acts    = raw.user_act_sessions?.filter((r) => r.lesson_session_id === session.id) || [];
-  const actIds  = new Set(acts.map((a) => a.id));
-  const scenes  = raw.user_scene_sessions?.filter((r) => actIds.has(r.act_session_id)) || [];
-  const sceneIds = new Set(scenes.map((s) => s.id));
-  const attempts= raw.user_activity_attempts?.filter((r) => sceneIds.has(r.scene_session_id)) || [];
-  return { session, acts, scenes, attempts };
 }
 
 function avgAccuracy(attempts) {

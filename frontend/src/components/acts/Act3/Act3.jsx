@@ -220,12 +220,10 @@ export default function Act3({ onComplete, onGoHome }) {
       analytics.activityCompleted('s1-pick3', {
         sceneId: scene?.id,
         attemptNo: attempts,
-        payload: {
-          kind: 'simulation-pick3',
-          detail: {
-            correct, total, attempts,
-            accuracyPct: total ? Math.round((correct / total) * 100) : null,
-          },
+        kind: 'simulation-pick3',
+        detail: {
+          correct, total, attempts,
+          accuracyPct: total ? Math.round((correct / total) * 100) : null,
         },
       });
     }

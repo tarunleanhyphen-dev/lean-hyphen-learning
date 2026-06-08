@@ -407,7 +407,8 @@ export default function Act1({ onComplete, onGoHome }) {
     if (productId) {
       analytics.activityCompleted(`add-${productId}`, {
         sceneId: scene?.id,
-        payload: { kind: 'add-to-cart', detail: { productId } },
+        kind: 'add-to-cart',
+        detail: { productId },
       });
     }
     markHoldDone(phase.id);

@@ -246,15 +246,14 @@ export default function Act4({ onComplete }) {
     if (kind === 'impulse-meter') {
       analytics.activityCompleted('meter', {
         sceneId: scene?.id,
-        payload: { kind: 'meter', detail: { zoneId: payload?.zoneId } },
+        kind: 'meter',
+        detail: { zoneId: payload?.zoneId },
       });
     } else if (kind === 'takeaways-grid') {
       analytics.activityCompleted('takeaways', {
         sceneId: scene?.id,
-        payload: {
-          kind: 'takeaways-grid',
-          detail: { revealed: payload?.revealed ?? 5, total: 5 },
-        },
+        kind: 'takeaways-grid',
+        detail: { revealed: payload?.revealed ?? 5, total: 5 },
       });
     }
     if (kind === 'impulse-meter' && payload.zoneId) setMeterPick(payload.zoneId);

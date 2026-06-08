@@ -227,21 +227,17 @@ export default function Act2({ onComplete, onGoHome }) {
     if (kind === 'mind-trap') {
       analytics.activityCompleted('thought-spiral', {
         sceneId: scene?.id,
-        payload: {
-          kind: 'drag-drop',
-          detail: {
-            correct: payload?.correct ?? 12,
-            total: payload?.total ?? 12,
-          },
+        kind: 'drag-drop',
+        detail: {
+          correct: payload?.correct ?? 12,
+          total: payload?.total ?? 12,
         },
       });
     } else if (kind === 'flash-cards') {
       analytics.activityCompleted('impulse-cards', {
         sceneId: scene?.id,
-        payload: {
-          kind: 'flash-cards',
-          detail: { seen: payload?.seen ?? 3, total: 3 },
-        },
+        kind: 'flash-cards',
+        detail: { seen: payload?.seen ?? 3, total: 3 },
       });
     }
     markHoldDone(phase.id);

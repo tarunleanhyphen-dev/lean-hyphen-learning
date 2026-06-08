@@ -7,10 +7,13 @@
  *
  * Each act component is self-contained (it manages its own state, narration
  * and 3D canvas); we just hand it onGoHome / onComplete navigation callbacks. */
+import { useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Play, Clock, Sparkles, Lock, ArrowRight } from 'lucide-react';
 import { lesson } from '../data/lessons/whereDoesMyMoneyGo.js';
+import SpafaLogo from '../components/shared/SpafaLogo.jsx';
+import { stopMusic, cancelSpeech } from '../utils/sounds.js';
 import DreamBedroomAct1 from '../components/acts/dreamBedroomMakeover/Act1/Act1.jsx';
 import DreamBedroomAct2 from '../components/acts/dreamBedroomMakeover/Act2/Act2.jsx';
 import DreamBedroomAct3, { markActDone } from '../components/acts/dreamBedroomMakeover/Act3/Act3.jsx';
@@ -46,6 +49,8 @@ export default function Lesson2Page() {
 
 function Lesson2Home() {
   const acts = Object.values(lesson.acts);
+  // Returning to the home page from any act stops the background music + voice.
+  useEffect(() => { try { stopMusic(); cancelSpeech(); } catch { /* noop */ } }, []);
   const { from, to } = lesson.hero.palette;
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -57,7 +62,7 @@ function Lesson2Home() {
       <div className="relative mx-auto flex min-h-screen w-full max-w-5xl flex-col px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
         <header className="flex items-center justify-between">
           <a href="/" aria-label="Lean Hyphen home" className="inline-flex shrink-0">
-            <img src="/lean-hyphen-logo.svg" alt="Lean Hyphen" className="h-10 w-auto sm:h-12" draggable={false} />
+            <SpafaLogo size="md" />
           </a>
           <Link to="/" className="text-xs text-white/60 underline-offset-4 hover:text-white hover:underline">← all lessons</Link>
         </header>

@@ -2,7 +2,9 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Play, Clock, Sparkles, Lock, CheckCircle2 } from 'lucide-react';
 import { LESSONS, getFeaturedLesson } from '../data/lessons/registry.js';
+import { useEffect } from 'react';
 import { useLesson } from '../context/LessonContext.jsx';
+import { stopMusic, cancelSpeech } from '../utils/sounds.js';
 import SpafaLogo from '../components/shared/SpafaLogo.jsx';
 
 const ACT_ORDER = ['act1', 'act2', 'act3', 'act4'];
@@ -20,6 +22,8 @@ function computeUnlocks(progress) {
 
 export default function HomePage() {
   const { state } = useLesson();
+  // Landing on the home/catalog stops any background music left playing by an act.
+  useEffect(() => { try { stopMusic(); cancelSpeech(); } catch { /* noop */ } }, []);
   const featured = getFeaturedLesson();
   const others = LESSONS.filter((l) => l !== featured);
 

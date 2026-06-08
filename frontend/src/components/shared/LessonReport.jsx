@@ -159,7 +159,7 @@ export default function LessonReport({
               Your Lesson Report
             </h2>
             <p className="mt-1 text-[13px] text-ink-700">
-              {({ 'think-before-you-spend': 'Think Before You Spend', 'where-does-my-money-go': 'Where Does My Money Go?' }[lessonId] || 'Your lesson')} — full performance breakdown
+              {({ 'think-before-you-spend': 'Think Before You Spend', 'where-does-my-money-go': 'Where Does My Money Go?' }[lessonId] || 'Your lesson')} — Full Performance Breakdown
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
@@ -238,21 +238,21 @@ export default function LessonReport({
                 tone="from-saffron-500 to-coral-500"
                 label="Total score"
                 value={`${report.totalScore} / ${SCORING_CONFIG.lessonMax}`}
-                sub={`${Math.round(report.completionPct)}% completion`}
+                sub={`${Math.round(report.completionPct)}% Completion`}
               />
               <ScoreTile
                 Icon={Target}
                 tone="from-teal-500 to-emerald-600"
                 label="Learning"
                 value={`${report.learningScore} / 100`}
-                sub="Accuracy + scenario quality"
+                sub="Accuracy + Scenario Quality"
               />
               <ScoreTile
                 Icon={TrendingUp}
                 tone="from-burgundy-500 to-coral-500"
                 label="Engagement"
                 value={`${report.engagementScore} / 100`}
-                sub="Interaction + completion"
+                sub="Interaction + Completion"
               />
             </section>
 
@@ -452,7 +452,7 @@ function ActRow({ act }) {
       </div>
       <div className="flex items-center justify-between text-[10.5px] text-ink-500">
         <span>Score {pct}%</span>
-        {act.accuracyPct != null && <span>{Math.round(act.accuracyPct)}% accuracy</span>}
+        {act.accuracyPct != null && <span>{Math.round(act.accuracyPct)}% Accuracy</span>}
       </div>
     </div>
   );

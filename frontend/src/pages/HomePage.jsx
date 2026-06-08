@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Play, Clock, Sparkles, Lock, CheckCircle2 } from 'lucide-react';
+import { Play, Clock, Sparkles, Lock, CheckCircle2, Trophy, ArrowRight, BarChart3 } from 'lucide-react';
 import { getFeaturedLesson, getOtherLessons } from '../data/lessons/registry.js';
 import { useLesson } from '../context/LessonContext.jsx';
 
@@ -97,6 +97,17 @@ export default function HomePage() {
             />
           ))}
         </section>
+
+        {/* Performance report card — always visible, deep-links to
+           /lesson/:lessonId/report. Two visual states: muted before any
+           act is completed (preview link), full-gradient with progress
+           chip once they've finished at least one act. */}
+        <ReportCard
+          lessonId={lesson.id}
+          hasProgress={Object.values(completed).some(Boolean)}
+          completedCount={Object.values(completed).filter(Boolean).length}
+          actCount={Object.values(lesson.acts).length}
+        />
 
         {others.length > 0 && (
           <section className="mt-12">
@@ -219,5 +230,99 @@ function ActCard({ lessonId, act, index, unlocked, completed, hasComponent }) {
     <Link to={`/lesson/${lessonId}/${act.id}`} className="group">{body}</Link>
   ) : (
     <div className="group cursor-not-allowed opacity-60">{body}</div>
+  );
+}
+
+/* =========================================================================
+ * Performance report card — sits below the act grid on the home page.
+ *
+ * Two visual states (auto-switches based on progress):
+ *   • No progress yet: muted card explaining what they'll see once they
+ *     finish at least one Act. Button still navigates (to the same page
+ *     that shows the "Lesson complete!" empty state) so a curious
+ *     learner can preview the layout.
+ *   • Some progress: full-colour gradient card with a "View report"
+ *     CTA + a tiny chip showing how many acts are done so far.
+ * ======================================================================== */
+function ReportCard({ lessonId, hasProgress, completedCount, actCount }) {
+  return (
+    <section className="mt-10">
+      <Link
+        to={`/lesson/${lessonId}/report`}
+        className="group block"
+        aria-label="View your performance report"
+      >
+        <div
+          className={`relative flex flex-col gap-4 overflow-hidden rounded-3xl border p-5 transition sm:flex-row sm:items-center sm:gap-6 sm:p-6 ${
+            hasProgress
+              ? 'border-saffron-500/40 bg-gradient-to-br from-saffron-500/15 via-coral-500/10 to-burgundy-500/15 group-hover:border-saffron-500/60'
+              : 'border-white/10 bg-white/[0.04] group-hover:border-white/20 group-hover:bg-white/[0.06]'
+          }`}
+        >
+          {/* Soft shimmer behind everything when active. Stays subtle. */}
+          {hasProgress && (
+            <motion.span
+              aria-hidden
+              initial={{ x: '-130%' }}
+              animate={{ x: '130%' }}
+              transition={{ duration: 5.5, repeat: Infinity, ease: 'easeInOut' }}
+              className="pointer-events-none absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/10 to-transparent"
+            />
+          )}
+
+          {/* Icon medallion */}
+          <div className="relative flex shrink-0 items-center justify-center">
+            <div
+              className={`relative grid h-16 w-16 place-items-center rounded-3xl shadow-lg ring-1 sm:h-20 sm:w-20 ${
+                hasProgress
+                  ? 'bg-gradient-to-br from-saffron-500 to-coral-500 text-white ring-saffron-500/40'
+                  : 'bg-white/[0.06] text-white/60 ring-white/10'
+              }`}
+            >
+              <Trophy className="h-8 w-8 sm:h-10 sm:w-10" strokeWidth={2.2} />
+              <BarChart3 className="absolute -bottom-1.5 -right-1.5 h-5 w-5 rounded-full bg-ink-900/90 p-0.5 text-white shadow-sm sm:h-6 sm:w-6" strokeWidth={2.2} />
+            </div>
+          </div>
+
+          {/* Text block */}
+          <div className="relative min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-saffron-400">
+                Your Performance Report
+              </span>
+              {hasProgress && (
+                <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-widest text-white/85 ring-1 ring-white/15">
+                  {completedCount} / {actCount} acts
+                </span>
+              )}
+            </div>
+            <h3 className="mt-1 text-xl font-extrabold text-white sm:text-2xl">
+              {hasProgress
+                ? 'See your score, badges and per-act breakdown'
+                : 'Track your progress as you play'}
+            </h3>
+            <p className="mt-1 max-w-2xl text-[13px] text-white/70 sm:text-sm">
+              {hasProgress
+                ? 'Total score out of 100 · learning + engagement scores · per-act time and accuracy · badges earned · improvement vs your last attempt.'
+                : 'Finish even one act and your report comes alive — total score, badges, per-act timing, accuracy, and insights.'}
+            </p>
+          </div>
+
+          {/* CTA */}
+          <div className="relative flex shrink-0 items-center">
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2.5 text-[12px] font-bold transition group-hover:gap-2 sm:text-[12.5px] ${
+                hasProgress
+                  ? 'bg-white text-ink-900 shadow-md'
+                  : 'bg-white/10 text-white/80 ring-1 ring-white/20'
+              }`}
+            >
+              View report
+              <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            </span>
+          </div>
+        </div>
+      </Link>
+    </section>
   );
 }

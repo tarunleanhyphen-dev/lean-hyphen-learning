@@ -34,6 +34,19 @@ export function loadAct1Spend() {
   return { needs: 28500, wants: 11500, savings: 10000, played: false };
 }
 
+/* The actual items the learner bought in Act 1, each labelled Need/Want. */
+export function loadAct1Items() {
+  try {
+    const raw = localStorage.getItem('lh.dbm.act1.v1');
+    if (!raw) return [];
+    const st = JSON.parse(raw);
+    const idx = {};
+    Object.values(catalogue).forEach((c) => c.items.forEach((it) => { idx[it.id] = it; }));
+    return (st.cart || []).map((id) => idx[id]).filter(Boolean)
+      .map((it) => ({ name: it.name, price: it.price, type: it.type }));
+  } catch { return []; }
+}
+
 function useNarr(narration, lines) {
   const [done, setDone] = useState(false);
   useEffect(() => {
@@ -302,6 +315,7 @@ export function C2Apply({ go, narration, accent, act1 }) {
   const n = useNarr(narration, [d.intro]);
   const [showYou, setShowYou] = useState(false);
   const t = d.targets;
+  const items = useMemo(loadAct1Items, []);
 
   useEffect(() => { const id = setTimeout(() => setShowYou(true), 2200); return () => clearTimeout(id); }, []);
 
@@ -344,6 +358,32 @@ export function C2Apply({ go, narration, accent, act1 }) {
           </motion.div>
         ))}
       </div>
+
+      <AnimatePresence>
+        {showYou && items.length > 0 && (
+          <motion.div className="a2-apply__detail" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+            {[
+              { key: 'need', label: 'Needs', emoji: '🧺', color: '#10B981' },
+              { key: 'want', label: 'Wants', emoji: '🛍️', color: '#A855F7' },
+            ].map((g) => {
+              const list = items.filter((it) => it.type === g.key);
+              const sum = list.reduce((a, it) => a + it.price, 0);
+              return (
+                <div className="a2-apply__detailcol" key={g.key} style={{ '--c': g.color }}>
+                  <div className="a2-apply__detailhead"><span>{g.emoji} {g.label}</span><b>{fmt(sum)}</b></div>
+                  {list.length ? list.map((it, i) => (
+                    <div className="a2-apply__item" key={i}>
+                      <span className="a2-apply__itemtag">{g.label === 'Needs' ? 'Need' : 'Want'}</span>
+                      <span className="a2-apply__itemname">{it.name}</span>
+                      <span className="a2-apply__itemamt">{fmt(it.price)}</span>
+                    </div>
+                  )) : <div className="a2-apply__empty">Nothing here</div>}
+                </div>
+              );
+            })}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {showYou && (
@@ -460,10 +500,10 @@ export function C3Activity({ go, narration, accent, analytics }) {
           <div className="a2-fs__cast">
             {FS_PEOPLE.map((p, i) => (
               <motion.div key={p.id} className="a2-fs__castcard" style={{ '--c': p.color }}
-                initial={{ opacity: 0, y: 30, rotateY: 40 }} animate={{ opacity: 1, y: 0, rotateY: 0 }}
+                initial={{ opacity: 0, y: 30, scale: 0.85 }} animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ delay: 0.15 * i, type: 'spring', stiffness: 120, damping: 14 }}
-                whileHover={{ y: -6, rotateX: -6, rotateY: 6, scale: 1.04 }}>
-                <motion.div className="a2-fs__avatar" animate={{ y: [0, -7, 0], rotateY: [0, 14, -14, 0] }} transition={{ repeat: Infinity, duration: 3 + i * 0.4, ease: 'easeInOut' }}>{p.emoji}</motion.div>
+                whileHover={{ y: -6, scale: 1.05 }}>
+                <motion.div className="a2-fs__avatar" animate={{ y: [0, -8, 0], rotate: [-4, 4, -4] }} transition={{ repeat: Infinity, duration: 3 + i * 0.4, ease: 'easeInOut' }}>{p.emoji}</motion.div>
                 <div className="a2-fs__name">{p.name}</div>
                 <div className="a2-fs__vibe">{p.vibe}</div>
                 <div className="a2-fs__salary">₹60,000 / mo</div>

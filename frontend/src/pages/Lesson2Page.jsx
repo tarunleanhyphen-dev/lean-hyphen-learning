@@ -61,10 +61,9 @@ function Lesson2Home() {
 
       <div className="relative mx-auto flex min-h-screen w-full max-w-5xl flex-col px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
         <header className="flex items-center justify-between">
-          <a href="/" aria-label="Lean Hyphen home" className="inline-flex shrink-0">
+          <Link to="/lesson2" aria-label="Where Does My Money Go? home" className="inline-flex shrink-0">
             <SpafaLogo size="md" />
-          </a>
-          <Link to="/" className="text-xs text-white/60 underline-offset-4 hover:text-white hover:underline">← all lessons</Link>
+          </Link>
         </header>
 
         <main className="mt-6 flex flex-col items-start gap-6 sm:mt-8">
@@ -72,7 +71,20 @@ function Lesson2Home() {
             <Sparkles className="h-3 w-3" /> Module · {lesson.module}
           </span>
           <h1 className="text-3xl font-extrabold leading-tight text-white sm:text-4xl md:text-5xl">{lesson.title}</h1>
-          <p className="max-w-2xl text-base text-white/70 sm:text-lg">{lesson.hero.tagline}</p>
+          <p className="max-w-2xl text-base text-white/75 sm:text-lg">
+            {lesson.hero.tagline} Across <b className="text-white">3 acts</b> you'll go from impulse spender to deliberate budgeter — by actually doing it, not just reading about it.
+          </p>
+          <ul className="max-w-2xl space-y-2 text-sm text-white/65 sm:text-[15px]">
+            <li>
+              <span className="font-semibold text-emerald-300">Act 1 · Dream Bedroom Makeover</span> — design your room on a ₹50,000 budget: sort Needs vs Wants, shop a real 3D catalogue, survive a surprise expense, and see exactly where every rupee went.
+            </li>
+            <li>
+              <span className="font-semibold text-violet-300">Act 2 · The 50/30/20 Rule</span> — learn the one rule smart budgeters live by, then figure out who's nailing their first salary across Arjun, Priya &amp; Sneha.
+            </li>
+            <li>
+              <span className="font-semibold text-amber-300">Act 3 · Test Your Understanding</span> — a timed 6-question quiz to lock it all in and earn your badge.
+            </li>
+          </ul>
           <div className="flex flex-wrap items-center gap-3 text-sm text-white/60">
             <span className="inline-flex items-center gap-1.5"><Clock className="h-4 w-4" /> ~{lesson.totalMinutes} minutes total</span>
           </div>

@@ -6,12 +6,13 @@
  * a self-contained surface that reads/writes the shared state and drives its
  * own narration.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Volume2, VolumeX, Home, Play } from 'lucide-react';
-import { lesson } from '../../../../data/lessons/dreamBedroomMakeover.js';
+import { lesson, sortItems } from '../../../../data/lessons/dreamBedroomMakeover.js';
 import { useMakeover } from './useMakeover.js';
 import { useNarration } from './useNarration.js';
+import { useL2Analytics } from '../useL2Analytics.js';
 import {
   Screen1Intro, Screen2Vibe, Screen2Rules, Screen3Sort,
   Screen4Shop, Screen5Events, Screen6Snapshot,
@@ -41,6 +42,55 @@ export default function DreamBedroomAct1({ onComplete, onGoHome }) {
   const [voiceOn, setVoiceOn] = useState(false); // audio actually unlocked + unmuted
   const [started, setStarted] = useState(false);  // gate: Scene 1 + audio begin on Start click
 
+  /* ---- analytics: lesson/act/scene lifecycle + graded activities ---- */
+  const analytics = useL2Analytics('act1', { bumpAttempt: true });
+  const emitted = useRef({ sort: false, mcq: false });
+
+  // scene_entered on each screen, scene_completed on leaving it
+  useEffect(() => {
+    if (!started) return undefined;
+    const s = mk.state.screen;
+    analytics.sceneEntered(s);
+    return () => analytics.sceneCompleted(s);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [started, mk.state.screen]);
+
+  // a1-sort — graded once the learner reaches the shop (after sorting)
+  useEffect(() => {
+    if (mk.state.screen !== 'screen-4-shop' || emitted.current.sort) return;
+    emitted.current.sort = true;
+    const ans = mk.state.sortAnswers || {};
+    const total = sortItems.length;
+    const correct = sortItems.filter((it) => ans[it.id] === it.correct).length;
+    analytics.activityCompleted('a1-sort', {
+      sceneId: 'screen-3-sort',
+      payload: { sceneId: 'screen-3-sort', detail: { correct, total, accuracyPct: total ? Math.round((correct / total) * 100) : 0 } },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mk.state.screen]);
+
+  // a1-snapshot-mcq — the "biggest category" answer
+  useEffect(() => {
+    if (!mk.state.snapshotMcq || emitted.current.mcq) return;
+    emitted.current.mcq = true;
+    const totals = mk.categoryTotals || {};
+    const biggest = Object.entries(totals).sort((a, b) => b[1] - a[1])[0]?.[0];
+    const correct = mk.state.snapshotMcq === biggest ? 1 : 0;
+    analytics.activityCompleted('a1-snapshot-mcq', {
+      sceneId: 'screen-6-snapshot',
+      payload: { sceneId: 'screen-6-snapshot', detail: { correct, total: 1, accuracyPct: correct * 100 } },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mk.state.snapshotMcq]);
+
+  // act_completed (+ flush) when the snapshot CTA finishes Act 1
+  const handleComplete = useCallback(() => {
+    analytics.actCompleted();
+    analytics.flush?.();
+    onComplete?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onComplete]);
+
   /* DEV-only: ?dev= adds .dbm-reveal so headless screenshots show framer's
    * initial opacity:0 content. Seeding happens in useMakeover. No-op in prod. */
   useEffect(() => {
@@ -66,7 +116,10 @@ export default function DreamBedroomAct1({ onComplete, onGoHome }) {
     setVoiceOn(true);
     try { localStorage.setItem(AUDIO_KEY, 'on'); } catch { /* noop */ }
     setStarted(true);
+    analytics.lessonStarted();
+    analytics.actStarted();
     // Scene 1 mounts now and its own narration begins automatically — no restart needed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /* Persistent speaker toggle in the top bar (mute / unmute + replay-on). */
@@ -157,7 +210,7 @@ export default function DreamBedroomAct1({ onComplete, onGoHome }) {
                 transition={{ duration: 0.3 }}
                 className="dbm__screenwrap"
               >
-                <ScreenComp mk={mk} narration={narration} vibe={vibe} accent={accent} onComplete={onComplete} />
+                <ScreenComp mk={mk} narration={narration} vibe={vibe} accent={accent} onComplete={handleComplete} />
               </motion.div>
             </AnimatePresence>
           </main>

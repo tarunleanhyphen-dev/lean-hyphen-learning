@@ -259,9 +259,9 @@ export default function DreamBedroomAct3({ onComplete, onGoHome }) {
   useEffect(() => {
     if (screen !== 'quiz' || picked !== null || timedOut) return undefined;
     if (timeLeft <= 0) {
+      // Time's up — just STOP the clock. The question stays open so the learner
+      // still answers it themselves (we never reveal the answer here).
       setTimedOut(true);
-      setResults((r) => { const n = [...r]; if (n[idx] == null) n[idx] = 'skip'; return n; });
-      narration.stop();
       qsfx('alert');
       return undefined;
     }
@@ -281,7 +281,7 @@ export default function DreamBedroomAct3({ onComplete, onGoHome }) {
   };
 
   const choose = (oi) => {
-    if (picked !== null || timedOut) return; // locked once answered or timed out
+    if (picked !== null) return; // locked only once the learner has answered
     setPicked(oi);
     const correct = q.options[oi].correct;
     if (correct) setScore((s) => s + 1);
@@ -310,9 +310,10 @@ export default function DreamBedroomAct3({ onComplete, onGoHome }) {
   const badge = BADGES.find((b) => score >= b.min);
   const closing = closingLine(a1);
 
-  // Quiz answer/lock state (answered OR the 45s clock ran out).
+  // The question locks ONLY once answered — a timed-out clock leaves it open so
+  // the learner still picks an answer themselves.
   const answered = picked !== null;
-  const locked = answered || timedOut;
+  const locked = answered;
   const correctIdx = q.options.findIndex((o) => o.correct);
   const isRight = answered && q.options[picked].correct;
 
@@ -370,7 +371,7 @@ export default function DreamBedroomAct3({ onComplete, onGoHome }) {
                   <span className="dbm-q__num">Question {idx + 1}<span>/{QUESTIONS.length}</span></span>
                   <span className="dbm-q__score">⭐ {score} correct</span>
                   {/* 45s countdown — top-right, urgent in the final seconds */}
-                  <div className={`dbm-q__timer ${timedOut ? 'is-out' : ''} ${!locked && timeLeft <= 15 ? 'is-warn' : ''} ${!locked && timeLeft <= 7 ? 'is-danger' : ''}`}>
+                  <div className={`dbm-q__timer ${timedOut ? 'is-out' : answered ? '' : timeLeft <= 7 ? 'is-danger' : timeLeft <= 15 ? 'is-warn' : ''}`}>
                     <Clock size={15} />
                     <span>{timedOut ? "Time's up" : `0:${String(Math.max(0, timeLeft)).padStart(2, '0')}`}</span>
                   </div>
@@ -405,8 +406,8 @@ export default function DreamBedroomAct3({ onComplete, onGoHome }) {
                       <motion.div className={`dbm-q__fb ${isRight ? 'is-right' : 'is-soft'}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
                         <div className="dbm-q__fbinner">
                           <div className="dbm-q__fbhead">
-                            <span className="dbm-q__fbicon">{isRight ? <Check size={16} /> : timedOut ? '⏰' : '💡'}</span>
-                            <strong>{isRight ? 'Correct!' : `${timedOut ? "Time's up!" : 'Not quite'} — the answer is ${String.fromCharCode(65 + correctIdx)}. ${q.options[correctIdx].t}`}</strong>
+                            <span className="dbm-q__fbicon">{isRight ? <Check size={16} /> : '💡'}</span>
+                            <strong>{isRight ? 'Correct!' : `Not quite — the answer is ${String.fromCharCode(65 + correctIdx)}. ${q.options[correctIdx].t}`}</strong>
                           </div>
                           <p>{isRight ? q.right : q.wrong}</p>
                           {!isRight && <p className="dbm-q__fbwhy"><b>Why:</b> {q.right}</p>}

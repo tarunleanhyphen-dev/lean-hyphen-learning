@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, Trophy, Clock, Target, TrendingUp, Award, ArrowLeft, History, ChevronRight } from 'lucide-react';
-import { BADGES, SCORING_CONFIG } from '../../config/scoringConfig.js';
+import { Sparkles, Trophy, Clock, Target, TrendingUp, Award, ArrowLeft, History, ChevronRight, RefreshCw } from 'lucide-react';
+import { SCORING_CONFIG } from '../../config/scoringConfig.js';
 import { flush } from '../../utils/analytics.js';
 
 /**
@@ -50,44 +50,61 @@ export default function LessonReport({
   // GET). Without this the LessonReport hangs on "Computing your
   // score…" indefinitely.
   const [loading, setLoading] = useState(true);
-  // (Re-)fetch the report whenever the selected attempt changes. When
-  // selectedAttempt is null the backend returns the latest attempt; an
-  // explicit number drills into that historical attempt.
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      setLoading(true);
-      setError(null);
-      try {
-        // Push any analytics events still queued from the act the learner just
-        // played, so the report reflects them (the queue flushes on a 2s
-        // debounce otherwise — racing this read).
-        try { await flush(); } catch { /* best-effort */ }
+  // Manual/auto refresh in-flight flag (drives the Refresh button spinner)
+  // without blanking the already-rendered report.
+  const [refreshing, setRefreshing] = useState(false);
 
-        const params = new URLSearchParams({ sessionId });
-        if (selectedAttempt != null) params.set('attempt', String(selectedAttempt));
-        const url = `${API_BASE}/api/analytics/lesson/${encodeURIComponent(lessonId)}?${params}`;
+  // (Re-)fetch the report. `quiet` = a background refresh (manual button or
+  // window-focus) that keeps the current report on screen instead of flipping
+  // to the full-page "Computing…" spinner. The score auto-updates after every
+  // act because each act flushes its events and this re-reads the latest.
+  const reload = useCallback(async ({ quiet = false } = {}) => {
+    if (quiet) setRefreshing(true); else setLoading(true);
+    setError(null);
+    try {
+      // Push any analytics events still queued from the act the learner just
+      // played, so the report reflects them (the queue flushes on a 2s
+      // debounce otherwise — racing this read).
+      try { await flush(); } catch { /* best-effort */ }
 
-        // Retry a few times — a just-finished act's write may still be landing.
-        let rep = null;
-        for (let i = 0; i < 4 && !cancelled; i += 1) {
-          const r = await fetch(url);
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          const j = await r.json();
-          rep = j.report ?? null;
-          if (rep || selectedAttempt != null) break;
-          await new Promise((res) => setTimeout(res, 1200));
-        }
-        if (!cancelled) setReport(rep);
-      } catch (err) {
-        if (!cancelled) setError(err.message || 'failed to load report');
-      } finally {
-        if (!cancelled) setLoading(false);
+      const params = new URLSearchParams({ sessionId });
+      if (selectedAttempt != null) params.set('attempt', String(selectedAttempt));
+      const url = `${API_BASE}/api/analytics/lesson/${encodeURIComponent(lessonId)}?${params}`;
+
+      // Retry a few times — a just-finished act's write may still be landing.
+      let rep = null;
+      for (let i = 0; i < 4; i += 1) {
+        const r = await fetch(url);
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const j = await r.json();
+        rep = j.report ?? null;
+        if (rep || selectedAttempt != null) break;
+        await new Promise((res) => setTimeout(res, 1200));
       }
+      setReport((prev) => rep ?? (quiet ? prev : null));
+    } catch (err) {
+      if (!quiet) setError(err.message || 'failed to load report');
+    } finally {
+      setRefreshing(false);
+      setLoading(false);
     }
-    load();
-    return () => { cancelled = true; };
   }, [sessionId, lessonId, selectedAttempt]);
+
+  // Initial load + reload when the selected attempt changes.
+  useEffect(() => { reload(); }, [reload]);
+
+  // Auto-refresh: when the learner returns to this tab/window (e.g. after
+  // playing another act in the same tab and navigating back), silently pull
+  // the latest score so they never see stale numbers.
+  useEffect(() => {
+    const onFocus = () => { if (document.visibilityState === 'visible') reload({ quiet: true }); };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onFocus);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onFocus);
+    };
+  }, [reload]);
 
   // Fetch the attempt list once per (sessionId, lessonId). Only used
   // on the standalone page — modal mode hides the strip to keep the
@@ -147,6 +164,16 @@ export default function LessonReport({
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <Trophy className="hidden h-10 w-10 text-saffron-500 sm:block" strokeWidth={2.2} />
+            <button
+              type="button"
+              onClick={() => reload({ quiet: true })}
+              disabled={refreshing}
+              title="Refresh — pull your latest score"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-ink-300/20 bg-white px-3 py-2 text-[13px] font-bold text-ink-800 transition hover:bg-cream-100 disabled:opacity-60"
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">{refreshing ? 'Refreshing…' : 'Refresh'}</span>
+            </button>
             {onContinue && (
               <button
                 type="button"
@@ -201,6 +228,9 @@ export default function LessonReport({
 
         {report && (
           <>
+            {/* Single achievement badge, awarded by total score */}
+            <ScoreBadge total={report.totalScore} />
+
             {/* Headline score */}
             <section className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
               <ScoreTile
@@ -237,29 +267,6 @@ export default function LessonReport({
                 ))}
               </div>
             </section>
-
-            {/* Badges */}
-            {report.badges?.length > 0 && (
-              <section className="mt-6">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-ink-500">
-                  Badges earned · {report.badges.length}
-                </h3>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {report.badges.map((b) => {
-                    const meta = BADGES[b.badgeId] || { title: b.badgeId, emoji: '🏅' };
-                    return (
-                      <span
-                        key={b.badgeId}
-                        className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-saffron-500/15 to-coral-500/10 px-3 py-1.5 text-[12px] font-extrabold text-ink-900 ring-1 ring-saffron-500/30"
-                      >
-                        <span className="text-base leading-none">{meta.emoji}</span>
-                        {meta.title}
-                      </span>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
 
             {/* Insights */}
             {report.insights?.length > 0 && (
@@ -385,6 +392,47 @@ function ScoreTile({ Icon, tone, label, value, sub }) {
   );
 }
 
+// Single achievement badge, awarded purely by total score. Highest matching
+// band wins; below 30 there is no badge. (Bands per product spec.)
+const SCORE_TIERS = [
+  { min: 100, label: 'Legend',      emoji: '👑', tone: 'from-amber-400 to-yellow-500',  note: 'Perfect score!' },
+  { min: 90,  label: 'Diamond',     emoji: '💎', tone: 'from-cyan-400 to-sky-500',      note: 'Outstanding' },
+  { min: 80,  label: 'Platinum',    emoji: '🏆', tone: 'from-violet-400 to-fuchsia-500', note: 'Excellent' },
+  { min: 70,  label: 'Gold',        emoji: '🥇', tone: 'from-yellow-400 to-amber-500',  note: 'Great work' },
+  { min: 60,  label: 'Silver',      emoji: '🥈', tone: 'from-slate-300 to-slate-500',   note: 'Well done' },
+  { min: 50,  label: 'Bronze',      emoji: '🥉', tone: 'from-orange-400 to-amber-600',  note: 'Solid effort' },
+  { min: 40,  label: 'Rising Star', emoji: '⭐', tone: 'from-teal-400 to-emerald-500',  note: 'Good progress' },
+  { min: 30,  label: 'Starter',     emoji: '🌱', tone: 'from-lime-400 to-green-500',    note: 'You\'re on your way' },
+];
+
+export function getScoreTier(total) {
+  return SCORE_TIERS.find((t) => total >= t.min) || null; // < 30 → no badge
+}
+
+function ScoreBadge({ total }) {
+  const tier = getScoreTier(total);
+  if (!tier) {
+    return (
+      <section className="mt-5 flex items-center justify-center gap-3 rounded-2xl bg-cream-100 p-4 ring-1 ring-ink-300/15">
+        <span className="text-3xl opacity-60 grayscale">🔒</span>
+        <p className="text-[13px] font-semibold text-ink-600">
+          Score <b className="tabular-nums">{total}</b> / 100 — reach <b>30</b> to unlock your first badge. Keep going!
+        </p>
+      </section>
+    );
+  }
+  return (
+    <section className={`mt-5 flex items-center justify-center gap-4 rounded-2xl bg-gradient-to-r ${tier.tone} p-5 text-white shadow-lg`}>
+      <span className="text-5xl leading-none drop-shadow-md" aria-hidden>{tier.emoji}</span>
+      <div className="text-center sm:text-left">
+        <div className="text-[10.5px] font-bold uppercase tracking-[0.22em] opacity-90">Achievement unlocked</div>
+        <div className="text-2xl font-extrabold leading-tight">{tier.label}</div>
+        <div className="text-[12.5px] font-semibold opacity-90">{tier.note} · <span className="tabular-nums">{total}</span> / 100</div>
+      </div>
+    </section>
+  );
+}
+
 function ActRow({ act }) {
   const pct = act.pointsMax > 0 ? Math.round((act.pointsEarned / act.pointsMax) * 100) : 0;
   return (
@@ -395,7 +443,7 @@ function ActRow({ act }) {
           {act.pointsEarned} / {act.pointsMax}
         </span>
       </div>
-      {/* Progress bar */}
+      {/* Score bar (share of this act's points earned) */}
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-ink-300/20">
         <div
           className="h-full bg-gradient-to-r from-saffron-500 to-coral-500"
@@ -403,9 +451,8 @@ function ActRow({ act }) {
         />
       </div>
       <div className="flex items-center justify-between text-[10.5px] text-ink-500">
-        <span>{Math.round(act.completionPct ?? 0)}% complete</span>
+        <span>Score {pct}%</span>
         {act.accuracyPct != null && <span>{Math.round(act.accuracyPct)}% accuracy</span>}
-        <span>{formatMs(act.timeMs)}</span>
       </div>
     </div>
   );

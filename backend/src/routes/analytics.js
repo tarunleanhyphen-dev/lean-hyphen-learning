@@ -438,14 +438,22 @@ async function recomputeAndPersistScore(lessonSessionId) {
     config_version: rolled.configVersion,
   });
 
-  // Per-act score rows.
+  // Per-act score rows (+ per-act accuracy, averaged over that act's graded
+  // attempts, so the report can show accuracy alongside the score).
   for (const act of tree.acts) {
     const earned = rolled.actScores[act.act_id] ?? 0;
     const max = findActMax(act.act_id, config);
+    const actSceneIds = new Set(
+      tree.scenes.filter((s) => s.act_session_id === act.id).map((s) => s.id),
+    );
+    const actAccuracy = avgAccuracy(
+      tree.attempts.filter((a) => actSceneIds.has(a.scene_session_id)),
+    );
     await store.updateActSession(act.id, {
       points_earned: earned,
       points_max: max,
       score: earned,
+      accuracy_pct: actAccuracy || null,
     });
   }
 

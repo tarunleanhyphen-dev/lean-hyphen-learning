@@ -12,6 +12,24 @@
 
 import { getScoringConfig, findActMax } from './scoring.js';
 
+// Single achievement badge, awarded purely by total score (highest band wins;
+// below 30 → no badge). Kept in sync with the frontend ScoreBadge bands.
+const SCORE_TIERS = [
+  { min: 100, tier: 'legend',      label: 'Legend',      emoji: '👑' },
+  { min: 90,  tier: 'diamond',     label: 'Diamond',     emoji: '💎' },
+  { min: 80,  tier: 'platinum',    label: 'Platinum',    emoji: '🏆' },
+  { min: 70,  tier: 'gold',        label: 'Gold',        emoji: '🥇' },
+  { min: 60,  tier: 'silver',      label: 'Silver',      emoji: '🥈' },
+  { min: 50,  tier: 'bronze',      label: 'Bronze',      emoji: '🥉' },
+  { min: 40,  tier: 'rising-star', label: 'Rising Star', emoji: '⭐' },
+  { min: 30,  tier: 'starter',     label: 'Starter',     emoji: '🌱' },
+];
+
+export function scoreTier(total) {
+  const t = SCORE_TIERS.find((b) => (total ?? 0) >= b.min);
+  return t ? { tier: t.tier, label: t.label, emoji: t.emoji, minScore: t.min } : null;
+}
+
 /**
  * The big end-of-lesson dashboard. Caller supplies the rolled-up
  * session + nested rows; we just reshape and add derived fields
@@ -56,6 +74,8 @@ export function buildLessonReport(ctx) {
     engagementScore: session.engagement_score,
     completionPct:   Number(session.completion_pct ?? 0),
     totalTimeMs:     session.total_time_ms,
+    // Single score-based achievement badge (null below 30).
+    badge: scoreTier(session.total_score),
     badges:    badges.map((b) => ({
       badgeId: b.badge_id,
       earnedAt: b.earned_at,
@@ -131,6 +151,7 @@ export function buildLmsExport(ctx) {
       completionPct: r.completionPct,
       timeMs:     r.totalTimeMs,
     },
+    badge: r.badge,
     badges: r.badges,
     acts: r.acts.map((a) => ({
       actId: a.actId,

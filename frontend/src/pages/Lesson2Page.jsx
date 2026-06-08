@@ -47,6 +47,12 @@ export default function Lesson2Page() {
   return <Lesson2Home />;
 }
 
+const ACT_BLURBS = {
+  act1: 'Design your room on ₹50,000 — sort Needs vs Wants, shop a 3D catalogue, survive a surprise cost, and see where every rupee went.',
+  act2: 'Learn the 50/30/20 rule, then figure out who\'s nailing their first salary — Arjun, Priya or Sneha.',
+  act3: 'A timed 6-question quiz to lock it all in and earn your badge.',
+};
+
 function Lesson2Home() {
   const acts = Object.values(lesson.acts);
   // Returning to the home page from any act stops the background music + voice.
@@ -59,60 +65,48 @@ function Lesson2Home() {
         <div className="absolute -bottom-32 -left-20 h-96 w-96 rounded-full blur-[120px]" style={{ background: to, opacity: 0.2 }} />
       </div>
 
-      <div className="relative mx-auto flex min-h-screen w-full max-w-5xl flex-col px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
+      <div className="relative mx-auto flex min-h-screen w-full max-w-5xl flex-col px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
         <header className="flex items-center justify-between">
           <Link to="/lesson2" aria-label="Where Does My Money Go? home" className="inline-flex shrink-0">
             <SpafaLogo size="md" />
           </Link>
         </header>
 
-        <main className="mt-6 flex flex-col items-start gap-6 sm:mt-8">
+        <main className="mt-4 flex flex-col items-start gap-3">
           <span className="chip" style={{ background: 'rgba(245,180,11,.16)', color: '#ffd24a' }}>
             <Sparkles className="h-3 w-3" /> Module · {lesson.module}
           </span>
-          <h1 className="text-3xl font-extrabold leading-tight text-white sm:text-4xl md:text-5xl">{lesson.title}</h1>
-          <p className="max-w-2xl text-base text-white/75 sm:text-lg">
-            {lesson.hero.tagline} Across <b className="text-white">3 acts</b> you'll go from impulse spender to deliberate budgeter — by actually doing it, not just reading about it.
+          <h1 className="text-3xl font-extrabold leading-tight text-white sm:text-4xl">{lesson.title}</h1>
+          <p className="max-w-2xl text-[15px] leading-relaxed text-white/75 sm:text-base">
+            {lesson.hero.tagline} Across <b className="text-white">3 acts</b> you'll go from impulse spender to deliberate budgeter — shop your room in 3D, master the 50/30/20 rule, and prove it in a timed quiz.
           </p>
-          <ul className="max-w-2xl space-y-2 text-sm text-white/65 sm:text-[15px]">
-            <li>
-              <span className="font-semibold text-emerald-300">Act 1 · Dream Bedroom Makeover</span> — design your room on a ₹50,000 budget: sort Needs vs Wants, shop a real 3D catalogue, survive a surprise expense, and see exactly where every rupee went.
-            </li>
-            <li>
-              <span className="font-semibold text-violet-300">Act 2 · The 50/30/20 Rule</span> — learn the one rule smart budgeters live by, then figure out who's nailing their first salary across Arjun, Priya &amp; Sneha.
-            </li>
-            <li>
-              <span className="font-semibold text-amber-300">Act 3 · Test Your Understanding</span> — a timed 6-question quiz to lock it all in and earn your badge.
-            </li>
-          </ul>
-          <div className="flex flex-wrap items-center gap-3 text-sm text-white/60">
-            <span className="inline-flex items-center gap-1.5"><Clock className="h-4 w-4" /> ~{lesson.totalMinutes} minutes total</span>
-          </div>
-          <div className="mt-4">
+          <div className="flex flex-wrap items-center gap-3">
             <Link
               to="/lesson2/act1"
-              className="btn-primary px-7 py-4 text-base"
+              className="btn-primary px-6 py-3 text-base"
               style={{ background: 'linear-gradient(135deg, #ffce3a, #f0a90a)', color: '#3a2a00', boxShadow: '0 16px 38px -14px rgba(240,169,10,.8)' }}
             >
               <Play className="h-4 w-4" /> Start Act 1
             </Link>
+            <span className="inline-flex items-center gap-1.5 text-sm text-white/60"><Clock className="h-4 w-4" /> ~{lesson.totalMinutes} min · 3 acts</span>
           </div>
         </main>
 
-        <section className="mt-16 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <section className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
           {acts.map((act, i) => {
             const live = act.status === 'live';
             const inner = (
               <motion.div
                 whileHover={live ? { y: -4 } : {}}
-                className={`relative flex h-full flex-col gap-3 rounded-2xl border p-5 ${live ? 'border-white/15 bg-white/[0.04]' : 'border-white/10 bg-white/[0.02] opacity-60'}`}
+                className={`relative flex h-full flex-col gap-2 rounded-2xl border p-5 ${live ? 'border-white/15 bg-white/[0.04]' : 'border-white/10 bg-white/[0.02] opacity-60'}`}
               >
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold uppercase tracking-wide text-white/50">Act {i + 1}</span>
                   {live ? <ArrowRight className="h-4 w-4 text-white/50" /> : <Lock className="h-4 w-4 text-white/40" />}
                 </div>
                 <h3 className="text-lg font-bold text-white">{act.title.replace(/^Act \d+ — /, '')}</h3>
-                <div className="mt-auto flex items-center gap-2 text-xs text-white/50">
+                <p className="text-[13px] leading-snug text-white/60">{ACT_BLURBS[act.id]}</p>
+                <div className="mt-auto flex items-center gap-2 pt-1 text-xs text-white/50">
                   <Clock className="h-3.5 w-3.5" /> ~{act.minutes} min
                   {!live && <span className="ml-2 rounded-full bg-white/10 px-2 py-0.5">Coming soon</span>}
                 </div>

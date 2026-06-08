@@ -19,6 +19,10 @@ export default function LessonPage() {
   const { data: lesson, acts } = entry;
   const ActComponent = acts[actId] || acts.act1;
 
+  // Each lesson returns to its OWN standalone home (Think Before You Spend →
+  // /lesson1), so back/logo never jumps to the other lesson or the catalog.
+  const homePath = lessonId === 'think-before-you-spend' ? '/lesson1' : '/';
+
   const handleComplete = useCallback(() => {
     const order = ['act1', 'act2', 'act3', 'act4'];
     const idx = order.indexOf(actId);
@@ -26,11 +30,11 @@ export default function LessonPage() {
     if (next && lesson.acts[next] && lesson.acts[next].status !== 'coming-soon' && acts[next]) {
       navigate(`/lesson/${lessonId}/${next}`);
     } else {
-      navigate('/');
+      navigate(homePath);
     }
-  }, [actId, lessonId, navigate, lesson, acts]);
+  }, [actId, lessonId, navigate, lesson, acts, homePath]);
 
-  const handleGoHome = useCallback(() => navigate('/'), [navigate]);
+  const handleGoHome = useCallback(() => navigate(homePath), [navigate, homePath]);
 
   return <ActComponent onComplete={handleComplete} onGoHome={handleGoHome} />;
 }

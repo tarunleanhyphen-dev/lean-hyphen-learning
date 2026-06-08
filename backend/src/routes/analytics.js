@@ -58,6 +58,18 @@ import { buildLessonReport, buildActReport, buildLmsExport } from '../analytics/
 
 const router = Router();
 
+// Public, non-credentialed analytics: events + reports are keyed by sessionId
+// (no cookies/auth), and the lessons are embedded in arbitrary LMS / frontend
+// origins. Allow cross-origin reads + writes from any origin so the report page
+// and the LMS dashboard can fetch directly. (Mirrors the open CORS on /api/tts.)
+router.use((req, res, next) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') { res.sendStatus(204); return; }
+  next();
+});
+
 // We deliberately use the file store across the board for now. When
 // Postgres lands we'll fork the surface inside each handler with
 // `hasDb() ? pgStore.foo(...) : store.foo(...)` — keeping the route

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Play, Clock, Sparkles, Lock, CheckCircle2 } from 'lucide-react';
-import { LESSONS, getFeaturedLesson } from '../data/lessons/registry.js';
+import { getFeaturedLesson, getOtherLessons } from '../data/lessons/registry.js';
 import { useLesson } from '../context/LessonContext.jsx';
 
 const ACT_ORDER = ['act1', 'act2', 'act3', 'act4'];
@@ -20,7 +20,10 @@ function computeUnlocks(progress) {
 export default function HomePage() {
   const { state } = useLesson();
   const featured = getFeaturedLesson();
-  const others = LESSONS.filter((l) => l !== featured);
+  // getOtherLessons() returns [] when the deploy is pinned to one lesson
+  // via VITE_FEATURED_LESSON — so the lesson-1 URL never shows lesson-2
+  // tiles in "Other lessons", and vice-versa.
+  const others = getOtherLessons();
 
   const lesson = featured.data;
   const progress = state?.[lesson.id]?.progress;

@@ -166,6 +166,9 @@ export default function Act1({ onComplete, onGoHome }) {
   // through the home page will create a new lesson session attempt
   // server-side; see the analytics readme for the attempt model.)
   useEffect(() => {
+    // Act 1 is the lesson entry point — emit lesson_started here so the LMS
+    // (and our own report) get a clean "lesson opened" signal, then act_started.
+    analytics.lessonStarted?.();
     analytics.actStarted();
     // The act-mount effect intentionally runs once. analytics is a
     // freshly-built object every render but each method just calls

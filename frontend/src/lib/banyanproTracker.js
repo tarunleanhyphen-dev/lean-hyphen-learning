@@ -14,6 +14,7 @@
  * existing analytics events onto them, so there's a single place that decides
  * what gets reported to the LMS.
  */
+import { lmsDebugLog } from './lmsDebug.js';
 
 class BanyanproTracker {
   constructor() {
@@ -39,13 +40,16 @@ class BanyanproTracker {
       timestamp: new Date().toISOString(),
     };
 
-    if (this.isEmbedded()) {
+    const embedded = this.isEmbedded();
+    if (embedded) {
       try {
         window.parent.postMessage({ type: 'LMS_TRACK_EVENT', payload: event }, '*');
       } catch {
         /* postMessage can throw in exotic sandboxes — never break the lesson */
       }
     }
+    // Mirror to the on-screen debug overlay (only renders when ?lmsdebug=1).
+    try { lmsDebugLog({ ...event, sent: embedded }); } catch { /* noop */ }
     return event;
   }
 

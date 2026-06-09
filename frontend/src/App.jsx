@@ -5,10 +5,12 @@ import LessonPage from './pages/LessonPage.jsx';
 import Lesson2Page from './pages/Lesson2Page.jsx';
 import LessonReportPage from './pages/LessonReportPage.jsx';
 import Lesson2ReportPage from './pages/Lesson2ReportPage.jsx';
+import LmsDebugOverlay from './components/shared/LmsDebugOverlay.jsx';
 
 export default function App() {
   return (
     <LessonProvider>
+      <LmsDebugOverlay />
       <Routes>
         <Route path="/" element={<HomePage />} />
         {/* Lesson 1 — "Think Before You Spend" — clean standalone home URL */}

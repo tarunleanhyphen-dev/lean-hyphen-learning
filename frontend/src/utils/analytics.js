@@ -21,6 +21,8 @@
  * No external dependencies; works in every modern browser.
  */
 
+import { forwardToLms } from '../lib/lmsBridge.js';
+
 const STORAGE_KEY = 'lh.analyticsQueue.v1';
 const MAX_BATCH = 40;
 const FLUSH_DEBOUNCE_MS = 2000;
@@ -92,6 +94,8 @@ export function track(kind, fields = {}) {
   };
   queue.push(event);
   saveQueue();
+  // Mirror meaningful events to the Banyanpro LMS (no-op unless embedded).
+  forwardToLms(event);
   if (queue.length >= MAX_BATCH) flush();
   else scheduleFlush();
 }

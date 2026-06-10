@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, Trophy, Clock, Target, TrendingUp, Award, ArrowLeft, History, ChevronRight, RefreshCw } from 'lucide-react';
 import { SCORING_CONFIG } from '../../config/scoringConfig.js';
-import { flush } from '../../utils/analytics.js';
+import { flush, getReportToken } from '../../utils/analytics.js';
 
 /**
  * End-of-lesson dashboard. Two render modes:
@@ -69,6 +69,8 @@ export default function LessonReport({
 
       const params = new URLSearchParams({ sessionId });
       if (selectedAttempt != null) params.set('attempt', String(selectedAttempt));
+      const tok = getReportToken(sessionId);
+      if (tok) params.set('token', tok);
       const url = `${API_BASE}/api/analytics/lesson/${encodeURIComponent(lessonId)}?${params}`;
 
       // Retry a few times — a just-finished act's write may still be landing.
@@ -112,7 +114,7 @@ export default function LessonReport({
   useEffect(() => {
     if (!isPage) return undefined;
     let cancelled = false;
-    fetch(`${API_BASE}/api/analytics/sessions/${encodeURIComponent(lessonId)}?sessionId=${encodeURIComponent(sessionId)}`)
+    fetch(`${API_BASE}/api/analytics/sessions/${encodeURIComponent(lessonId)}?sessionId=${encodeURIComponent(sessionId)}${getReportToken(sessionId) ? `&token=${encodeURIComponent(getReportToken(sessionId))}` : ''}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then((j) => { if (!cancelled) setSessions(j.sessions || []); })
       .catch(() => { /* non-blocking; the rest of the report renders fine */ });

@@ -47,6 +47,7 @@ import {
 } from '../analytics/scoring.js';
 import { awardBadges } from '../analytics/badges.js';
 import { buildLessonReport, buildActReport, buildLmsExport } from '../analytics/reports.js';
+import { reportTokenFor, requireReportAuth } from '../analytics/auth.js';
 
 const router = Router();
 
@@ -110,7 +111,20 @@ router.post('/events', async (req, res, next) => {
       accepted.push({ clientEventId: e.clientEventId });
     }
 
-    res.json({ accepted: accepted.length, rejected, storage: usingPg() ? 'postgres' : 'file' });
+    // Mint a per-session report token for each learner in this batch, so the
+    // browser that just played can authorize its report reads.
+    const reportTokens = {};
+    for (const sid of new Set(events.map((e) => e?.sessionId).filter(Boolean))) {
+      const t = reportTokenFor(sid);
+      if (t) reportTokens[sid] = t;
+    }
+
+    res.json({
+      accepted: accepted.length,
+      rejected,
+      storage: usingPg() ? 'postgres' : 'file',
+      reportTokens,
+    });
   } catch (err) {
     next(err);
   }
@@ -119,7 +133,7 @@ router.post('/events', async (req, res, next) => {
 // ─────────────────────────────────────────────────────────────────────
 // GET /api/analytics/lesson/:lessonId — full report
 // ─────────────────────────────────────────────────────────────────────
-router.get('/lesson/:lessonId', async (req, res, next) => {
+router.get('/lesson/:lessonId', requireReportAuth, async (req, res, next) => {
   try {
     const { lessonId } = req.params;
     const { sessionId } = req.query;
@@ -142,7 +156,7 @@ router.get('/lesson/:lessonId', async (req, res, next) => {
 // ─────────────────────────────────────────────────────────────────────
 // GET /api/analytics/act/:lessonId/:actId — per-act card
 // ─────────────────────────────────────────────────────────────────────
-router.get('/act/:lessonId/:actId', async (req, res, next) => {
+router.get('/act/:lessonId/:actId', requireReportAuth, async (req, res, next) => {
   try {
     const { lessonId, actId } = req.params;
     const { sessionId } = req.query;
@@ -178,7 +192,7 @@ router.get('/act/:lessonId/:actId', async (req, res, next) => {
 //   GET /api/analytics/lesson/:lessonId?sessionId=X&attempt=N
 // (which returns the full report tree for that attempt).
 // ─────────────────────────────────────────────────────────────────────
-router.get('/sessions/:lessonId', async (req, res, next) => {
+router.get('/sessions/:lessonId', requireReportAuth, async (req, res, next) => {
   try {
     const { lessonId } = req.params;
     const { sessionId } = req.query;
@@ -197,7 +211,7 @@ router.get('/sessions/:lessonId', async (req, res, next) => {
 // ─────────────────────────────────────────────────────────────────────
 // GET /api/analytics/attempts/:lessonId — attempt history roll-up
 // ─────────────────────────────────────────────────────────────────────
-router.get('/attempts/:lessonId', async (req, res, next) => {
+router.get('/attempts/:lessonId', requireReportAuth, async (req, res, next) => {
   try {
     const { lessonId } = req.params;
     const { sessionId } = req.query;
@@ -216,7 +230,7 @@ router.get('/attempts/:lessonId', async (req, res, next) => {
 // ─────────────────────────────────────────────────────────────────────
 // GET /api/analytics/lms-export/:lessonId — stable LMS payload
 // ─────────────────────────────────────────────────────────────────────
-router.get('/lms-export/:lessonId', async (req, res, next) => {
+router.get('/lms-export/:lessonId', requireReportAuth, async (req, res, next) => {
   try {
     const { lessonId } = req.params;
     const { sessionId } = req.query;

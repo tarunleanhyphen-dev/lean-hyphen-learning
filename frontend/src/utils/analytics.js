@@ -121,6 +121,16 @@ export async function flush() {
       keepalive: true,
     });
     if (!r.ok) throw new Error(`status ${r.status}`);
+    // Capture the per-session report token(s) the backend mints, so the report
+    // page can authorize its reads. (Absent until the backend secret is set.)
+    try {
+      const j = await r.json();
+      if (j?.reportTokens) {
+        for (const [sid, tok] of Object.entries(j.reportTokens)) {
+          if (tok) localStorage.setItem(`lh.rt:${sid}`, tok);
+        }
+      }
+    } catch { /* response wasn't JSON — ignore */ }
   } catch (err) {
     // Re-queue at the FRONT so order is preserved on retry.
     queue.unshift(...batch);
@@ -169,6 +179,14 @@ if (typeof window !== 'undefined') {
  *   const a = makeTracker({ sessionId, lessonId });
  *   a.event('scene_entered', { actId: 'act1', sceneId: 'scene-0' });
  */
+/**
+ * The per-session report token captured from the events-ingest response.
+ * The report page passes this to authorize its analytics reads.
+ */
+export function getReportToken(sessionId) {
+  try { return localStorage.getItem(`lh.rt:${sessionId}`) || ''; } catch { return ''; }
+}
+
 export function makeTracker(base) {
   return {
     event(kind, fields = {}) {

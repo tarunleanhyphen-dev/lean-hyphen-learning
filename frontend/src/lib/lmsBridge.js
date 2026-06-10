@@ -146,17 +146,47 @@ export function forwardToLms(e, { tracker = realTracker, fetcher = (typeof fetch
 
 async function emitLessonComplete(e, tracker, fetcher) {
   let result = null;
+  let context;
   try {
+    // Ensure queued events are persisted first — this is what mints the report
+    // token and makes lms-export reflect the just-completed lesson. Dynamic
+    // import avoids a static circular dependency with utils/analytics.js.
+    let token = '';
+    try {
+      const a = await import('../utils/analytics.js');
+      await a.flush();
+      token = a.getReportToken?.(e.sessionId) || '';
+    } catch { /* analytics module unavailable in this context */ }
+
     if (fetcher) {
-      const res = await fetcher(`${API_BASE}/api/analytics/lms-export/${encodeURIComponent(e.lessonId)}?sessionId=${encodeURIComponent(e.sessionId)}`);
-      const j = await res.json();
-      const total = j?.export?.score?.total;
-      if (typeof total === 'number') {
-        result = { score: total, maxScore: 100, percentage: total, passed: total >= 50 };
+      const url = `${API_BASE}/api/analytics/lms-export/${encodeURIComponent(e.lessonId)}`
+        + `?sessionId=${encodeURIComponent(e.sessionId)}`
+        + (token ? `&token=${encodeURIComponent(token)}` : '');
+      const ex = (await (await fetcher(url)).json())?.export;
+      if (ex) {
+        const total = ex.score?.total;
+        if (typeof total === 'number') {
+          result = { score: total, maxScore: 100, percentage: total, passed: total >= 50 };
+        }
+        // Hand the LMS the final computed report numbers directly, so it can
+        // store/display them without re-deriving our scoring from the events.
+        context = {
+          learningScore:   ex.score?.learning ?? null,
+          engagementScore: ex.score?.engagement ?? null,
+          completionPct:   ex.score?.completionPct ?? null,
+          badge:           ex.badge?.label ?? null,
+          badgeTier:       ex.badge?.tier ?? null,
+          acts: (ex.acts || []).map((a) => ({
+            actId: a.actId,
+            score: a.pointsEarned,
+            maxScore: a.pointsMax,
+            accuracyPct: a.accuracyPct ?? null,
+          })),
+        };
       }
     }
   } catch {
-    /* fall through and still report completion, just without a score */
+    /* fall through and still report completion, just without the score */
   }
-  tracker.track('COMPLETED', 'LESSON', objIdLesson(e), lessonName(e.lessonId), result);
+  tracker.track('COMPLETED', 'LESSON', objIdLesson(e), lessonName(e.lessonId), result, context);
 }

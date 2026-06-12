@@ -134,14 +134,21 @@ const RULE_ICONS = { link: Link2, key: KeyRound, lock: Lock, video: Video, alert
 function RuleCard({ card, index }) {
   const [flipped, setFlipped] = useState(false);
   const Icon = RULE_ICONS[card.icon] || ShieldCheck;
-  const sayIt = (e) => { e.stopPropagation(); cancelSpeech(); speak(card.back, { who: 'shanaya' }); };
+  // Flipping to the back auto-reads the rule aloud; flipping back stops it.
+  const toggle = () => {
+    setFlipped((f) => {
+      const next = !f;
+      try { cancelSpeech(); if (next) speak(card.back, { who: 'shanaya' }); } catch { /* noop */ }
+      return next;
+    });
+  };
   return (
     <motion.div
       className={`flipcard ${flipped ? 'is-flipped' : ''}`}
       initial={{ opacity: 0, y: 22, rotateX: -12 }}
       animate={{ opacity: 1, y: 0, rotateX: 0 }}
       transition={{ delay: index * 0.08, type: 'spring', stiffness: 120, damping: 16 }}
-      onClick={() => setFlipped((f) => !f)}
+      onClick={toggle}
     >
       <div className="flipcard__inner">
         <div className="flipcard__face flipcard__front">
@@ -153,7 +160,7 @@ function RuleCard({ card, index }) {
         </div>
         <div className="flipcard__face flipcard__back">
           <p className="flipcard__text">{card.back}</p>
-          <button className="flipcard__voice" onClick={sayIt}><Volume2 size={15} /> Hear it</button>
+          <span className="flipcard__playing"><Volume2 size={13} /> Reading aloud…</span>
         </div>
       </div>
     </motion.div>
@@ -172,10 +179,17 @@ function Result({ points, onGoHome }) {
   const [page, setPage] = useState('verdict'); // verdict → rules → help → final
   useEffect(() => () => cancelSpeech(), []);
 
-  const go = (p) => { cancelSpeech(); setPage(p); };
+  // Read multi-digit numbers digit-by-digit (so 1930 → "one nine three zero").
+  const spell = (s) => String(s).replace(/\d{2,}/g, (m) => m.split('').join(' '));
+  const go = (p) => {
+    cancelSpeech();
+    setPage(p);
+    // The final page reads its closing line aloud on arrival.
+    if (p === 'final') setTimeout(() => { try { speak(act4.closer, { who: 'narrator' }); } catch { /* noop */ } }, 550);
+  };
   const readHelp = () => {
     cancelSpeech();
-    speak(`If it happens to you. ${act4.ifItHappens.join('. ')} If you need help, call the ${act4.helpline.label} on ${act4.helpline.phone}, or visit ${act4.helpline.site}.`, { who: 'narrator' });
+    speak(`If it happens to you. ${act4.ifItHappens.join('. ')} If you need help, call the ${act4.helpline.label} on ${spell(act4.helpline.phone)}, or visit ${act4.helpline.site}.`, { who: 'narrator' });
   };
 
   return (

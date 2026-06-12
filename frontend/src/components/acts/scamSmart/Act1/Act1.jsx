@@ -14,6 +14,7 @@ import Sidebar from '../shell/Sidebar.jsx';
 import BgFx3D from '../shell/BgFx3D.jsx';
 import PhoneShell from '../shell/PhoneShell.jsx';
 import WhatsAppChat from './WhatsAppChat.jsx';
+import OpeningBeat from './OpeningBeat.jsx';
 import { unlockAudio, setMusicMood, stopMusic, speak, cancelSpeech } from '../../../../utils/sounds.js';
 import { musicEnabled } from '../shell/useSoftMusic.js';
 import '../scamSmart.css';
@@ -29,7 +30,7 @@ export default function ScamSmartAct1({ onComplete, onGoHome }) {
   const startedAt = useRef(Date.now());
   const [started, setStarted] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
-  const [screen, setScreen] = useState('chat'); // chat | bridge
+  const [screen, setScreen] = useState('opening'); // opening | chat | bridge
   const [chatDone, setChatDone] = useState(false);
   const [canContinue, setCanContinue] = useState(false);
 
@@ -53,7 +54,8 @@ export default function ScamSmartAct1({ onComplete, onGoHome }) {
 
   useEffect(() => {
     if (!started) return undefined;
-    const id = screen === 'chat' ? 'sc-chat' : 'sc-teaser';
+    const id = screen === 'chat' ? 'sc-chat' : screen === 'bridge' ? 'sc-teaser' : null;
+    if (!id) return undefined; // 'opening' is a pre-chat cinematic — not a scored scene
     analytics.sceneEntered(id);
     return () => analytics.sceneCompleted(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -132,6 +134,10 @@ export default function ScamSmartAct1({ onComplete, onGoHome }) {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {started && screen === 'opening' && (
+            <OpeningBeat soundOn={soundOn} onDone={() => { setScreen('chat'); window.scrollTo({ top: 0 }); }} />
+          )}
 
           {started && screen === 'chat' && (
             <>

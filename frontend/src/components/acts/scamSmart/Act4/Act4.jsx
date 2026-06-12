@@ -217,7 +217,7 @@ function Result({ points, onGoHome }) {
             <div className="ss__step-head">
               <span className="ss__step-tag"><ShieldCheck size={14} /> Step 1 of 2</span>
               <h2 className="ss__h2" style={{ margin: '8px 0 4px' }}>The 5 rules — lock these in</h2>
-              <p className="ss__lead">Tap each card to flip it. Press <b>Hear it</b> to listen.</p>
+              <p className="ss__lead">Tap each card to flip it — it reads the rule aloud automatically.</p>
             </div>
             <div className="flipgrid">
               {act4.ruleCards.map((c, i) => <RuleCard key={i} card={c} index={i} />)}

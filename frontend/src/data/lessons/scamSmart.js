@@ -624,6 +624,15 @@ export const act4 = {
     'When something feels urgent and you didn\'t start it — that feeling is the warning. Stop. Think. Then decide.',
   ],
 
+  // Flip-card version of the 5 rules — front = short hook, back = full rule + voice.
+  ruleCards: [
+    { icon: 'link',  front: 'Never tap links',        hook: 'A link in a message is a trap door.', back: 'Links in messages → ignore. Open the official app yourself and check there.' },
+    { icon: 'key',   front: 'OTP = your eyes only',    hook: 'Six digits. Zero people need them.', back: 'Your OTP is for your eyes only. No one — ever — has a valid reason to ask for it.' },
+    { icon: 'lock',  front: 'Passwords stay secret',   hook: 'Real support never asks.', back: 'No company, admin, or support team needs your password. If they ask, they are not real.' },
+    { icon: 'video', front: 'Spot the deepfake',       hook: 'Looks real ≠ is real.', back: 'Deepfake videos look and sound real. Check the channel age. Real celebrities do not run UPI giveaways.' },
+    { icon: 'alert', front: 'Urgency is the red flag', hook: 'That rush? It is the scam.', back: 'When something feels urgent and you did not start it — that feeling is the warning. Stop. Think. Then decide.' },
+  ],
+
   ifItHappens: [
     'Tell a parent or trusted adult immediately — not tomorrow, now.',
     'Don\'t delete any messages — they\'re evidence.',

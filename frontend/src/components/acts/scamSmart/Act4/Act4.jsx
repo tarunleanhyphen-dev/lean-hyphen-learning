@@ -8,8 +8,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, RotateCcw, Home, BarChart3, Trophy, Phone, Globe } from 'lucide-react';
+import { ArrowRight, RotateCcw, Home, BarChart3, Trophy, Phone, Globe, Volume2,
+  Link2, KeyRound, Lock, Video, AlertTriangle, ShieldCheck, LifeBuoy } from 'lucide-react';
 import { act4 } from '../../../../data/lessons/scamSmart.js';
+import { speak, cancelSpeech } from '../../../../utils/sounds.js';
 import { useL3Analytics } from '../useL3Analytics.js';
 import Sidebar from '../shell/Sidebar.jsx';
 import BgFx3D from '../shell/BgFx3D.jsx';
@@ -125,40 +127,139 @@ export default function ScamSmartAct4({ onComplete, onGoHome }) {
   );
 }
 
-function Result({ points, onGoHome }) {
-  const tier = tierFor(points);
+const RULE_ICONS = { link: Link2, key: KeyRound, lock: Lock, video: Video, alert: AlertTriangle };
+
+/* One flip card for a rule. Front = short hook; back = full rule + a voice
+ * button that reads it aloud. Tap anywhere to flip. */
+function RuleCard({ card, index }) {
+  const [flipped, setFlipped] = useState(false);
+  const Icon = RULE_ICONS[card.icon] || ShieldCheck;
+  const sayIt = (e) => { e.stopPropagation(); cancelSpeech(); speak(card.back, { who: 'shanaya' }); };
   return (
-    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-      <div className="ss__verdict" style={{ marginTop: 14 }}>
-        <div className="ss__verdict-badge">{tier.badge}</div>
-        <div className="ss__verdict-score">{points} <span style={{ fontSize: 18, opacity: 0.6 }}>pts</span></div>
-        <div className="ss__shieldrow">{Array.from({ length: 5 }).map((_, i) => <span key={i} className={i < tier.shields ? 'is-on' : ''}>🛡️</span>)}</div>
-        <h2 className="ss__h2" style={{ marginTop: 6 }}>{tier.verdict}</h2>
-        <p className="ss__lead" style={{ marginTop: 6 }}>{tier.sub}</p>
-      </div>
-
-      <h3 className="ss__h2" style={{ margin: '24px 0 12px' }}>🛡️ The 5 rules — lock these in</h3>
-      <ul className="ss__list">{act4.rules.map((r, i) => <li key={i}>{r}</li>)}</ul>
-
-      <h3 className="ss__h2" style={{ margin: '24px 0 12px' }}>🆘 If it happens to you</h3>
-      <div className="ss__card">
-        <ul className="ss__do">{act4.ifItHappens.map((r, i) => <li key={i}>{r}</li>)}</ul>
-        <div className="ss__helpline" style={{ marginTop: 14 }}>
-          <span><Phone size={15} style={{ verticalAlign: -2 }} /> {act4.helpline.label}: <b>{act4.helpline.phone}</b></span>
-          <span><Globe size={15} style={{ verticalAlign: -2 }} /> {act4.helpline.site}</span>
+    <motion.div
+      className={`flipcard ${flipped ? 'is-flipped' : ''}`}
+      initial={{ opacity: 0, y: 22, rotateX: -12 }}
+      animate={{ opacity: 1, y: 0, rotateX: 0 }}
+      transition={{ delay: index * 0.08, type: 'spring', stiffness: 120, damping: 16 }}
+      onClick={() => setFlipped((f) => !f)}
+    >
+      <div className="flipcard__inner">
+        <div className="flipcard__face flipcard__front">
+          <div className="flipcard__num">{index + 1}</div>
+          <div className="flipcard__icon"><Icon size={26} /></div>
+          <div className="flipcard__title">{card.front}</div>
+          <div className="flipcard__hook">{card.hook}</div>
+          <div className="flipcard__flip">Tap to flip ↻</div>
+        </div>
+        <div className="flipcard__face flipcard__back">
+          <p className="flipcard__text">{card.back}</p>
+          <button className="flipcard__voice" onClick={sayIt}><Volume2 size={15} /> Hear it</button>
         </div>
       </div>
-
-      <div className="ss__card" style={{ marginTop: 18, textAlign: 'center', background: 'rgba(0,0,0,.35)' }}>
-        {act4.final.map((t, i) => <p key={i} className="ss__lead" style={{ marginBottom: 10 }}>{t}</p>)}
-        <p className="ss__h2" style={{ marginTop: 8, background: 'linear-gradient(90deg,#22d3ee,#a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{act4.closer}</p>
-      </div>
-
-      <div style={{ display: 'grid', gap: 10, gridTemplateColumns: '1fr 1fr', marginTop: 18 }}>
-        <Link to="/lesson3/act1" className="ss__btn ss__btn--ghost" style={{ textDecoration: 'none' }}><RotateCcw size={16} /> Play again</Link>
-        <Link to="/lesson3/report" className="ss__btn" style={{ textDecoration: 'none' }}><BarChart3 size={16} /> My report</Link>
-      </div>
-      <button className="ss__btn ss__btn--ghost ss__btn--full" style={{ marginTop: 10 }} onClick={onGoHome}><Home size={16} /> Back to lesson home</button>
     </motion.div>
+  );
+}
+
+const PAGE_TX = {
+  initial: { opacity: 0, x: 30 },
+  animate: { opacity: 1, x: 0 },
+  exit: { opacity: 0, x: -30 },
+  transition: { duration: 0.35, ease: 'easeOut' },
+};
+
+function Result({ points, onGoHome }) {
+  const tier = tierFor(points);
+  const [page, setPage] = useState('verdict'); // verdict → rules → help → final
+  useEffect(() => () => cancelSpeech(), []);
+
+  const go = (p) => { cancelSpeech(); setPage(p); };
+  const readHelp = () => {
+    cancelSpeech();
+    speak(`If it happens to you. ${act4.ifItHappens.join('. ')} If you need help, call the ${act4.helpline.label} on ${act4.helpline.phone}, or visit ${act4.helpline.site}.`, { who: 'narrator' });
+  };
+
+  return (
+    <div className="ss__result">
+      <AnimatePresence mode="wait">
+        {/* ── 1. Verdict / scoreboard ── */}
+        {page === 'verdict' && (
+          <motion.div key="verdict" {...PAGE_TX}>
+            <div className="ss__verdict" style={{ marginTop: 14 }}>
+              <motion.div className="ss__verdict-badge" initial={{ scale: 0.3, rotate: -20 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 160, damping: 12 }}>{tier.badge}</motion.div>
+              <div className="ss__verdict-score">{points} <span style={{ fontSize: 18, opacity: 0.6 }}>pts</span></div>
+              <div className="ss__shieldrow">{Array.from({ length: 5 }).map((_, i) => (
+                <motion.span key={i} className={i < tier.shields ? 'is-on' : ''} initial={{ scale: 0, y: 8 }} animate={{ scale: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.1 }}>🛡️</motion.span>
+              ))}</div>
+              <h2 className="ss__h2" style={{ marginTop: 6 }}>{tier.verdict}</h2>
+              <p className="ss__lead" style={{ marginTop: 6 }}>{tier.sub}</p>
+            </div>
+            <button className="ss__btn ss__btn--full" style={{ marginTop: 20 }} onClick={() => go('rules')}>Lock in the 5 rules <ArrowRight size={18} /></button>
+          </motion.div>
+        )}
+
+        {/* ── 2. The 5 rules — flip cards (one page) ── */}
+        {page === 'rules' && (
+          <motion.div key="rules" {...PAGE_TX}>
+            <div className="ss__step-head">
+              <span className="ss__step-tag"><ShieldCheck size={14} /> Step 1 of 2</span>
+              <h2 className="ss__h2" style={{ margin: '8px 0 4px' }}>The 5 rules — lock these in</h2>
+              <p className="ss__lead">Tap each card to flip it. Press <b>Hear it</b> to listen.</p>
+            </div>
+            <div className="flipgrid">
+              {act4.ruleCards.map((c, i) => <RuleCard key={i} card={c} index={i} />)}
+            </div>
+            <div className="ss__nav">
+              <button className="ss__btn ss__btn--ghost" onClick={() => go('verdict')}>← Back</button>
+              <button className="ss__btn" onClick={() => go('help')}>Next: if it happens <ArrowRight size={18} /></button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ── 3. If it happens to you — full text + read aloud ── */}
+        {page === 'help' && (
+          <motion.div key="help" {...PAGE_TX}>
+            <div className="ss__step-head">
+              <span className="ss__step-tag ss__step-tag--sos"><LifeBuoy size={14} /> Step 2 of 2</span>
+              <h2 className="ss__h2" style={{ margin: '8px 0 4px' }}>If it happens to you</h2>
+              <p className="ss__lead">It can happen to anyone. Here is exactly what to do.</p>
+              <button className="flipcard__voice" style={{ marginTop: 10 }} onClick={readHelp}><Volume2 size={15} /> Read this aloud</button>
+            </div>
+            <div className="ss__helpcard">
+              {act4.ifItHappens.map((r, i) => (
+                <motion.div key={i} className="ss__helpitem" initial={{ opacity: 0, x: -14 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1 }}>
+                  <span className="ss__helpnum">{i + 1}</span>
+                  <span>{r}</span>
+                </motion.div>
+              ))}
+              <div className="ss__helpline" style={{ marginTop: 16 }}>
+                <span><Phone size={15} style={{ verticalAlign: -2 }} /> {act4.helpline.label}: <b>{act4.helpline.phone}</b></span>
+                <span><Globe size={15} style={{ verticalAlign: -2 }} /> {act4.helpline.site}</span>
+              </div>
+            </div>
+            <div className="ss__nav">
+              <button className="ss__btn ss__btn--ghost" onClick={() => go('rules')}>← Back</button>
+              <button className="ss__btn" onClick={() => go('final')}>Finish <ArrowRight size={18} /></button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ── 4. Final note + actions ── */}
+        {page === 'final' && (
+          <motion.div key="final" {...PAGE_TX}>
+            <div className="ss__card" style={{ marginTop: 14, textAlign: 'center', background: 'rgba(0,0,0,.35)' }}>
+              {act4.final.map((t, i) => (
+                <motion.p key={i} className="ss__lead" style={{ marginBottom: 10 }} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.15 }}>{t}</motion.p>
+              ))}
+              <motion.p className="ss__h2" style={{ marginTop: 8, background: 'linear-gradient(90deg,#22d3ee,#a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.6 }}>{act4.closer}</motion.p>
+            </div>
+            <div style={{ display: 'grid', gap: 10, gridTemplateColumns: '1fr 1fr', marginTop: 18 }}>
+              <Link to="/lesson3/act1" className="ss__btn ss__btn--ghost" style={{ textDecoration: 'none' }}><RotateCcw size={16} /> Play again</Link>
+              <Link to="/lesson3/report" className="ss__btn" style={{ textDecoration: 'none' }}><BarChart3 size={16} /> My report</Link>
+            </div>
+            <button className="ss__btn ss__btn--ghost ss__btn--full" style={{ marginTop: 10 }} onClick={onGoHome}><Home size={16} /> Back to lesson home</button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }

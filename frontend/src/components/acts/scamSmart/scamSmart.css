@@ -646,6 +646,97 @@
 }
 .ss__textarea:focus { outline: none; border-color: rgba(168, 85, 247, 0.6); }
 
+/* ── Act 4 result: multi-page flow (verdict → rules → help → final) ── */
+.ss__result { margin-top: 14px; }
+.ss__step-head { text-align: center; margin-bottom: 16px; }
+.ss__step-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 10.5px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;
+  color: #a5f3fc; background: rgba(34, 211, 238, 0.12);
+  border: 1px solid rgba(34, 211, 238, 0.3);
+  padding: 4px 11px; border-radius: 999px;
+}
+.ss__step-tag--sos { color: #fecaca; background: rgba(248, 113, 113, 0.12); border-color: rgba(248, 113, 113, 0.32); }
+.ss__nav { display: grid; grid-template-columns: auto 1fr; gap: 10px; margin-top: 18px; }
+.ss__nav .ss__btn--ghost { white-space: nowrap; }
+
+/* Flip-card grid for the 5 rules */
+.flipgrid {
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+.flipcard { perspective: 1100px; height: 188px; cursor: pointer; }
+.flipcard__inner {
+  position: relative; width: 100%; height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.4, 0.1, 0.2, 1);
+}
+.flipcard.is-flipped .flipcard__inner { transform: rotateY(180deg); }
+.flipcard__face {
+  position: absolute; inset: 0;
+  -webkit-backface-visibility: hidden; backface-visibility: hidden;
+  border-radius: 16px; padding: 14px 13px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+  border: 1px solid var(--ss-line);
+}
+.flipcard__front {
+  background: linear-gradient(160deg, rgba(99, 102, 241, 0.16), rgba(168, 85, 247, 0.1)), var(--ss-panel);
+}
+.flipcard__num {
+  position: absolute; top: 9px; left: 11px;
+  width: 22px; height: 22px; border-radius: 7px;
+  display: grid; place-items: center;
+  font-size: 11px; font-weight: 800; color: #c7d2fe;
+  background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.14);
+}
+.flipcard__icon {
+  width: 50px; height: 50px; border-radius: 14px;
+  display: grid; place-items: center; color: #fde047;
+  background: linear-gradient(135deg, rgba(253, 224, 71, 0.18), rgba(245, 158, 11, 0.1));
+  border: 1px solid rgba(253, 224, 71, 0.28);
+  margin-bottom: 9px;
+}
+.flipcard__title { font-size: 14px; font-weight: 800; color: #fff; line-height: 1.2; }
+.flipcard__hook { font-size: 11.5px; color: rgba(255, 255, 255, 0.6); margin-top: 5px; line-height: 1.35; }
+.flipcard__flip { position: absolute; bottom: 9px; font-size: 9.5px; letter-spacing: 0.03em; color: rgba(199, 210, 254, 0.7); font-weight: 600; }
+.flipcard__back {
+  transform: rotateY(180deg);
+  background: linear-gradient(160deg, rgba(34, 211, 238, 0.12), rgba(99, 102, 241, 0.14)), #161a3a;
+  justify-content: space-between; align-items: stretch; text-align: left;
+}
+.flipcard__text { font-size: 12.5px; line-height: 1.45; color: #eef0ff; font-weight: 600; margin: 2px 0; }
+.flipcard__voice {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  align-self: flex-start;
+  padding: 6px 12px; border-radius: 9px;
+  border: 1px solid rgba(34, 211, 238, 0.4); background: rgba(34, 211, 238, 0.12);
+  color: #a5f3fc; font-size: 12px; font-weight: 700; cursor: pointer;
+  transition: background 0.15s;
+}
+.flipcard__voice:hover { background: rgba(34, 211, 238, 0.22); }
+
+/* If-it-happens card */
+.ss__helpcard {
+  border: 1px solid var(--ss-line); border-radius: 16px; padding: 16px;
+  background: linear-gradient(160deg, rgba(248, 113, 113, 0.07), rgba(0, 0, 0, 0.2));
+}
+.ss__helpitem {
+  display: flex; align-items: flex-start; gap: 11px;
+  padding: 11px 0; font-size: 13.5px; line-height: 1.5; color: #eef0ff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+.ss__helpitem:last-of-type { border-bottom: none; }
+.ss__helpnum {
+  flex: none; width: 24px; height: 24px; border-radius: 8px;
+  display: grid; place-items: center; font-size: 12px; font-weight: 800; color: #fff;
+  background: linear-gradient(135deg, #f87171, #ef4444);
+}
+
+@media (max-width: 380px) {
+  .flipgrid { grid-template-columns: repeat(2, 1fr); }
+  .flipcard { height: 178px; }
+}
+
 /* Speed Round — "Next" button shown with the answer (auto-advances in 10s) */
 .mg__next {
   display: inline-flex; align-items: center; gap: 6px;

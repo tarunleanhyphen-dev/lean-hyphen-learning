@@ -141,15 +141,15 @@ export const scenarios = [
     activityId: 'a2-s1',
     n: 1,
     title: 'The Famous Face',
-    narrate: "Watch this one closely. It looks like Virat Kohli is giving away ₹10,000 — live, right now. The face, the voice, everything feels real. So… what do you do?",
+    narrate: "Watch this one closely. It looks like a famous Indian cricketer is giving away ₹10,000 — live, right now. The face, the voice, everything feels real. So… what do you do?",
     app: 'youtube',
-    header: { channel: 'Virat Kohli Official', tag: '🔴 LIVE', meta: '87 spots left' },
+    header: { channel: 'Famous Indian Cricketer', tag: '🔴 LIVE', meta: '87 spots left' },
     body: {
       // Channel chrome — looks real at a glance, but the subscriber/age numbers
       // are the quiet tell for anyone who actually checks.
       channel: {
-        name: 'Virat Kohli Official',
-        handle: '@virat.official.live',
+        name: 'Famous Indian Cricketer',
+        handle: '@cricket.star.official.live',
         subs: '200 subscribers',
         videos: '3 videos',
         created: 'Created 4 days ago',
@@ -161,17 +161,17 @@ export const scenarios = [
       thumb: '🏏',
       caption:
         "To celebrate 100M subscribers, I'm giving back to my fans. Click the link, register with your UPI ID, and receive ₹10,000 directly. First 100 fans only.",
-      link: 'virat-kohli-giveaway.in/claim',
+      link: 'cricket-star-giveaway.in/claim',
     },
     thought:
-      "That's actually him. The voice. The face. Everything. But... Virat Kohli doing a UPI giveaway on a random link? And why does the channel only have 3 videos?",
+      "That's actually him. The voice. The face. Everything. But... a famous cricketer doing a UPI giveaway on a random link? And why does the channel only have 3 videos?",
     choices: [
       {
         key: 'A',
         label: 'Click the link — 87 spots left, I need to be fast',
         verdict: 'fail',
         feedback:
-          "That video was AI-generated. Virat Kohli never made it. Scammers used deepfake technology — AI that can copy anyone's face and voice from existing videos. The channel was created 4 days ago. Real celebrities don't do giveaways through random links. Your UPI PIN was the only thing they needed.",
+          "That video was AI-generated. The cricketer never made it. Scammers used deepfake technology — AI that can copy anyone's face and voice from existing videos. The channel was created 4 days ago. Real celebrities don't do giveaways through random links. Your UPI PIN was the only thing they needed.",
         loss: '₹4,500 debited from your account.',
       },
       {
@@ -179,7 +179,7 @@ export const scenarios = [
         label: 'Check the channel details before doing anything',
         verdict: 'win',
         feedback:
-          "Channel created 4 days ago. 3 videos. 200 subscribers. Virat Kohli's real channel has been active for years with tens of millions of subscribers. This was a deepfake — an AI-generated video designed to look and sound exactly like a real person. One check. Entire scam exposed.",
+          "Channel created 4 days ago. 3 videos. 200 subscribers. A real cricketer's official channel has been active for years with tens of millions of subscribers. This was a deepfake — an AI-generated video designed to look and sound exactly like a real person. One check. Entire scam exposed.",
         redFlags: [
           'New channel with very few videos',
           'Asking for UPI ID or PIN through an external link',
@@ -522,7 +522,7 @@ export const act4 = {
       { id: 'm4', from: 'Swiggy (Automated)', text: 'Your order #4821 is out for delivery. Track at swiggy.com/track', answer: 'REAL', explain: 'Real domain, no login requested, no urgency.' },
       { id: 'm5', from: 'FREE_FIRE_ADMIN_2024', text: 'Your account has been selected for 10,000 Diamond reward. Login to claim: ff-diamonds-real.com', answer: 'SCAM', explain: 'Fake admin name, external link, free diamonds don\'t exist.' },
       { id: 'm6', from: 'HDFC Bank (Automated)', text: 'OTP for your transaction: 294817. Valid for 10 minutes. Do NOT share with anyone.', answer: 'REAL', explain: 'Automated OTP to the account owner. No link. No request. This is what a real OTP looks like.' },
-      { id: 'm7', from: '@cricket_virat_official_gifts', text: 'Birthday gift! ₹5,000 to 500 fans! Claim here → virat-bday-gift.in/claim ⏰ Only 43 spots left!', answer: 'SCAM', explain: 'Deepfake giveaway. New account, external link, fake urgency, asks for UPI details.' },
+      { id: 'm7', from: '@cricket_star_official_gifts', text: 'Birthday gift! ₹5,000 to 500 fans! Claim here → cricket-star-bday-gift.in/claim ⏰ Only 43 spots left!', answer: 'SCAM', explain: 'Deepfake giveaway. New account, external link, fake urgency, asks for UPI details.' },
     ],
   },
 

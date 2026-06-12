@@ -1339,7 +1339,7 @@
 .ig__post-head { display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 13px; }
 .ig__post-av { height: 30px; width: 30px; border-radius: 50%; background: #333; display: grid; place-items: center; font-size: 15px; }
 .ig__more { margin-left: auto; }
-.ig__post-img { aspect-ratio: 1; display: grid; place-items: center; font-size: 72px; }
+.ig__post-img { aspect-ratio: 1; display: grid; place-items: center; font-size: clamp(110px, 42vw, 170px); line-height: 1; text-shadow: 0 8px 24px rgba(0,0,0,.35); }
 .ig__post-actions { display: flex; gap: 14px; padding: 10px 12px 4px; }
 .ig__post-likes { padding: 0 12px; font-size: 13px; font-weight: 700; }
 .ig__post-cap { padding: 4px 12px 8px; font-size: 13px; line-height: 1.4; }

@@ -1,6 +1,6 @@
 /**
  * ScamScreens — the content shown on the phone screen for each Act 2
- * scenario. The YouTube scenario gets a full fake "Virat Kohli" channel;
+ * scenario. The YouTube scenario gets a full fake celebrity-cricketer channel;
  * the others render an app-styled message screen (Instagram / SMS / WhatsApp
  * / BGMI). Display-only — all interaction lives in the narrator panel.
  */

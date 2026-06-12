@@ -118,6 +118,21 @@ export const sounds = {
     tone({ freq: 988,  type: 'triangle', attack: 0.003, decay: 0.32, peak: 0.22 });
     setTimeout(() => tone({ freq: 1318, type: 'triangle', attack: 0.003, decay: 0.45, peak: 0.18 }), 80);
   },
+
+  // ── Chat sounds (Scam Smart Act 1) — WhatsApp-flavoured ──
+  // Incoming message: the classic light "di-dink" rising two-note pop.
+  msgIn() {
+    tone({ freq: 660, type: 'sine', attack: 0.002, decay: 0.10, peak: 0.20 });
+    setTimeout(() => tone({ freq: 990, type: 'sine', attack: 0.002, decay: 0.16, peak: 0.24 }), 75);
+  },
+  // Outgoing message (Priya / "you"): a softer, lower single swoosh-pop.
+  msgOut() {
+    tone({ freq: 540, freqEnd: 360, type: 'sine', attack: 0.002, decay: 0.13, peak: 0.16 });
+  },
+  // Very soft tick while the typing indicator pulses (optional, subtle).
+  typingTick() {
+    tone({ freq: 320, type: 'sine', attack: 0.001, decay: 0.04, peak: 0.05 });
+  },
 };
 
 /* ============== Music sequencer (mood-aware) ==============

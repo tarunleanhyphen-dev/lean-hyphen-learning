@@ -11,11 +11,17 @@
  */
 import { lesson as thinkBeforeYouSpend } from './thinkBeforeYouSpend.js';
 import { lesson as whereDoesMyMoneyGo }  from './whereDoesMyMoneyGo.js';
+import { lesson as scamSmart }           from './scamSmart.js';
 
 import ThinkAct1 from '../../components/acts/Act1/Act1.jsx';
 import ThinkAct2 from '../../components/acts/Act2/Act2.jsx';
 import ThinkAct3 from '../../components/acts/Act3/Act3.jsx';
 import ThinkAct4 from '../../components/acts/Act4/Act4.jsx';
+
+import ScamSmartAct1 from '../../components/acts/scamSmart/Act1/Act1.jsx';
+import ScamSmartAct2 from '../../components/acts/scamSmart/Act2/Act2.jsx';
+import ScamSmartAct3 from '../../components/acts/scamSmart/Act3/Act3.jsx';
+import ScamSmartAct4 from '../../components/acts/scamSmart/Act4/Act4.jsx';
 
 // "Where Does My Money Go?" · Act 1 = the new Dream Bedroom Makeover build.
 // (The earlier whereDoesMyMoneyGo/Act1 implementation is kept on disk for
@@ -38,6 +44,16 @@ export const LESSONS = [
       act2: ThinkAct2,
       act3: ThinkAct3,
       act4: ThinkAct4,
+    },
+  },
+  {
+    data: scamSmart,
+    featured: false,
+    acts: {
+      act1: ScamSmartAct1,
+      act2: ScamSmartAct2,
+      act3: ScamSmartAct3,
+      act4: ScamSmartAct4,
     },
   },
 ];

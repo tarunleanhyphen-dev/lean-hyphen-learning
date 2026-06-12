@@ -121,10 +121,52 @@ export const SCORING_CONFIG_WDMMG = {
   },
 };
 
+/**
+ * Scoring config for "Scam Smart" (Lesson 3). Weighted toward the graded
+ * decisions: Act 2 (5 scenarios) and Act 4 (the challenge) carry the most
+ * marks, with the cinematic Act 1 and concept Act 3 lighter. Lesson max
+ * stays 100 so the LMS can compare all three lessons on the same scale.
+ *
+ *   Act 1 (Hook) → 10   Act 2 (Scenarios) → 35   Act 3 (Patterns) → 15   Act 4 (Challenge) → 40
+ */
+export const SCORING_CONFIG_SCAM = {
+  configVersion: 'scam-v1',
+  lessonId: 'scam-smart',
+  lessonMax: 100,
+  acts: {
+    act1: {
+      max: 10,
+      scenes: { 'sc-chat': 5, 'sc-teaser': 5 },
+      activities: {},
+    },
+    act2: {
+      max: 35,
+      scenes: { 'sc-s1': 1, 'sc-s2': 1, 'sc-s3': 1, 'sc-s4': 1, 'sc-s5': 1 },
+      activities: { 'a2-s1': 6, 'a2-s2': 6, 'a2-s3': 6, 'a2-s4': 6, 'a2-s5': 6 },
+    },
+    act3: {
+      max: 15,
+      scenes: {
+        'sc-cards-intro': 2, 'sc-card-deepfake': 2, 'sc-card-otp': 2,
+        'sc-card-gaming': 2, 'sc-urgency': 1,
+      },
+      activities: { 'a3-cards': 6 },
+    },
+    act4: {
+      max: 40,
+      scenes: {
+        'sc-mg1': 0, 'sc-mg2': 0, 'sc-mg3': 0, 'sc-mg4': 0, 'sc-boss': 0, 'sc-scoreboard': 0,
+      },
+      activities: { 'a4-mg1': 6, 'a4-mg2': 10, 'a4-mg3': 8, 'a4-mg4': 8, 'a4-boss': 8 },
+    },
+  },
+};
+
 /** Registry of every lesson's scoring config, keyed by lessonId. */
 export const SCORING_CONFIGS = {
   'think-before-you-spend': SCORING_CONFIG,
   'where-does-my-money-go': SCORING_CONFIG_WDMMG,
+  'scam-smart': SCORING_CONFIG_SCAM,
 };
 
 export function getScoringConfig(lessonId) {
@@ -146,6 +188,25 @@ const ACTIVITY_POINT_RULES = {
   'a1-snapshot-mcq': (max, d) => accuracyPoints(max, d),
   'a2-firstsalary':  (max, d) => accuracyPoints(max, d),
   'a3-quiz':         (max, d) => accuracyPoints(max, d),
+
+  // ── Lesson 3 (Scam Smart) — accuracy-graded decisions + mini-games ──
+  // Scenarios: first-try correct = 100% (full marks), after a retry = 50%.
+  'a2-s1': (max, d) => accuracyPoints(max, d),
+  'a2-s2': (max, d) => accuracyPoints(max, d),
+  'a2-s3': (max, d) => accuracyPoints(max, d),
+  'a2-s4': (max, d) => accuracyPoints(max, d),
+  'a2-s5': (max, d) => accuracyPoints(max, d),
+  // Act 3 cards — comprehension exposure; full marks once all 3 are seen.
+  'a3-cards': (max, detail = {}) => {
+    const { seen = 0, total = 3 } = detail;
+    return seen >= total ? max : Math.round((seen / total) * max);
+  },
+  // Act 4 mini-games + boss — proportional to correctness.
+  'a4-mg1':  (max, d) => accuracyPoints(max, d),
+  'a4-mg2':  (max, d) => accuracyPoints(max, d),
+  'a4-mg3':  (max, d) => accuracyPoints(max, d),
+  'a4-mg4':  (max, d) => accuracyPoints(max, d),
+  'a4-boss': (max, d) => accuracyPoints(max, d),
 
   // Mind-trap drag game (Act 2). The detail object carries
   // { correct, total } — full marks when all 12 thoughts placed

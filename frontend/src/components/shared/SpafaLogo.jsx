@@ -1,67 +1,86 @@
 /**
- * SPAFA logo — Kit 01 "Electric Momentum" (per Brand Guidelines v1.0).
+ * SPAFA logo — official brand mark (SPAFA Brand Identity Guide v1.0).
  *
- * Renders the brand mark inline as SVG + JSX so the wordmark picks up
- * the page's loaded font (Plus Jakarta Sans 800, ~equivalent to the
- * Outfit 900 spec'd in the brand guide). Inline beats an `<img>` tag
- * because <img>-loaded SVGs can't inherit the parent document's
- * loaded fonts — `<text>` inside would fall back to whatever Helvetica
- * the browser ships.
+ * Renders the full "SPAFA" wordmark, where the two A's are the brand's
+ * signature nested peak motif (Electric-Blue outer chevron + Luxury-Gold inner
+ * chevron), with the "STUDENT PROFILE AND FUTURE ADVANCEMENT" tagline beneath.
  *
- * Three size variants for the contexts the logo currently lives in:
- *   • `sm`  — Act header rails (was `h-8 sm:h-9`)
- *   • `md`  — Home page header
- *   • `lg`  — End-of-act celebrations etc (not used today; reserved)
+ * Built inline (SVG peaks + live text) so the wordmark uses the page's loaded
+ * Sora font (the brand's primary typeface) and stays crisp at any size — an
+ * <img> can't inherit document fonts. Colours come straight from the brand
+ * palette.
  *
- * Usage:
- *   <SpafaLogo />              // md (default)
+ *   <SpafaLogo />                       // md, light letters (for dark headers)
  *   <SpafaLogo size="sm" />
- *
- * To swap kits later (Aurora / Solar / Midnight), only this file
- * changes — every page importing it inherits the new mark.
+ *   <SpafaLogo tone="dark" />           // Midnight-Navy letters (for light bg)
+ *   <SpafaLogo tagline={false} />       // wordmark only
  */
 
+const BLUE = '#2563EB'; // SPAFA Electric Blue
+const GOLD = '#D4A017'; // Luxury Gold
+const NAVY = '#0A2540'; // Midnight Navy
+
 const SIZES = {
-  sm: {
-    icon: 'h-8 w-8 sm:h-9 sm:w-9',
-    text: 'text-lg sm:text-xl',
-  },
-  md: {
-    icon: 'h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14',
-    text: 'text-2xl sm:text-3xl md:text-4xl',
-  },
-  lg: {
-    icon: 'h-16 w-16 sm:h-20 sm:w-20',
-    text: 'text-4xl sm:text-5xl',
-  },
+  sm: { word: 'text-lg sm:text-xl',               tag: 'text-[6px] sm:text-[7px]',  pad: 'mt-[3px]' },
+  md: { word: 'text-2xl sm:text-3xl md:text-4xl', tag: 'text-[8px] sm:text-[9px]',  pad: 'mt-1' },
+  lg: { word: 'text-4xl sm:text-5xl',             tag: 'text-[10px] sm:text-[12px]', pad: 'mt-1.5' },
 };
 
-export default function SpafaLogo({ size = 'md', className = '' }) {
-  const s = SIZES[size] || SIZES.md;
+/** The brand's nested blue+gold peak, used in place of each "A". */
+function PeakA() {
   return (
-    <span className={`inline-flex items-center gap-2 sm:gap-3 ${className}`}>
-      <svg
-        className={s.icon}
-        viewBox="0 0 56 56"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        aria-hidden="true"
-      >
-        {/* Rounded square — Electric Blue (Kit 01 primary) */}
-        <rect width="56" height="56" rx="14" fill="#4F8EF7" />
-        {/* Ascending bars — progress / advancement */}
-        <rect x="10" y="36" width="10" height="7"  rx="2" fill="white" opacity="0.35" />
-        <rect x="23" y="29" width="10" height="14" rx="2" fill="white" opacity="0.6"  />
-        <rect x="36" y="20" width="10" height="23" rx="2" fill="white" />
-        {/* Solar Yellow arrow — the "future advancement" mark */}
-        <path d="M40 10 L48 18 L44.5 18 L44.5 20 L35.5 20 L35.5 18 L32 18 Z" fill="#F5C842" />
-      </svg>
+    <svg
+      viewBox="0 0 64 80"
+      aria-hidden="true"
+      style={{ height: '0.82em', width: 'auto', display: 'block', margin: '0 0.01em' }}
+    >
+      <path d="M32 3 L62 78 L45 78 L32 42 L19 78 L2 78 Z" fill={BLUE} />
+      <path d="M32 45 L46 78 L37.5 78 L32 63 L26.5 78 L18 78 Z" fill={GOLD} />
+    </svg>
+  );
+}
+
+export default function SpafaLogo({ size = 'md', tone = 'light', tagline = true, className = '' }) {
+  const s = SIZES[size] || SIZES.md;
+  const letter = tone === 'dark' ? NAVY : '#FFFFFF';
+  const tagColor = tone === 'dark' ? 'rgba(10,37,64,0.85)' : 'rgba(255,255,255,0.92)';
+  const ruleColor = tone === 'dark' ? 'rgba(10,37,64,0.35)' : 'rgba(255,255,255,0.4)';
+
+  return (
+    <span className={`inline-flex flex-col items-start ${className}`} aria-label="SPAFA — Student Profile And Future Advancement">
+      {/* Wordmark: S P [peak] F [peak] */}
       <span
-        className={`${s.text} font-extrabold tracking-[0.08em] text-white leading-none`}
-        style={{ fontFamily: "'Plus Jakarta Sans', 'Sora', system-ui, sans-serif" }}
+        className={`inline-flex items-end leading-none ${s.word}`}
+        style={{
+          fontFamily: "'Sora','Plus Jakarta Sans',system-ui,sans-serif",
+          fontWeight: 800,
+          letterSpacing: '0.015em',
+          color: letter,
+        }}
       >
-        SPAFA
+        <span>SP</span>
+        <PeakA />
+        <span>F</span>
+        <PeakA />
       </span>
+
+      {/* Tagline with side rules */}
+      {tagline && (
+        <span
+          className={`inline-flex items-center ${s.tag} ${s.pad}`}
+          style={{
+            fontFamily: "'Sora',system-ui,sans-serif",
+            fontWeight: 600,
+            letterSpacing: '0.2em',
+            color: tagColor,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <span style={{ width: '1.1em', height: '1px', background: ruleColor, marginRight: '0.55em' }} />
+          STUDENT PROFILE <span style={{ color: GOLD, margin: '0 0.35em' }}>AND</span> FUTURE ADVANCEMENT
+          <span style={{ width: '1.1em', height: '1px', background: ruleColor, marginLeft: '0.55em' }} />
+        </span>
+      )}
     </span>
   );
 }

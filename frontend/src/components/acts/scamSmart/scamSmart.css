@@ -646,19 +646,29 @@
 }
 .ss__textarea:focus { outline: none; border-color: rgba(168, 85, 247, 0.6); }
 
-/* ── Act 1 opening orientation beat (cinematic black-screen intro) ── */
+/* ── Act 1 opening orientation beat (cinematic 3D black-screen intro) ── */
 .ob {
   position: fixed; inset: 0; z-index: 80;
-  background: radial-gradient(120% 100% at 50% 40%, #0a0a16, #000 70%);
+  background: radial-gradient(120% 100% at 50% 38%, #0c0b1d, #050509 72%);
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  overflow: hidden; perspective: 1300px;
+  overflow: hidden; perspective: 1400px;
 }
-.ob__glow { position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.35; pointer-events: none; }
-.ob__glow--1 { width: 360px; height: 360px; background: #6366f1; top: -80px; left: -60px; animation: obFloat 9s ease-in-out infinite; }
-.ob__glow--2 { width: 320px; height: 320px; background: #22d3ee; bottom: -90px; right: -50px; animation: obFloat 11s ease-in-out infinite reverse; }
-@keyframes obFloat { 0%,100% { transform: translate(0,0); } 50% { transform: translate(30px, -24px); } }
+.ob__glow { position: absolute; border-radius: 50%; filter: blur(95px); opacity: 0.38; pointer-events: none; }
+.ob__glow--1 { width: 380px; height: 380px; background: #6366f1; top: -90px; left: -70px; animation: obFloat 9s ease-in-out infinite; }
+.ob__glow--2 { width: 340px; height: 340px; background: #22d3ee; bottom: -100px; right: -60px; animation: obFloat 11s ease-in-out infinite reverse; }
+@keyframes obFloat { 0%,100% { transform: translate(0,0); } 50% { transform: translate(34px, -26px); } }
+/* perspective grid floor for depth */
+.ob__floor {
+  position: absolute; left: 50%; bottom: -2%; width: 200%; height: 55%;
+  transform: translateX(-50%) rotateX(74deg); transform-origin: bottom center;
+  background-image: linear-gradient(rgba(124,109,242,.16) 1px, transparent 1px), linear-gradient(90deg, rgba(124,109,242,.16) 1px, transparent 1px);
+  background-size: 46px 46px;
+  -webkit-mask-image: linear-gradient(to top, #000 0%, transparent 78%);
+  mask-image: linear-gradient(to top, #000 0%, transparent 78%);
+  pointer-events: none; opacity: 0.7;
+}
 .ob__skip {
-  position: absolute; top: 18px; right: 18px; z-index: 5;
+  position: absolute; top: 18px; right: 18px; z-index: 6;
   background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.2);
   color: rgba(255,255,255,.75); font-size: 12px; font-weight: 700;
   padding: 7px 15px; border-radius: 999px; cursor: pointer; transition: background .15s;
@@ -674,21 +684,57 @@
   color: #f3f4f6; letter-spacing: 0.2px; margin: 0;
   text-shadow: 0 2px 40px rgba(99,102,241,.35);
 }
+
+/* Meet-the-squad 3D card fan */
+.ob__squad { position: relative; z-index: 3; width: 100%; max-width: 760px; padding: 0 16px; text-align: center; transform-style: preserve-3d; }
+.ob__squad-title {
+  font-size: clamp(13px, 2.4vw, 16px); font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase;
+  color: #c7d2fe; margin-bottom: 26px;
+}
+.ob__cards { display: flex; align-items: flex-end; justify-content: center; gap: clamp(6px, 1.8vw, 18px); transform-style: preserve-3d; }
+.obf { transform-style: preserve-3d; }
+.obf__tilt { display: flex; flex-direction: column; align-items: center; transform-style: preserve-3d; }
+.obf__av {
+  width: clamp(50px, 14vw, 80px); height: clamp(50px, 14vw, 80px); border-radius: 50%;
+  overflow: hidden; border: 2.5px solid #fff; background: #1a1f3a;
+  display: grid; place-items: center;
+}
+.obf__av img { width: 100%; height: 100%; object-fit: cover; }
+.obf__youmark { font-size: clamp(22px, 6vw, 34px); color: #e9d5ff; }
+.obf__name { margin-top: 9px; font-size: clamp(12px, 2.4vw, 15px); font-weight: 700; }
+.obf__tag { margin-top: 2px; font-size: clamp(9px, 1.9vw, 11px); color: rgba(255,255,255,.5); }
+.obf--guide .obf__av { box-shadow: 0 0 0 3px rgba(34,211,238,.35), 0 12px 30px -8px #16a34a !important; }
+.obf--you .obf__av {
+  border-color: #a855f7 !important; border-style: dashed;
+  background: linear-gradient(135deg, rgba(168,85,247,.3), rgba(99,102,241,.25));
+  animation: obYouPulse 1.6s ease-in-out infinite;
+}
+@keyframes obYouPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(168,85,247,.5); } 50% { box-shadow: 0 0 0 10px rgba(168,85,247,0); } }
+.ob__caps { margin-top: 24px; display: flex; flex-direction: column; gap: 10px; min-height: 30px; }
+.ob__cap { margin: 0; font-size: clamp(15px, 2.6vw, 20px); line-height: 1.4; font-weight: 600; color: #e5e7eb; }
+.ob__cap--hi { color: #fff; font-weight: 700; }
+
+/* phone slides up — more detail (status bar, header avatar, back chevron) */
 .ob__phone {
-  position: absolute; bottom: 0; z-index: 3;
+  position: absolute; bottom: 0; z-index: 4;
   width: min(300px, 76vw); transform-style: preserve-3d; transform-origin: bottom center;
 }
 .ob__phone-frame {
   height: 58vh; overflow: hidden;
   background: #0b141a; border: 2px solid rgba(255,255,255,.14); border-bottom: none;
   border-radius: 30px 30px 0 0;
-  box-shadow: 0 -24px 70px -8px rgba(99,102,241,.55), 0 0 0 6px rgba(0,0,0,.4);
+  box-shadow: 0 -24px 80px -8px rgba(99,102,241,.6), 0 0 0 6px rgba(0,0,0,.45);
 }
+.ob__statusbar { display: flex; justify-content: space-between; align-items: center; padding: 8px 18px 4px; font-size: 11px; color: #cdd6dc; font-weight: 600; }
 .ob__wa-head {
-  background: #1f2c34; padding: 28px 20px 16px; border-bottom: 1px solid rgba(0,0,0,.3);
+  background: #1f2c34; padding: 10px 14px 14px; display: flex; align-items: center; gap: 10px;
+  border-bottom: 1px solid rgba(0,0,0,.3);
 }
-.ob__wa-grp { color: #fff; font-size: 19px; font-weight: 700; }
-.ob__wa-mem { color: #8696a0; font-size: 12px; margin-top: 5px; letter-spacing: .2px; }
+.ob__wa-back { color: #8696a0; font-size: 24px; line-height: 1; }
+.ob__wa-grpav { width: 40px; height: 40px; border-radius: 50%; background: #2a3942; display: grid; place-items: center; font-size: 20px; }
+.ob__wa-meta { text-align: left; }
+.ob__wa-grp { color: #fff; font-size: 16px; font-weight: 700; }
+.ob__wa-mem { color: #8696a0; font-size: 11px; margin-top: 2px; letter-spacing: .2px; }
 .ob__wa-body {
   background: #0b141a;
   background-image: radial-gradient(rgba(255,255,255,.018) 1px, transparent 1px);

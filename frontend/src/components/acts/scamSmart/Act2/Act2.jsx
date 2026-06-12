@@ -36,6 +36,7 @@ export default function ScamSmartAct2({ onComplete, onGoHome }) {
   const [attempts, setAttempts] = useState(0);
   const [shields, setShields] = useState(0);
   const [closeCalls, setCloseCalls] = useState(0);
+  const [opened, setOpened] = useState(false); // has the learner read the phone message?
 
   const s = scenarios[idx];
   const choice = chosen ? s.choices.find((c) => c.key === chosen) : null;
@@ -48,10 +49,17 @@ export default function ScamSmartAct2({ onComplete, onGoHome }) {
   }, []);
 
   useEffect(() => {
+    setOpened(false);
     analytics.sceneEntered(s.sceneId);
     return () => analytics.sceneCompleted(s.sceneId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idx]);
+
+  // Once the learner opens/reads the phone message, reveal + voice the question.
+  const openQuestion = () => {
+    setOpened(true);
+    try { speak(s.thought, { who: 'shanaya' }); } catch { /* noop */ }
+  };
 
   // Deep-link from the sidebar SHOW SCENES list.
   useEffect(() => {
@@ -69,7 +77,7 @@ export default function ScamSmartAct2({ onComplete, onGoHome }) {
   useEffect(() => {
     try { cancelSpeech(); } catch { /* noop */ }
     if (s.app === 'youtube' && s.body?.caption) {
-      const t = setTimeout(() => { speakGiveaway(); speakThought(); }, 500);
+      const t = setTimeout(() => { speakGiveaway(); }, 500);
       return () => { clearTimeout(t); try { cancelSpeech(); } catch { /* noop */ } };
     }
     return undefined;
@@ -151,6 +159,14 @@ export default function ScamSmartAct2({ onComplete, onGoHome }) {
               </div>
 
               <div className="ss2__right">
+                {!opened ? (
+                  <div className="ssh__gate ss__fade">
+                    <Brain size={40} style={{ color: '#a855f7' }} />
+                    <h2 className="ss__h2" style={{ marginTop: 8 }}>Read the message first</h2>
+                    <p className="ssh__help" style={{ maxWidth: 360 }}>Open and read what just arrived on the phone. When you've taken it in, reveal the question.</p>
+                    <button className="ss__btn" style={{ marginTop: 16 }} onClick={openQuestion}>I've read it — what do I do? <ArrowRight size={18} /></button>
+                  </div>
+                ) : (<>
                 <div className="ssh__thought">
                   <div className="ssh__thought-label">
                     <Brain size={13} /> Internal thought
@@ -186,11 +202,12 @@ export default function ScamSmartAct2({ onComplete, onGoHome }) {
                       <p>{choice.feedback}</p>
                       {choice.redFlags && <ul className="ss__redflags">{choice.redFlags.map((f, i) => <li key={i}>{f}</li>)}</ul>}
                       {choice.verdict === 'win'
-                        ? <button className="ss__btn ss__btn--full" style={{ marginTop: 14 }} onClick={next}>{idx + 1 >= scenarios.length ? 'See what you survived' : 'Next scenario'} <ArrowRight size={18} /></button>
+                        ? <button className="ss__btn ss__btn--full" style={{ marginTop: 14 }} onClick={next}>{idx + 1 >= scenarios.length ? 'Move to Act 3' : 'Next scenario'} <ArrowRight size={18} /></button>
                         : <button className="ss__btn ss__btn--ghost ss__btn--full" style={{ marginTop: 14 }} onClick={retry}><ShieldCheck size={16} /> Retry this one</button>}
                     </motion.div>
                   )}
                 </AnimatePresence>
+                </>)}
               </div>
             </motion.div>
           </AnimatePresence>

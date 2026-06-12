@@ -5,20 +5,20 @@
  */
 import { useState } from 'react';
 import { Music, VolumeX } from 'lucide-react';
-import { stopMusic, unlockAudio, setMusicMood } from '../../../../utils/sounds.js';
+import { stopMusic, startMusic, unlockAudio, setMusicMood } from '../../../../utils/sounds.js';
 import { musicEnabled, setMusicEnabled } from './useSoftMusic.js';
 
 export default function MusicToggle() {
   const [on, setOn] = useState(musicEnabled);
   const toggle = async () => {
     if (on) {
+      setOn(false);
       setMusicEnabled(false);
       try { stopMusic(); } catch { /* noop */ }
-      setOn(false);
     } else {
-      setMusicEnabled(true);
-      try { await unlockAudio(true); setMusicMood('calm'); } catch { /* noop */ }
       setOn(true);
+      setMusicEnabled(true);
+      try { await unlockAudio(true); setMusicMood('calm'); startMusic(); } catch { /* noop */ }
     }
   };
   return (

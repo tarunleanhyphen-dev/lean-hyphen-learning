@@ -23,6 +23,23 @@ export default function BgmiScreen({ scenario }) {
 
   return (
     <div className="bgmi">
+      {/* animated battlefield background */}
+      <div className="bgmi__scene" aria-hidden>
+        <div className="bgmi__sky" />
+        <div className="bgmi__sun" />
+        <div className="bgmi__cloud bgmi__cloud--1" />
+        <div className="bgmi__cloud bgmi__cloud--2" />
+        <div className="bgmi__hills" />
+        <div className="bgmi__bldg bgmi__bldg--1" />
+        <div className="bgmi__bldg bgmi__bldg--2" />
+        <div className="bgmi__bldg bgmi__bldg--3" />
+        <div className="bgmi__tree bgmi__tree--1" />
+        <div className="bgmi__tree bgmi__tree--2" />
+        <div className="bgmi__smoke" />
+        <div className="bgmi__muzzle" />
+        <div className="bgmi__zone-ring" />
+      </div>
+
       <div className="bgmi__top">
         <div className="bgmi__map">
           <div className="bgmi__blip" style={{ top: '30%', left: '38%' }} />

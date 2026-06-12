@@ -15,7 +15,7 @@ let muted = true;
 
 const MASTER_VOLUME = 0.85;
 // Calm background music — clearly present but still under the narrator.
-const MUSIC_VOLUME = 0.22;
+const MUSIC_VOLUME = 0.10;
 // Kabir's narration plays a touch softer than full so the music sits nicely.
 const SPEECH_VOLUME = 0.78;
 
@@ -226,7 +226,7 @@ const MUSIC_TRACKS = {
 };
 /* Volume the real (ElevenLabs) background track plays at — present and
  * pleasant, but still under Kabir's narration. */
-const BG_MUSIC_VOLUME = 0.20;
+const BG_MUSIC_VOLUME = 0.09;
 
 // Mood definitions tuned so transitions are *audible*, not subtle. The big
 // dimensions of contrast: bus volume, presence of percussion, low-pass cutoff

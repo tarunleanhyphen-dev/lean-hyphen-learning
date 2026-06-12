@@ -18,6 +18,10 @@ import { unlockAudio, setMusicMood, stopMusic, speak, cancelSpeech } from '../..
 import { musicEnabled } from '../shell/useSoftMusic.js';
 import '../scamSmart.css';
 
+// Birthday-wish history (instant, scrollable) + the midnight scam story (typed).
+const ACT1_CHAT = { group: act1Hook.group, messages: [...act1Hook.history, ...act1Hook.messages] };
+const ACT1_INSTANT = act1Hook.history.length;
+
 export default function ScamSmartAct1({ onComplete, onGoHome }) {
   const analytics = useL3Analytics('act1', { bumpAttempt: true });
   const navigate = useNavigate();
@@ -132,7 +136,7 @@ export default function ScamSmartAct1({ onComplete, onGoHome }) {
           {started && screen === 'chat' && (
             <>
               <PhoneShell screenClass="ssh__screen--chat">
-                <WhatsAppChat chat={act1Hook} soundOn={soundOn} onDone={() => setChatDone(true)} />
+                <WhatsAppChat chat={ACT1_CHAT} soundOn={soundOn} instantCount={ACT1_INSTANT} onDone={() => setChatDone(true)} />
               </PhoneShell>
               {chatDone && (
                 <div className="ssh__gate ss__fade" style={{ marginTop: 18, textAlign: 'left', alignItems: 'stretch' }}>

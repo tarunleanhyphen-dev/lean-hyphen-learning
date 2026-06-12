@@ -19,12 +19,17 @@ export function useSoftMusic(mood = 'calm') {
   useEffect(() => {
     if (!musicEnabled()) return undefined;
     let done = false;
-    const start = async () => {
-      if (!musicEnabled()) return;
-      try { await unlockAudio(true); setMusicMood(mood); done = true; } catch { /* needs a gesture */ }
+    const onGesture = () => {
+      if (done || !musicEnabled()) { window.removeEventListener('pointerdown', onGesture); return; }
+      (async () => {
+        try { await unlockAudio(true); setMusicMood(mood); done = true; } catch { /* noop */ }
+      })();
+      // one shot — once a real gesture fires we stop listening so it can never
+      // fight the manual music toggle.
+      window.removeEventListener('pointerdown', onGesture);
     };
-    start();
-    const onGesture = () => { if (!done) start(); };
+    // try immediately (works if audio already unlocked from a prior gesture)
+    (async () => { try { await unlockAudio(true); setMusicMood(mood); done = true; } catch { /* noop */ } })();
     window.addEventListener('pointerdown', onGesture);
     return () => window.removeEventListener('pointerdown', onGesture);
     // eslint-disable-next-line react-hooks/exhaustive-deps

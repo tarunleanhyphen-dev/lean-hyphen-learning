@@ -9,9 +9,12 @@
  *
  * Each act is self-contained (manages its own state + analytics); we just
  * hand it onGoHome / onComplete navigation callbacks. */
+import { useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Play, Clock, ShieldCheck, ArrowRight, BarChart3 } from 'lucide-react';
+import SpafaLogo from '../components/shared/SpafaLogo.jsx';
+import { stopMusic, cancelSpeech } from '../utils/sounds.js';
 import { lesson } from '../data/lessons/scamSmart.js';
 import ScamSmartAct1 from '../components/acts/scamSmart/Act1/Act1.jsx';
 import ScamSmartAct2 from '../components/acts/scamSmart/Act2/Act2.jsx';
@@ -57,6 +60,8 @@ export default function Lesson3Page() {
 function Lesson3Home() {
   const acts = Object.values(lesson.acts);
   const { from, via, to } = lesson.hero.palette;
+  // Music plays inside the acts only — silence it on the home page.
+  useEffect(() => { try { stopMusic(); cancelSpeech(); } catch { /* noop */ } }, []);
   return (
     <div className="relative min-h-screen overflow-hidden" style={{ background: '#07060f' }}>
       <div aria-hidden className="pointer-events-none absolute inset-0">
@@ -67,9 +72,9 @@ function Lesson3Home() {
 
       <div className="relative mx-auto flex min-h-screen w-full max-w-5xl flex-col px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
         <header className="flex items-center justify-between">
-          <span className="inline-flex items-center gap-2 text-lg font-extrabold text-white">
-            <ShieldCheck className="h-6 w-6" style={{ color: via }} /> Scam Smart
-          </span>
+          <a href="/" aria-label="SPAFA home" className="inline-flex shrink-0">
+            <SpafaLogo size="md" />
+          </a>
         </header>
 
         <main className="mt-6 flex flex-col items-start gap-3">

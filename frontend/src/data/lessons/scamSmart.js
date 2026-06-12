@@ -42,7 +42,7 @@ export const lesson = {
     act1: {
       id: 'act1',
       title: 'Act 1 — The Hook',
-      minutes: 3,
+      minutes: 2,
       kind: 'cinematic',
       status: 'live',
     },
@@ -83,6 +83,17 @@ export const act1Hook = {
     members: ['Aryan', 'Diya', 'Priya', 'Kabir', 'Meera'],
     time: '11:47 PM',
   },
+  // Earlier today the group wished Priya a happy birthday — shown INSTANTLY as
+  // scroll-up history, so the chat feels like a real ongoing group, not one
+  // that started with the scam. (Times are earlier than the 11:47 PM story.)
+  history: [
+    { from: 'Kabir', avatar: '🧒', side: 'in', color: '#2b7de9', time: '9:30 PM', text: 'HAPPY BIRTHDAY PRIYAAA 🎉🎂🎈' },
+    { from: 'Diya',  avatar: '👧', side: 'in', color: '#c2389a', time: '9:31 PM', text: 'happiest bday priya 🥳❤️ have the best year' },
+    { from: 'Aryan', avatar: '🧑', side: 'in', color: '#0a8754', time: '9:33 PM', text: 'HBD priya, need party this time 🥳🎉😜🍕' },
+    { from: 'Meera', avatar: '🧑', side: 'in', color: '#d97706', time: '9:35 PM', text: 'Happy birthday Priya! 🎊🎉' },
+    { from: 'Priya', avatar: '👩', side: 'out', time: '9:42 PM', text: "awww thank you so much you guys 🥹❤️ best squad ever" },
+    { from: 'Priya', avatar: '👩', side: 'out', time: '9:43 PM', text: "party this weekend, i'll plan it 🎉" },
+  ],
   // `typing` = ms the typing indicator shows before the bubble lands.
   // Priya is the MAIN CHARACTER → her messages are 'out' (right/green, like
   // your own sent messages in WhatsApp). Everyone else is 'in' (left, with
@@ -587,6 +598,11 @@ export const act4 = {
       ['deepfake', 'fake channel', 'fake', 'ai', 'not real'],
       ['don\'t click', 'dont click', 'ignore', 'not click', 'avoid the link', 'won\'t click'],
       ['verify', 'check', 'real channel', 'report', 'directly'],
+    ],
+    keyLabels: [
+      "Recognised it's a deepfake / fake celebrity",
+      "Wouldn't click the link",
+      'Verify the real channel + report it',
     ],
     model:
       'This is a coordinated scam — a deepfake celebrity giveaway backed by a fake "friend" account to create extra pressure and urgency. Red flags: unknown YouTube channel, external link, unknown number pushing the same link, countdown timer, UPI registration. You ignore both messages, check the real Arjun Nair channel directly, and report both accounts.',

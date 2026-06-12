@@ -8,13 +8,16 @@
  * learner's analytics events, keyed by ?learnerId= (LMS) or an anonymous
  * session id. It fills in act-by-act as the learner completes each act.
  */
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LessonReport from '../components/shared/LessonReport.jsx';
 import { getSessionId } from '../utils/api.js';
+import { stopMusic, cancelSpeech } from '../utils/sounds.js';
 
 export default function Lesson3ReportPage() {
   const navigate = useNavigate();
   const sessionId = getSessionId();
+  useEffect(() => { try { stopMusic(); cancelSpeech(); } catch { /* noop */ } }, []);
 
   return (
     <div className="relative min-h-screen overflow-hidden" style={{ background: '#07060f' }}>

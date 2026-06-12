@@ -8,20 +8,34 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, Zap } from 'lucide-react';
-import { act3 } from '../../../../data/lessons/scamSmart.js';
+import { act3, act1Hook } from '../../../../data/lessons/scamSmart.js';
 import { useL3Analytics } from '../useL3Analytics.js';
 import Sidebar from '../shell/Sidebar.jsx';
 import BgFx3D from '../shell/BgFx3D.jsx';
 import PhoneShell from '../shell/PhoneShell.jsx';
 import WhatsAppChat from '../Act1/WhatsAppChat.jsx';
+import PatternCard from './PatternCard.jsx';
 import { useSoftMusic } from '../shell/useSoftMusic.js';
 import '../scamSmart.css';
 
-// Act 3 opens back in the Squad Goals chat (12:14 AM) with Priya's recap.
-const INTRO_CHAT = {
-  group: { name: 'Squad Goals', emoji: '🔥', members: ['Aryan', 'Diya', 'Priya', 'Kabir', 'Meera'], time: '12:14 AM' },
-  messages: act3.intro.map((m) => ({ from: 'Priya', avatar: '👩', side: 'out', text: m.text, typing: 1100 })),
-};
+// Act 3 keeps returning to the SAME Squad Goals chat: prior history shows
+// instantly (scroll up to re-read), then the new messages type in one by one.
+const GROUP = { name: 'Squad Goals', emoji: '🔥', members: ['Aryan', 'Diya', 'Priya', 'Kabir', 'Meera'], time: '12:14 AM' };
+const HISTORY = [
+  ...act1Hook.history,
+  ...act1Hook.messages.map((m) => ({ ...m, time: '11:47 PM' })),
+];
+const INTRO_PRIYA = act3.intro.map((m) => ({ from: 'Priya', avatar: '👩', side: 'out', text: m.text, typing: 1100, time: '12:14 AM' }));
+
+const INTRO_CHAT = { group: GROUP, messages: [...HISTORY, ...INTRO_PRIYA] };
+const INTRO_INSTANT = HISTORY.length;
+
+const URGENCY_MSGS = [
+  ...act3.urgency.lines.map((l) => ({ from: 'Priya', avatar: '👩', side: 'out', text: l, typing: 1100, time: '12:16 AM' })),
+  ...act3.urgency.outro.map((m) => ({ from: m.from, avatar: m.avatar, side: m.from === 'Priya' ? 'out' : 'in', color: m.from === 'Kabir' ? '#2b7de9' : undefined, text: m.text, typing: 900, time: '12:16 AM' })),
+];
+const URGENCY_CHAT = { group: { ...GROUP, time: '12:16 AM' }, messages: [...HISTORY, ...INTRO_PRIYA, ...URGENCY_MSGS] };
+const URGENCY_INSTANT = HISTORY.length + INTRO_PRIYA.length;
 
 const CARD_SCENES = ['sc-card-deepfake', 'sc-card-otp', 'sc-card-gaming'];
 
@@ -69,6 +83,7 @@ export default function ScamSmartAct3({ onComplete, onGoHome }) {
   });
   const [cardIdx, setCardIdx] = useState(() => sceneToState3()?.cardIdx ?? 0);
   const [introDone, setIntroDone] = useState(false);
+  const [urgencyDone, setUrgencyDone] = useState(false);
 
   useEffect(() => {
     const sc = sceneToState3();
@@ -130,7 +145,7 @@ export default function ScamSmartAct3({ onComplete, onGoHome }) {
                 <div className="ssh__eyebrow">Back to the group chat · 12:14 AM</div>
                 <div className="ssh__scenetitle">Priya breaks it down</div>
                 <PhoneShell screenClass="ssh__screen--chat" time="12:14 AM">
-                  <WhatsAppChat chat={INTRO_CHAT} soundOn onDone={() => setIntroDone(true)} />
+                  <WhatsAppChat chat={INTRO_CHAT} soundOn instantCount={INTRO_INSTANT} onDone={() => setIntroDone(true)} />
                 </PhoneShell>
                 {introDone && (
                   <button className="ss__btn ss__btn--full" style={{ marginTop: 16 }} onClick={() => { setPhase('cards'); window.scrollTo({ top: 0 }); }}>
@@ -143,23 +158,22 @@ export default function ScamSmartAct3({ onComplete, onGoHome }) {
             {phase === 'cards' && (
               <motion.div key={`card-${cardIdx}`} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}>
                 <div className="ssh__scenetitle">Pattern {cardIdx + 1} / {act3.cards.length}</div>
-                <div style={{ marginTop: 14 }}><ScamCard card={card} /></div>
-                <button className="ss__btn ss__btn--full" style={{ marginTop: 16 }} onClick={nextCard}>
-                  {cardIdx + 1 < act3.cards.length ? 'Next pattern' : 'One thing ties it all together'} <ArrowRight size={18} />
-                </button>
+                <div style={{ marginTop: 14 }}>
+                  <PatternCard card={card} isLast={cardIdx + 1 >= act3.cards.length} onNext={nextCard} />
+                </div>
               </motion.div>
             )}
 
             {phase === 'urgency' && (
               <motion.div key="urgency" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
+                <div className="ssh__eyebrow">Back to the group chat · 12:16 AM</div>
                 <div className="ssh__scenetitle">The one thing underneath all of it</div>
-                <div className="ss__card" style={{ marginTop: 14, borderColor: 'rgba(245,158,11,.4)', background: 'rgba(245,158,11,.06)' }}>
-                  <Zap size={40} style={{ color: '#f59e0b' }} />
-                  {act3.urgency.lines.map((l, i) => (
-                    <p key={i} className={i === 1 ? 'ss__h2' : ''} style={{ marginTop: i === 1 ? 6 : 12, color: i === 1 ? '#fbbf24' : undefined }}>{l}</p>
-                  ))}
-                </div>
-                <button className="ss__btn ss__btn--full" style={{ marginTop: 16 }} onClick={finish}>{act3.urgency.cta} <ArrowRight size={18} /></button>
+                <PhoneShell screenClass="ssh__screen--chat" time="12:16 AM">
+                  <WhatsAppChat chat={URGENCY_CHAT} soundOn instantCount={URGENCY_INSTANT} onDone={() => setUrgencyDone(true)} />
+                </PhoneShell>
+                {urgencyDone && (
+                  <button className="ss__btn ss__btn--full" style={{ marginTop: 16 }} onClick={finish}>{act3.urgency.cta} <ArrowRight size={18} /></button>
+                )}
               </motion.div>
             )}
           </AnimatePresence>

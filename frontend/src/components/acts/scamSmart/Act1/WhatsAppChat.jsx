@@ -78,9 +78,11 @@ function Meta({ time, withTicks }) {
   return <span className="wa__meta">{time}{withTicks && <span className="wa__ticks">✓✓</span>}</span>;
 }
 
-export default function WhatsAppChat({ chat, soundOn = true, onDone }) {
+export default function WhatsAppChat({ chat, soundOn = true, onDone, instantCount = 0 }) {
   const { group, messages } = chat;
-  const [index, setIndex] = useState(0);
+  // The first `instantCount` messages render immediately (scrollable history);
+  // everything after types in one-by-one.
+  const [index, setIndex] = useState(instantCount);
   const [phase, setPhase] = useState('typing'); // 'typing' | 'writing' | 'done'
   const [typed, setTyped] = useState('');
   const bodyRef = useRef(null);
@@ -157,7 +159,7 @@ export default function WhatsAppChat({ chat, soundOn = true, onDone }) {
           return (
             <Row key={i} m={m} grouped={grouped}>
               {m.text}
-              <Meta time={group.time} withTicks={m.side === 'out'} />
+              <Meta time={m.time || group.time} withTicks={m.side === 'out'} />
             </Row>
           );
         })}
@@ -176,7 +178,7 @@ export default function WhatsAppChat({ chat, soundOn = true, onDone }) {
             <Row m={cur} grouped={grouped}>
               {typed}
               {typed.length < cur.text.length && <span className="wa__caret" />}
-              {typed.length >= cur.text.length && <Meta time={group.time} withTicks={cur.side === 'out'} />}
+              {typed.length >= cur.text.length && <Meta time={cur.time || group.time} withTicks={cur.side === 'out'} />}
             </Row>
           );
         })()}

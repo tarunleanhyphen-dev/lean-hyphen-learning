@@ -26,6 +26,8 @@ const FRIENDS = [
 ];
 const YOU = { name: 'You', tag: "yes — you", color: '#a855f7', you: true };
 
+// Hold on pure black for a beat — the first line reads at ~2s, not instantly.
+const LEAD = 1700;
 const CUES = [
   { t: 300,   g: 'a', line: '11:47 PM.' },
   { t: 2600,  g: 'a', line: 'Five friends. One group chat.' },
@@ -99,7 +101,7 @@ export default function OpeningBeat({ soundOn = true, onDone }) {
         }
         if (c.say && soundOn) { try { cancelSpeech(); speak(c.say, { who: 'narrator' }); } catch { /* noop */ } }
         else if (c.g === 'a' && soundOn) { try { cancelSpeech(); speak(c.line, { who: 'narrator' }); } catch { /* noop */ } }
-      }, c.t);
+      }, c.t + LEAD);
       timers.current.push(id);
     });
     return () => { timers.current.forEach(clearTimeout); try { cancelSpeech(); } catch { /* noop */ } };

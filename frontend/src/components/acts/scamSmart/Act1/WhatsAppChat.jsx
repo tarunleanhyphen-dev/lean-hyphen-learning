@@ -20,13 +20,23 @@ import './whatsapp.css';
 const TYPE_MS_PER_CHAR = 22;
 const POST_MSG_PAUSE = 380;
 
-// Per-character portrait avatars (generated, character-style). If the image
-// can't load (offline), we fall back to the character's emoji.
+// Avatars resolve in order: a local real photo you drop in (see below) →
+// a youthful Indian-looking illustrated avatar → the character emoji.
+//
+// To use REAL photos: put image files you have the rights to (your own,
+// licensed stock with model releases, or AI-generated synthetic faces of
+// non-real people) at:
+//     frontend/public/avatars/kabir.jpg
+//     frontend/public/avatars/aryan.jpg
+//     frontend/public/avatars/diya.jpg
+//     frontend/public/avatars/priya.jpg
+// They appear automatically — no code change needed. (We deliberately do NOT
+// auto-fetch photos of real teenagers — those are real minors.)
 const AVATAR = {
-  Kabir: 'https://api.dicebear.com/9.x/avataaars/svg?seed=KabirIndia&backgroundColor=b6e3f4&radius=50',
-  Aryan: 'https://api.dicebear.com/9.x/avataaars/svg?seed=AryanRaj&backgroundColor=c0aede&radius=50',
-  Diya:  'https://api.dicebear.com/9.x/avataaars/svg?seed=DiyaSharma&backgroundColor=ffd5dc&radius=50&top=longHair,bigHair,bob',
-  Priya: 'https://api.dicebear.com/9.x/avataaars/svg?seed=PriyaMentor&backgroundColor=d1f4d9&radius=50&top=longHair,straight01,bob',
+  Kabir: ['/avatars/kabir.jpg', 'https://api.dicebear.com/9.x/avataaars/svg?seed=KabirIN&skinColor=d08b5b&top=shortFlat&hairColor=2c1b18&facialHairProbability=0&backgroundColor=b6e3f4'],
+  Aryan: ['/avatars/aryan.jpg', 'https://api.dicebear.com/9.x/avataaars/svg?seed=AryanIN&skinColor=d08b5b&top=theCaesar&hairColor=2c1b18&facialHairProbability=0&backgroundColor=c0aede'],
+  Diya:  ['/avatars/diya.jpg',  'https://api.dicebear.com/9.x/avataaars/svg?seed=DiyaGirl7&skinColor=d08b5b&top=straight02&hairColor=2c1b18&accessoriesProbability=0&backgroundColor=ffd5dc'],
+  Priya: ['/avatars/priya.jpg', 'https://api.dicebear.com/9.x/avataaars/svg?seed=PriyaIN&skinColor=d08b5b&top=longButNotTooLong&hairColor=2c1b18&accessoriesProbability=0&backgroundColor=d1f4d9'],
 };
 
 function reducedMotion() {
@@ -34,17 +44,38 @@ function reducedMotion() {
     && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 }
 
-/* Avatar portrait with emoji fallback on image error. */
+/* Avatar that walks its fallback chain (local photo → illustrated → emoji).
+ * Defined at MODULE scope (not inside the chat component) so React keeps the
+ * same element across the typewriter's re-renders — no flicker. */
 function Avatar({ name, emoji, className }) {
-  const [err, setErr] = useState(false);
-  const src = AVATAR[name];
+  const srcs = AVATAR[name] || [];
+  const [i, setI] = useState(0);
+  const src = srcs[i];
   return (
     <span className={className}>
-      {!err && src
-        ? <img src={src} alt={name} onError={() => setErr(true)} />
+      {src
+        ? <img src={src} alt={name} loading="eager" decoding="async" onError={() => setI((n) => n + 1)} />
         : emoji}
     </span>
   );
+}
+
+/* A finished/streaming message row. MODULE scope so it isn't re-created each
+ * render (which would remount avatars). */
+function Row({ m, grouped, children }) {
+  return (
+    <div className={`wa__row wa__row--${m.side === 'out' ? 'out' : 'in'} ${grouped ? 'is-grouped' : ''}`}>
+      {m.side === 'in' && <Avatar name={m.from} emoji={m.avatar} className={`wa__avatar ${grouped ? 'is-hidden' : ''}`} />}
+      <div className="wa__bubble">
+        {m.side === 'in' && !grouped && <span className="wa__sender" style={{ color: m.color || '#2b7de9' }}>{m.from}</span>}
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function Meta({ time, withTicks }) {
+  return <span className="wa__meta">{time}{withTicks && <span className="wa__ticks">✓✓</span>}</span>;
 }
 
 export default function WhatsAppChat({ chat, soundOn = true, onDone }) {
@@ -106,25 +137,6 @@ export default function WhatsAppChat({ chat, soundOn = true, onDone }) {
   const typingName = phase === 'typing' && cur && cur.side === 'in' ? cur.from : null;
   const headerSub = typingName ? `${typingName} is typing…` : `${group.members.join(', ')}`;
 
-  const renderMeta = (m, withTicks) => (
-    <span className="wa__meta">
-      {group.time}
-      {withTicks && <span className="wa__ticks">✓✓</span>}
-    </span>
-  );
-
-  const Row = ({ m, grouped, children }) => (
-    <div className={`wa__row wa__row--${m.side === 'out' ? 'out' : 'in'} ${grouped ? 'is-grouped' : ''}`}>
-      {m.side === 'in' && <Avatar name={m.from} emoji={m.avatar} className={`wa__avatar ${grouped ? 'is-hidden' : ''}`} />}
-      <div className="wa__bubble">
-        {m.side === 'in' && !grouped && (
-          <span className="wa__sender" style={{ color: m.color || '#2b7de9' }}>{m.from}</span>
-        )}
-        {children}
-      </div>
-    </div>
-  );
-
   return (
     <div className="wa">
       <header className="wa__header">
@@ -145,7 +157,7 @@ export default function WhatsAppChat({ chat, soundOn = true, onDone }) {
           return (
             <Row key={i} m={m} grouped={grouped}>
               {m.text}
-              {renderMeta(m, m.side === 'out')}
+              <Meta time={group.time} withTicks={m.side === 'out'} />
             </Row>
           );
         })}
@@ -164,7 +176,7 @@ export default function WhatsAppChat({ chat, soundOn = true, onDone }) {
             <Row m={cur} grouped={grouped}>
               {typed}
               {typed.length < cur.text.length && <span className="wa__caret" />}
-              {typed.length >= cur.text.length && renderMeta(cur, cur.side === 'out')}
+              {typed.length >= cur.text.length && <Meta time={group.time} withTicks={cur.side === 'out'} />}
             </Row>
           );
         })()}

@@ -392,19 +392,19 @@
   border-radius: 14px;
   border: none;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 800;
   cursor: pointer;
-  color: #0a0a14;
-  background: linear-gradient(135deg, var(--ss-cyan), var(--ss-violet));
-  box-shadow: 0 16px 40px -16px rgba(168, 85, 247, 0.8);
+  color: #3a2a00;
+  background: linear-gradient(135deg, #fde047, #f59e0b);
+  box-shadow: 0 16px 40px -16px rgba(245, 158, 11, 0.7);
   transition: transform 0.14s, filter 0.18s;
 }
 .ss__btn:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.06); }
 .ss__btn:disabled { opacity: 0.45; cursor: default; }
 .ss__btn--ghost {
-  background: var(--ss-panel);
-  color: #fff;
-  border: 1px solid var(--ss-line);
+  background: rgba(245, 158, 11, 0.08);
+  color: #fcd34d;
+  border: 1px solid rgba(251, 191, 36, 0.5);
   box-shadow: none;
 }
 .ss__btn--full { width: 100%; }
@@ -575,6 +575,233 @@
 }
 
 /* ============================================================
+ *  Netlify-style shell — left act sidebar + iPhone simulator.
+ *  Used to match the "Spot the Scam" presentation exactly.
+ * ============================================================ */
+.ssh {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  min-height: 100svh;
+  --ss-panel: rgba(255, 255, 255, 0.06);
+  --ss-line: rgba(255, 255, 255, 0.12);
+  background:
+    radial-gradient(820px 520px at 90% -10%, rgba(168,85,247,0.26) 0%, transparent 55%),
+    radial-gradient(720px 520px at 2% 108%, rgba(6,182,212,0.20) 0%, transparent 55%),
+    radial-gradient(680px 460px at 50% 42%, rgba(99,102,241,0.16) 0%, transparent 60%),
+    linear-gradient(155deg, #181b3e 0%, #12152f 55%, #0f1a35 100%);
+  color: #e8edf4;
+  font-family: theme('fontFamily.body', system-ui, sans-serif);
+}
+
+/* 3D scam-icon backdrop (behind everything, can't hide content) */
+.ssh__fx {
+  position: fixed; inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  perspective: 900px;
+}
+.ssh__fx-icon {
+  position: absolute;
+  transform-style: preserve-3d;
+  will-change: transform;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-in-out;
+  filter: drop-shadow(0 8px 14px rgba(30, 40, 80, 0.05));
+}
+@keyframes sshFxA {
+  0%   { transform: translateY(0) rotateY(0deg) rotateX(10deg); }
+  50%  { transform: translateY(-26px) rotateY(180deg) rotateX(-8deg); }
+  100% { transform: translateY(0) rotateY(360deg) rotateX(10deg); }
+}
+@keyframes sshFxB {
+  0%   { transform: translate3d(0, 0, 0) rotateZ(0deg) rotateX(0deg); }
+  50%  { transform: translate3d(22px, -20px, 60px) rotateZ(14deg) rotateX(180deg); }
+  100% { transform: translate3d(0, 0, 0) rotateZ(0deg) rotateX(360deg); }
+}
+@keyframes sshFxC {
+  0%   { transform: translate3d(0, 0, 0) rotateY(0deg); }
+  50%  { transform: translate3d(-20px, -16px, 30px) rotateY(-180deg) rotateZ(-10deg); }
+  100% { transform: translate3d(0, 0, 0) rotateY(-360deg); }
+}
+@keyframes sshFxD {
+  0%   { transform: translate3d(0, 0, -40px) rotateX(0deg) rotateY(0deg) scale(0.9); }
+  50%  { transform: translate3d(28px, -26px, 90px) rotateX(180deg) rotateY(180deg) scale(1.15); }
+  100% { transform: translate3d(0, 0, -40px) rotateX(360deg) rotateY(360deg) scale(0.9); }
+}
+@keyframes sshFxE {
+  0%   { transform: translate3d(0, 0, 0) rotateZ(0deg) rotateY(0deg); }
+  33%  { transform: translate3d(-24px, 18px, 50px) rotateZ(120deg) rotateY(120deg); }
+  66%  { transform: translate3d(20px, -22px, 20px) rotateZ(240deg) rotateY(240deg); }
+  100% { transform: translate3d(0, 0, 0) rotateZ(360deg) rotateY(360deg); }
+}
+.ssh__fx-a { animation-name: sshFxA; }
+.ssh__fx-b { animation-name: sshFxB; }
+.ssh__fx-c { animation-name: sshFxC; }
+.ssh__fx-d { animation-name: sshFxD; }
+.ssh__fx-e { animation-name: sshFxE; }
+@media (prefers-reduced-motion: reduce) {
+  .ssh__fx-icon { animation: none; }
+}
+
+/* sidebar */
+.ssh__side {
+  position: relative;
+  z-index: 1;
+  width: 248px;
+  flex-shrink: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(16, 19, 42, 0.72);
+  backdrop-filter: blur(14px);
+  padding: 18px 14px;
+  display: flex;
+  flex-direction: column;
+}
+.ssh__brand { padding: 6px 8px 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+.ssh__brandrow { display: flex; align-items: flex-start; gap: 8px; padding: 4px 6px 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+.ssh__brandbtn { display: block; flex: 1; text-align: left; background: none; border: none; cursor: pointer; padding: 0; }
+.ssh__music { flex-shrink: 0; height: 32px; width: 32px; border-radius: 9px; display: grid; place-items: center;
+  background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.12); color: #fcd34d; cursor: pointer; transition: background 0.15s; }
+.ssh__music:hover { background: rgba(255, 255, 255, 0.16); }
+.ssh__brandtitle { font-size: 19px; font-weight: 800; letter-spacing: -0.01em; color: #fff; }
+.ssh__brandsub { font-size: 12.5px; color: rgba(255, 255, 255, 0.5); margin-top: 2px; }
+.ssh__homebtn {
+  display: inline-flex; align-items: center; gap: 8px; width: 100%;
+  margin: 6px 0 6px; padding: 10px 14px; border-radius: 12px;
+  background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(251, 191, 36, 0.4);
+  color: #fcd34d; font-size: 13px; font-weight: 700; cursor: pointer;
+  transition: background 0.15s;
+}
+.ssh__homebtn:hover { background: rgba(245, 158, 11, 0.2); }
+.ssh__acts { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
+.ssh__act {
+  text-align: left; border: none; background: transparent; color: #e8edf4;
+  padding: 14px 16px; border-radius: 16px; cursor: pointer; position: relative;
+  transition: background 0.18s;
+}
+.ssh__act:hover { background: rgba(255, 255, 255, 0.06); }
+.ssh__act.is-on, .ssh__act.is-on:hover { background: linear-gradient(135deg, #12936b, #0c7a5b); color: #fff; box-shadow: 0 14px 30px -14px rgba(16, 185, 129, 0.55); }
+.ssh__acthead { background: none; border: none; color: inherit; cursor: pointer; width: 100%; text-align: left; padding: 0; font: inherit; }
+.ssh__actname { font-size: 16px; font-weight: 800; }
+.ssh__actsub { font-size: 13px; color: rgba(255, 255, 255, 0.5); margin-top: 1px; }
+.ssh__act.is-on .ssh__actsub { color: rgba(255, 255, 255, 0.9); }
+.ssh__scenes {
+  font-size: 9.5px; letter-spacing: 0.09em; color: rgba(255, 255, 255, 0.35); text-align: right;
+  margin-top: 8px; font-weight: 700; background: transparent; border: none; cursor: pointer;
+  width: 100%; padding: 2px 0; transition: color 0.15s;
+}
+.ssh__scenes:hover { color: rgba(255, 255, 255, 0.7); }
+.ssh__act.is-on .ssh__scenes { color: rgba(255, 255, 255, 0.7); }
+.ssh__act.is-on .ssh__scenes:hover { color: #fff; }
+
+/* expandable scene list */
+.ssh__scenelist { display: flex; flex-direction: column; gap: 1px; margin-top: 6px; }
+.ssh__scene {
+  text-align: left; border: none; background: transparent; cursor: pointer;
+  font-size: 12.5px; color: rgba(255, 255, 255, 0.6); padding: 7px 10px; border-radius: 9px; transition: background 0.15s, color 0.15s;
+}
+.ssh__scene:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+.ssh__act.is-on .ssh__scene { color: rgba(255, 255, 255, 0.82); }
+.ssh__act.is-on .ssh__scene:hover { background: rgba(255, 255, 255, 0.15); color: #fff; }
+
+/* main content column */
+.ssh__main { position: relative; z-index: 1; flex: 1; min-width: 0; padding: clamp(16px, 3vw, 30px); overflow-x: hidden; }
+.ssh__col { max-width: 560px; margin: 0 auto; }
+.ssh__col--wide { max-width: 1100px; }
+/* Act 2 parallel layout: phone on the left, question + options on the right */
+.ss2 { display: grid; grid-template-columns: 1fr; gap: 22px; align-items: start; }
+.ss2__left .ssh__phone { margin: 18px auto 0; }
+@media (min-width: 1000px) {
+  .ss2 { grid-template-columns: minmax(320px, 42%) 1fr; gap: 34px; }
+  .ss2__left { position: sticky; top: 16px; }
+  .ss2__left .ssh__phone { margin: 0; }
+  .ss2__right { padding-top: 4px; }
+}
+.ssh__eyebrow { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255, 255, 255, 0.6); font-weight: 700; }
+.ssh__scenetitle { font-size: clamp(21px, 3vw, 27px); font-weight: 800; margin-top: 3px; letter-spacing: -0.01em; color: #ffffff; }
+.ssh__stats { display: flex; flex-wrap: wrap; gap: 12px 28px; margin: 14px 0 6px; font-weight: 800; font-size: 15px; }
+.ssh__shields { color: #34d399; display: inline-flex; align-items: center; gap: 7px; }
+.ssh__shieldpips { display: inline-flex; gap: 3px; font-size: 14px; }
+.ssh__shieldpips span { opacity: 0.3; }
+.ssh__shieldpips span.is-on { opacity: 1; }
+.ssh__close { color: #fbbf24; }
+.ssh__help { color: rgba(255, 255, 255, 0.6); font-size: 13px; line-height: 1.5; margin-top: 2px; }
+
+/* iPhone frame */
+.ssh__phone {
+  width: min(400px, 92vw);
+  margin: 20px auto 0;
+  border-radius: 46px;
+  background: linear-gradient(160deg, #30333f, #0b0c12);
+  padding: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 55px 95px -32px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+.ssh__statusbar {
+  position: relative;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 9px 24px 5px; font-size: 13px; font-weight: 600; color: #fff;
+}
+.ssh__notch { position: absolute; left: 50%; transform: translateX(-50%); width: 96px; height: 24px; background: #000; border-radius: 99px; }
+.ssh__status-right { font-size: 12px; letter-spacing: 0.02em; }
+.ssh__screen { border-radius: 36px; overflow: hidden; background: #0b141a; min-height: 470px; position: relative; }
+
+/* centred gate / bridge panel */
+.ssh__gate {
+  text-align: center;
+  padding: clamp(24px, 6vw, 56px) 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 24px 60px -38px rgba(0, 0, 0, 0.55);
+  margin-top: 18px;
+  display: flex; flex-direction: column; align-items: center;
+}
+.ssh__gate .ss__h2 { color: #fff; }
+
+/* chat that fills the iPhone screen */
+.ssh__screen--chat { height: 580px; display: flex; }
+.ssh__screen--chat .wa { max-width: none; width: 100%; height: 100%; border-radius: 0; box-shadow: none; margin: 0; }
+.ssh__screen--chat .wa__body { max-height: none; flex: 1; }
+.ssh__screen--scam { display: flex; }
+.ssh__screen--scam > * { width: 100%; }
+
+/* internal thought (dark glass) */
+.ssh__thought {
+  margin: 18px auto 0; border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 18px 50px -38px rgba(0, 0, 0, 0.55);
+  padding: 14px 16px;
+}
+.ssh__thought-label { font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255, 255, 255, 0.5); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+.ssh__thought-text { font-style: italic; font-size: 15px; line-height: 1.55; color: rgba(255, 255, 255, 0.9); }
+
+/* glassy cards on the dark shell read better with a touch of blur */
+.ssh .ss__card, .ssh .ss__verdict, .ssh .ss__choice, .ssh .ss__outcome { backdrop-filter: blur(6px); }
+
+/* dark, elegant primary button variant (Act 1 Continue, etc.) */
+.ss__btn--dark {
+  background: linear-gradient(135deg, #2b3354, #161a2e);
+  color: #f1f4ff;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 16px 40px -18px rgba(0, 0, 0, 0.8);
+}
+.ss__btn--dark:hover:not(:disabled) { filter: brightness(1.12); }
+
+@media (max-width: 899px) {
+  .ssh { flex-direction: column; }
+  .ssh__side { width: 100%; border-right: none; border-bottom: 1px solid rgba(255, 255, 255, 0.06); padding: 12px; }
+  .ssh__brand { border-bottom: none; padding-bottom: 8px; }
+  .ssh__acts { flex-direction: row; overflow-x: auto; gap: 8px; margin-top: 8px; }
+  .ssh__act { min-width: 150px; flex-shrink: 0; padding: 10px 12px; }
+  .ssh__scenes { display: none; }
+}
+
+/* ============================================================
  *  Act 2 — split-screen scenario stage
  *  Left: a 3D-tilted phone showing the scam (YouTube channel, DM, …).
  *  Right: Priya the narrator speaks; her line streams in, then choices.
@@ -662,6 +889,16 @@
   overflow: hidden;
 }
 .yt__canvas { position: absolute; inset: 0; }
+.yt__media { position: absolute; inset: 0; }
+.yt__video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.yt__vcap {
+  position: absolute; left: 8px; top: 8px; z-index: 2;
+  background: rgba(0, 0, 0, 0.6); color: #fff; font-size: 10px; line-height: 1.3;
+  padding: 4px 8px; border-radius: 6px; max-width: 72%;
+}
+.yt__scrub { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255, 255, 255, 0.25); z-index: 2; }
+.yt__scrub i { display: block; height: 100%; background: #ff0033; animation: ytScrub 12s linear infinite; }
+@keyframes ytScrub { from { width: 0; } to { width: 100%; } }
 .yt__sound {
   position: absolute; bottom: 8px; left: 8px; z-index: 2;
   height: 26px; width: 26px; border-radius: 50%;
@@ -674,15 +911,36 @@
   padding: 2px 6px; border-radius: 4px; letter-spacing: 0.03em;
 }
 
-/* CSS-only cricket scene (no-WebGL fallback) */
-.cric { position: absolute; inset: 0; overflow: hidden; background: linear-gradient(#7ec8f2 0%, #aee0f5 45%, #2e8b3d 45%, #1f6b2c 100%); }
-.cric__stand { position: absolute; top: 30%; left: 0; right: 0; height: 16%; background: repeating-linear-gradient(90deg,#10243f,#10243f 6px,#16365e 6px,#16365e 12px); opacity: .85; }
-.cric__pitch { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 22%; height: 55%; background: linear-gradient(#cdb188,#b89a6e); }
-.cric__cloud { position: absolute; top: 8%; width: 40px; height: 14px; background: #fff; border-radius: 20px; opacity: .85; animation: cricCloud 9s linear infinite; }
-.cric__cloud:nth-child(2) { top: 16%; animation-duration: 13s; opacity: .6; }
-@keyframes cricCloud { from { left: -50px; } to { left: 110%; } }
-.cric__player { position: absolute; bottom: 14%; left: 50%; transform: translateX(-50%); font-size: 40px; animation: cricBob 1.8s ease-in-out infinite; }
-@keyframes cricBob { 0%,100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-5px); } }
+/* CSS press-conference scene (no-WebGL fallback) */
+.cric { position: absolute; inset: 0; overflow: hidden; }
+.cric--press { background: linear-gradient(#0d1b3a, #0a1430); }
+.cric__banner {
+  position: absolute; top: 0; left: 0; right: 0; height: 62%;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 6px, rgba(255,255,255,0.04) 6px 7px),
+    repeating-conic-gradient(from 0deg, #1e5bb8 0% 25%, #0e7a4f 25% 50%, #f59e0b 50% 75%, #e23b54 75% 100%);
+  background-size: 7px 7px, 56px 30px;
+  opacity: 0.5;
+}
+.cric__desk { position: absolute; bottom: 0; left: 0; right: 0; height: 26%; background: linear-gradient(#1e5bb8, #12316b); box-shadow: 0 -2px 10px rgba(0,0,0,.4); }
+.cric__person { position: absolute; bottom: 20%; left: 50%; transform: translateX(-50%); font-size: 44px; animation: cricBob 2.2s ease-in-out infinite; }
+@keyframes cricBob { 0%,100% { transform: translateX(-50%) rotate(-1deg); } 50% { transform: translateX(-50%) translateY(-3px) rotate(1deg); } }
+.cric__mic { position: absolute; bottom: 16%; left: 50%; transform: translateX(-50%) translateY(28px); font-size: 22px; }
+.cric__flash { position: absolute; width: 60%; height: 60%; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,.5), transparent 60%); opacity: 0; }
+.cric__flash--1 { top: 8%; left: -10%; animation: cricFlash 3.1s ease-in-out infinite; }
+.cric__flash--2 { top: 4%; right: -10%; left: auto; animation: cricFlash 2.3s ease-in-out infinite 0.7s; }
+@keyframes cricFlash { 0%, 92%, 100% { opacity: 0; } 95% { opacity: 0.9; } }
+
+/* 2D SVG press-conference scene */
+.press2d { position: absolute; inset: 0; overflow: hidden; background: #0c2350; }
+.press2d__svg { width: 100%; height: 100%; display: block; }
+.press2d__mouth { transform-box: fill-box; transform-origin: center; animation: pressTalk 0.38s ease-in-out infinite alternate; }
+@keyframes pressTalk { from { transform: scaleY(1); } to { transform: scaleY(0.35); } }
+.press2d__flash { position: absolute; width: 42%; height: 42%; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,0.6), transparent 60%); opacity: 0; pointer-events: none; }
+.press2d__flash--1 { top: 6%; left: -8%; animation: press2dFlash 2.6s infinite; }
+.press2d__flash--2 { top: 2%; right: -8%; left: auto; animation: press2dFlash 3.3s infinite 0.8s; }
+.press2d__flash--3 { top: 20%; left: 32%; animation: press2dFlash 4.1s infinite 1.5s; }
+@keyframes press2dFlash { 0%, 90%, 100% { opacity: 0; } 94% { opacity: 0.85; } }
 .yt__live {
   position: absolute; top: 8px; left: 8px;
   background: #ff0033; color: #fff; font-size: 9px; font-weight: 800;
@@ -716,6 +974,144 @@
 .appscr--whatsapp .appscr__msg { background: #202c33; }
 .appscr--bgmi { background: linear-gradient(160deg,#1a1205,#0a0a0a); }
 .appscr--bgmi .appscr__bar { background: linear-gradient(90deg,#f59e0b22,transparent); }
+
+/* ── Instagram home screen (scenario 2) ── */
+.ig { position: relative; display: flex; flex-direction: column; height: 100%; background: #000; color: #fff; overflow: hidden; }
+.ig__header { display: flex; align-items: center; padding: 26px 14px 8px; }
+.ig__logo { font-family: 'Snell Roundhand', 'Brush Script MT', cursive; font-size: 25px; font-weight: 700; }
+.ig__hicons { margin-left: auto; display: flex; gap: 16px; }
+.ig__stories { display: flex; gap: 14px; padding: 8px 12px; overflow-x: auto; border-bottom: 1px solid #1c1c1c; scrollbar-width: none; }
+.ig__stories::-webkit-scrollbar { display: none; }
+.ig__story { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; width: 62px; }
+.ig__story-ring { height: 58px; width: 58px; border-radius: 50%; display: grid; place-items: center; font-size: 22px; background: linear-gradient(45deg,#f59e0b,#e23b54,#a855f7); }
+.ig__story-ring span { height: 50px; width: 50px; border-radius: 50%; background: #111; display: grid; place-items: center; box-shadow: inset 0 0 0 2px #000; }
+.ig__story-ring.is-me { background: #2a2a2a; }
+.ig__story-name { font-size: 10px; color: #bbb; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 62px; }
+.ig__feed { flex: 1; overflow-y: auto; scrollbar-width: none; }
+.ig__feed::-webkit-scrollbar { display: none; }
+.ig__post { margin-bottom: 6px; }
+.ig__post-head { display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 13px; }
+.ig__post-av { height: 30px; width: 30px; border-radius: 50%; background: #333; display: grid; place-items: center; font-size: 15px; }
+.ig__more { margin-left: auto; }
+.ig__post-img { aspect-ratio: 1; display: grid; place-items: center; font-size: 72px; }
+.ig__post-actions { display: flex; gap: 14px; padding: 10px 12px 4px; }
+.ig__post-likes { padding: 0 12px; font-size: 13px; font-weight: 700; }
+.ig__post-cap { padding: 4px 12px 8px; font-size: 13px; line-height: 1.4; }
+.ig__nav { display: flex; justify-content: space-between; align-items: center; padding: 10px 22px; border-top: 1px solid #1c1c1c; }
+.ig__nav-av { height: 24px; width: 24px; border-radius: 50%; background: #333; display: grid; place-items: center; font-size: 13px; }
+.ig__notif {
+  position: absolute; top: 10px; left: 8px; right: 8px; z-index: 5;
+  display: flex; gap: 10px; padding: 10px 12px;
+  background: rgba(44,44,48,0.94); backdrop-filter: blur(16px);
+  border: none; cursor: pointer; text-align: left; color: #fff; font: inherit;
+  border-radius: 16px; box-shadow: 0 18px 44px rgba(0,0,0,.65);
+  animation: igNotif 0.55s cubic-bezier(.2,.8,.2,1.15) both;
+}
+.ig__notif:hover { background: rgba(54,54,60,0.96); }
+.ig__notif-tap { font-size: 10.5px; color: #7dd3fc; margin-top: 4px; font-weight: 700; }
+
+/* Instagram DM conversation view */
+.igdm { display: flex; flex-direction: column; height: 100%; background: #000; color: #fff; }
+.igdm__head { display: flex; align-items: center; gap: 8px; padding: 26px 10px 10px; border-bottom: 1px solid #1c1c1c; }
+.igdm__back { background: none; border: none; color: #fff; cursor: pointer; padding: 0; display: flex; }
+.igdm__av { height: 34px; width: 34px; border-radius: 50%; background: #333; display: grid; place-items: center; font-size: 17px; flex-shrink: 0; }
+.igdm__who { flex: 1; min-width: 0; }
+.igdm__who b { font-size: 14px; }
+.igdm__who small { display: block; font-size: 11px; color: #999; }
+.igdm__icons { display: flex; gap: 16px; color: #fff; }
+.igdm__body { flex: 1; padding: 16px 12px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; }
+.igdm__warn { align-self: center; text-align: center; font-size: 11px; color: #f5b14a; background: rgba(245,158,11,.12); border: 1px solid rgba(245,158,11,.3); padding: 7px 12px; border-radius: 10px; max-width: 90%; }
+.igdm__msg { align-self: flex-start; max-width: 84%; background: #262626; padding: 10px 13px; border-radius: 18px; border-bottom-left-radius: 5px; font-size: 13.5px; line-height: 1.45; }
+.igdm__time { align-self: flex-start; font-size: 10px; color: #888; margin-left: 6px; }
+.igdm__input { display: flex; align-items: center; margin: 10px; padding: 10px 14px; border: 1px solid #333; border-radius: 22px; color: #888; font-size: 13px; }
+.igdm__send { margin-left: auto; color: #1e9bf0; }
+@keyframes igNotif { from { transform: translateY(-130%); opacity: 0; } to { transform: none; opacity: 1; } }
+.ig__notif-icon { height: 38px; width: 38px; border-radius: 9px; display: grid; place-items: center; font-size: 19px; background: linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045); flex-shrink: 0; }
+.ig__notif-body { min-width: 0; }
+.ig__notif-top { display: flex; gap: 8px; font-size: 10px; letter-spacing: .04em; color: #cfcfcf; }
+.ig__notif-top span { margin-left: auto; }
+.ig__notif-title { font-size: 12.5px; font-weight: 700; margin-top: 1px; }
+.ig__notif-text { font-size: 12px; color: #e2e2e2; line-height: 1.35; margin-top: 2px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ── Phone home screen + sliding notifications (scenario 3) ── */
+.home-wrap { position: relative; display: flex; flex-direction: column; min-height: 560px; width: 100%; overflow: hidden; }
+.home { position: relative; flex: 1; display: flex; flex-direction: column; padding: 28px 14px 12px;
+  background: linear-gradient(160deg, #1d2b6b, #3a1d6b 50%, #6b1d4f); color: #fff; }
+.home__clock { text-align: center; margin-bottom: 12px; }
+.home__time { font-size: 46px; font-weight: 300; line-height: 1; }
+.home__date { font-size: 13px; opacity: 0.85; margin-top: 2px; }
+.home__grid { flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px 10px; align-content: start; padding-top: 4px; }
+.home__app { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.home__icon { height: 52px; width: 52px; border-radius: 13px; display: grid; place-items: center; font-size: 26px;
+  background: rgba(255, 255, 255, 0.16); box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25); }
+.home__app span { font-size: 10px; opacity: 0.9; }
+.home__dock { display: flex; justify-content: space-around; padding: 12px 10px; margin-top: 6px;
+  background: rgba(255, 255, 255, 0.14); border-radius: 24px; backdrop-filter: blur(10px); }
+.home__dockicon { height: 50px; width: 50px; border-radius: 13px; display: grid; place-items: center; font-size: 25px; background: rgba(255, 255, 255, 0.18); }
+.home__notifs { position: absolute; top: 8px; left: 8px; right: 8px; z-index: 5; display: flex; flex-direction: column; gap: 8px; }
+.home__notif { display: flex; gap: 10px; padding: 10px 12px; background: rgba(40, 40, 45, 0.93); backdrop-filter: blur(16px);
+  border-radius: 16px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55); animation: igNotif 0.55s cubic-bezier(.2,.8,.2,1.15) both; }
+.home__notif-icon { height: 38px; width: 38px; border-radius: 9px; display: grid; place-items: center; font-size: 20px; flex-shrink: 0; }
+.home__notif-body { min-width: 0; }
+.home__notif-top { display: flex; font-size: 10px; letter-spacing: 0.04em; color: #cfcfcf; }
+.home__notif-top span { margin-left: auto; }
+.home__notif-text { font-size: 12px; color: #e6e6e6; line-height: 1.35; margin-top: 3px; }
+.home__notif--btn { border: none; cursor: pointer; text-align: left; color: #fff; font: inherit; width: 100%; }
+.home__notif--btn:hover { background: rgba(54,54,60,0.96); }
+.home__notif-tap { font-size: 10.5px; color: #7dd3fc; margin-top: 4px; font-weight: 700; }
+
+/* WhatsApp chat view (scenario 4) */
+.wachat { display: flex; flex-direction: column; min-height: 560px; height: 100%; background: #efeae2; color: #111b21; }
+.wachat__head { display: flex; align-items: center; gap: 8px; padding: 24px 8px 8px; background: #008069; color: #fff; flex-shrink: 0; }
+.wachat__back { background: none; border: none; color: #fff; cursor: pointer; padding: 0; display: flex; }
+.wachat__av { height: 34px; width: 34px; border-radius: 50%; background: rgba(255,255,255,.25); display: grid; place-items: center; font-size: 17px; flex-shrink: 0; }
+.wachat__who { flex: 1; min-width: 0; }
+.wachat__who b { font-size: 15px; }
+.wachat__who small { display: block; font-size: 11px; opacity: .85; }
+.wachat__icons { display: flex; gap: 18px; }
+.wachat__body { flex: 1; padding: 12px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto;
+  background-image: radial-gradient(rgba(0,0,0,.02) 1px, transparent 1px); background-size: 24px 24px; }
+.wachat__date { align-self: center; background: #fff; color: #54656f; font-size: 11px; padding: 4px 10px; border-radius: 8px; box-shadow: 0 1px 1px rgba(0,0,0,.05); }
+.wachat__sys { align-self: center; text-align: center; background: #fff3c4; color: #54656f; font-size: 11.5px; padding: 6px 12px; border-radius: 8px; max-width: 90%; }
+.wachat__msg { align-self: flex-start; max-width: 86%; background: #fff; padding: 7px 10px 8px; border-radius: 8px; border-top-left-radius: 2px; font-size: 13.5px; line-height: 1.45; box-shadow: 0 1px .5px rgba(0,0,0,.13); }
+.wachat__time { float: right; font-size: 10px; color: rgba(0,0,0,.45); margin: 6px 0 -2px 10px; }
+.wachat__input { display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: #f0f2f5; color: #8696a0; flex-shrink: 0; }
+.wachat__ph { flex: 1; }
+.wachat__mic { height: 42px; width: 42px; border-radius: 50%; background: #008069; color: #fff; display: grid; place-items: center; margin-left: auto; }
+
+/* BGMI in-game screen (scenario 5) */
+.bgmi { position: relative; min-height: 560px; height: 100%; overflow: hidden; color: #fff; font-size: 12px;
+  background: linear-gradient(160deg, #41512f, #232f17 55%, #14180e); }
+.bgmi__top { position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: flex-start; padding: 24px 12px 0; }
+.bgmi__map { height: 62px; width: 62px; border: 1px solid rgba(255,255,255,.4); border-radius: 6px; background: rgba(0,0,0,.4); position: relative; }
+.bgmi__blip { position: absolute; height: 5px; width: 5px; border-radius: 50%; background: #4ade80; }
+.bgmi__blip--enemy { background: #ef4444; }
+.bgmi__center { text-align: center; }
+.bgmi__alive { background: rgba(0,0,0,.5); padding: 3px 10px; border-radius: 6px; font-weight: 800; }
+.bgmi__alive span { font-weight: 400; opacity: .8; }
+.bgmi__zone { margin-top: 4px; font-size: 11px; opacity: .9; background: rgba(0,0,0,.4); padding: 2px 8px; border-radius: 5px; display: inline-block; }
+.bgmi__kills { background: rgba(0,0,0,.5); padding: 3px 9px; border-radius: 6px; font-weight: 800; }
+.bgmi__squad { position: absolute; top: 92px; left: 12px; display: flex; flex-direction: column; gap: 5px; }
+.bgmi__mate { background: rgba(0,0,0,.45); padding: 4px 8px; border-radius: 5px; width: 96px; }
+.bgmi__mate span { font-size: 10px; }
+.bgmi__mate.is-down { opacity: .55; }
+.bgmi__hp { height: 4px; background: rgba(255,255,255,.25); border-radius: 3px; margin-top: 3px; overflow: hidden; }
+.bgmi__hp i { display: block; height: 100%; background: #4ade80; }
+.bgmi__mate.is-down .bgmi__hp i { background: #ef4444; }
+.bgmi__cross { position: absolute; top: 45%; left: 50%; transform: translate(-50%,-50%); font-size: 24px; opacity: .65; }
+.bgmi__bottom { position: absolute; bottom: 16px; left: 0; right: 0; display: flex; justify-content: space-between; align-items: flex-end; padding: 0 16px; }
+.bgmi__joy { height: 74px; width: 74px; border: 2px solid rgba(255,255,255,.3); border-radius: 50%; position: relative; }
+.bgmi__joy-stick { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); height: 34px; width: 34px; border-radius: 50%; background: rgba(255,255,255,.25); }
+.bgmi__actions { display: flex; align-items: flex-end; gap: 10px; }
+.bgmi__btn { height: 60px; width: 60px; border-radius: 50%; background: rgba(255,255,255,.18); display: grid; place-items: center; font-size: 25px; }
+.bgmi__btn--sm { height: 42px; width: 42px; font-size: 17px; }
+.bgmi__overlay { position: absolute; inset: 0; background: rgba(0,0,0,.55); display: grid; place-items: center; padding: 18px; z-index: 10; }
+.bgmi__warn { width: 100%; max-width: 300px; background: linear-gradient(#3a0d0d,#1a0606); border: 1.5px solid #ef4444; border-radius: 14px; padding: 14px; text-align: left; cursor: pointer; color: #fff; box-shadow: 0 0 34px rgba(239,68,68,.45); animation: bgmiWarn .42s cubic-bezier(.2,.8,.2,1.18) both; }
+@keyframes bgmiWarn { from { transform: scale(.85); opacity: 0; } to { transform: none; opacity: 1; } }
+.bgmi__warn-head { font-size: 12px; font-weight: 800; color: #fca5a5; display: flex; align-items: center; gap: 6px; }
+.bgmi__warn-head span { margin-left: auto; background: #ef4444; color: #fff; font-size: 9px; padding: 2px 7px; border-radius: 99px; }
+.bgmi__warn-body { font-size: 12.5px; line-height: 1.45; margin-top: 8px; color: #fde2e2; }
+.bgmi__warn-cta { margin-top: 10px; background: #ef4444; color: #fff; text-align: center; padding: 8px; border-radius: 8px; font-weight: 700; font-size: 12px; }
 
 /* ── Narrator panel (Priya) ── */
 .narr__head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }

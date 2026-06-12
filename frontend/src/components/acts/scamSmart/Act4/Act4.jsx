@@ -1,20 +1,19 @@
 /**
- * Scam Smart · Act 4 — The Challenge.
- * Intro → 4 timed mini-games → boss level → scoreboard + badge + the 5
- * rules to keep. Each game emits a graded activity_completed event (so the
- * backend computes the 0–100 lesson score exactly as it does for L1/L2);
- * the on-screen points/badge are a UX layer on top. Finishing the act fires
- * act_completed + lesson_completed.
+ * Scam Smart · Act 4 — The Challenge (Netlify shell).
+ * Left act-sidebar + content column. Intro → 4 timed mini-games → boss level
+ * (scam shown in an iPhone) → scoreboard + badge + the 5 rules. Each game
+ * emits a graded activity_completed event (same pipeline as L1/L2); finishing
+ * fires act_completed + lesson_completed.
  */
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, RotateCcw, Home, BarChart3, Trophy, Phone, Globe } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import { act4 } from '../../../../data/lessons/scamSmart.js';
 import { useL3Analytics } from '../useL3Analytics.js';
-import { TopBar, Shields } from '../parts.jsx';
-import BgFx from '../BgFx.jsx';
-import Narrator from '../Act2/Narrator.jsx';
+import Sidebar from '../shell/Sidebar.jsx';
+import BgFx3D from '../shell/BgFx3D.jsx';
+import { useSoftMusic } from '../shell/useSoftMusic.js';
 import { SpotLink, SpeedRound, WhatsWrong, MatchGame, BossLevel } from './Games.jsx';
 import '../scamSmart.css';
 
@@ -27,25 +26,36 @@ function tierFor(points) {
 
 export default function ScamSmartAct4({ onComplete, onGoHome }) {
   const analytics = useL3Analytics('act4');
+  const navigate = useNavigate();
+  const location = useLocation();
   const startedAt = useRef(Date.now());
   const lessonDoneRef = useRef(false);
+  useSoftMusic('calm');
 
+  const phaseFromScene = () => {
+    const raw = new URLSearchParams(window.location.search).get('scene');
+    if (raw === null) return null;
+    const n = Number(raw);
+    return ORDER[n] && n >= 0 && n < ORDER.length ? ORDER[n] : null;
+  };
   const [phase, setPhase] = useState(() => {
+    const fromScene = phaseFromScene();
+    if (fromScene) return fromScene;
     if (import.meta.env.DEV) {
       const p = new URLSearchParams(window.location.search).get('phase');
-      if (['intro', 'mg1', 'mg2', 'mg3', 'mg4', 'boss', 'result'].includes(p)) return p;
+      if (ORDER.includes(p)) return p;
     }
     return 'intro';
   });
   const [points, setPoints] = useState(0);
 
   useEffect(() => {
-    analytics.actStarted();
-    window.scrollTo({ top: 0 });
+    const p = phaseFromScene();
+    if (p) setPhase(p);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [location.search]);
 
-  // Scene timing for the graded phases.
+  useEffect(() => { analytics.actStarted(); window.scrollTo({ top: 0 }); /* eslint-disable-next-line */ }, []);
   useEffect(() => {
     const sid = SCENE_OF[phase];
     if (!sid) return undefined;
@@ -60,15 +70,12 @@ export default function ScamSmartAct4({ onComplete, onGoHome }) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Each game reports { points, correct, total } → grade + accumulate + next.
   const handleGame = (activityId, sceneId) => ({ points: p, correct, total }) => {
     setPoints((prev) => prev + p);
     analytics.activityCompleted(activityId, {
-      sceneId,
-      detail: { correct, total, accuracyPct: total ? Math.round((correct / total) * 100) : 0 },
+      sceneId, detail: { correct, total, accuracyPct: total ? Math.round((correct / total) * 100) : 0 },
     });
-    if (phase === 'boss') reachResult();
-    else advance();
+    if (phase === 'boss') reachResult(); else advance();
   };
 
   const reachResult = () => {
@@ -82,39 +89,38 @@ export default function ScamSmartAct4({ onComplete, onGoHome }) {
     }
   };
 
-  const stepIdx = Math.max(0, ORDER.indexOf(phase) - 1);
-
   return (
-    <div className="ss">
-      <BgFx />
-      <div className="ss__shell" style={{ position: 'relative', zIndex: 1 }}>
-        <TopBar onGoHome={onGoHome} eyebrow="Scam Smart · Act 4 — The Challenge" step={stepIdx} total={ORDER.length - 2} />
+    <div className="ssh">
+      <Sidebar
+        current="act4"
+        onHome={() => navigate('/lesson3')}
+        onNavigate={(actId) => navigate(`/lesson3/${actId}`)}
+        onNavigateScene={(actId, idx) => navigate(`/lesson3/${actId}?scene=${idx}`)}
+      />
 
-        <AnimatePresence mode="wait">
-          {phase === 'intro' && (
-            <motion.div key="intro" initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}>
-              <div className="ss__verdict">
+      <main className="ssh__main">
+        <div className="ssh__col">
+          <div className="ssh__eyebrow">Act 4 — The Challenge</div>
+
+          <AnimatePresence mode="wait">
+            {phase === 'intro' && (
+              <motion.div key="intro" initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} className="ss__verdict" style={{ marginTop: 14 }}>
                 <Trophy size={56} style={{ color: '#fbbf24' }} />
                 <h1 className="ss__h1" style={{ marginTop: 10 }}>{act4.intro.title}</h1>
                 <p className="ss__lead" style={{ marginTop: 8 }}>{act4.intro.sub}</p>
                 <p className="ss__eyebrow" style={{ marginTop: 12 }}>{act4.intro.meta}</p>
-              </div>
-              <div style={{ marginTop: 18 }}>
-                <Narrator name="Priya" role="Your guide" text={act4.intro.host} streamKey="a4intro" />
-              </div>
-              <button className="ss__btn ss__btn--full" style={{ marginTop: 18 }} onClick={advance}>{act4.intro.cta} <ArrowRight size={18} /></button>
-            </motion.div>
-          )}
-
-          {phase === 'mg1' && <motion.div key="mg1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}><SpotLink data={act4.mg1} onDone={handleGame('a4-mg1', 'sc-mg1')} /></motion.div>}
-          {phase === 'mg2' && <motion.div key="mg2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}><SpeedRound data={act4.mg2} onDone={handleGame('a4-mg2', 'sc-mg2')} /></motion.div>}
-          {phase === 'mg3' && <motion.div key="mg3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}><WhatsWrong data={act4.mg3} onDone={handleGame('a4-mg3', 'sc-mg3')} /></motion.div>}
-          {phase === 'mg4' && <motion.div key="mg4" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}><MatchGame data={act4.mg4} onDone={handleGame('a4-mg4', 'sc-mg4')} /></motion.div>}
-          {phase === 'boss' && <motion.div key="boss" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}><BossLevel data={act4.boss} onDone={handleGame('a4-boss', 'sc-boss')} /></motion.div>}
-
-          {phase === 'result' && <Result key="result" points={points} onGoHome={onGoHome} />}
-        </AnimatePresence>
-      </div>
+                <button className="ss__btn" style={{ marginTop: 20 }} onClick={advance}>{act4.intro.cta} <ArrowRight size={18} /></button>
+              </motion.div>
+            )}
+            {phase === 'mg1' && <motion.div key="mg1" initial={{ opacity: 0, x: 18 }} animate={{ opacity: 1, x: 0 }}><SpotLink data={act4.mg1} onDone={handleGame('a4-mg1', 'sc-mg1')} /></motion.div>}
+            {phase === 'mg2' && <motion.div key="mg2" initial={{ opacity: 0, x: 18 }} animate={{ opacity: 1, x: 0 }}><SpeedRound data={act4.mg2} onDone={handleGame('a4-mg2', 'sc-mg2')} /></motion.div>}
+            {phase === 'mg3' && <motion.div key="mg3" initial={{ opacity: 0, x: 18 }} animate={{ opacity: 1, x: 0 }}><WhatsWrong data={act4.mg3} onDone={handleGame('a4-mg3', 'sc-mg3')} /></motion.div>}
+            {phase === 'mg4' && <motion.div key="mg4" initial={{ opacity: 0, x: 18 }} animate={{ opacity: 1, x: 0 }}><MatchGame data={act4.mg4} onDone={handleGame('a4-mg4', 'sc-mg4')} /></motion.div>}
+            {phase === 'boss' && <motion.div key="boss" initial={{ opacity: 0, x: 18 }} animate={{ opacity: 1, x: 0 }}><BossLevel data={act4.boss} onDone={handleGame('a4-boss', 'sc-boss')} /></motion.div>}
+            {phase === 'result' && <Result key="result" points={points} onGoHome={onGoHome} />}
+          </AnimatePresence>
+        </div>
+      </main>
     </div>
   );
 }
@@ -123,12 +129,10 @@ function Result({ points, onGoHome }) {
   const tier = tierFor(points);
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-      <div className="ss__verdict">
+      <div className="ss__verdict" style={{ marginTop: 14 }}>
         <div className="ss__verdict-badge">{tier.badge}</div>
         <div className="ss__verdict-score">{points} <span style={{ fontSize: 18, opacity: 0.6 }}>pts</span></div>
-        <div className="ss__shieldrow">
-          {Array.from({ length: 5 }).map((_, i) => <span key={i} className={i < tier.shields ? 'is-on' : ''}>🛡️</span>)}
-        </div>
+        <div className="ss__shieldrow">{Array.from({ length: 5 }).map((_, i) => <span key={i} className={i < tier.shields ? 'is-on' : ''}>🛡️</span>)}</div>
         <h2 className="ss__h2" style={{ marginTop: 6 }}>{tier.verdict}</h2>
         <p className="ss__lead" style={{ marginTop: 6 }}>{tier.sub}</p>
       </div>
@@ -147,9 +151,7 @@ function Result({ points, onGoHome }) {
 
       <div className="ss__card" style={{ marginTop: 18, textAlign: 'center', background: 'rgba(0,0,0,.35)' }}>
         {act4.final.map((t, i) => <p key={i} className="ss__lead" style={{ marginBottom: 10 }}>{t}</p>)}
-        <p className="ss__h2" style={{ marginTop: 8, background: 'linear-gradient(90deg,#22d3ee,#a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-          {act4.closer}
-        </p>
+        <p className="ss__h2" style={{ marginTop: 8, background: 'linear-gradient(90deg,#22d3ee,#a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{act4.closer}</p>
       </div>
 
       <div style={{ display: 'grid', gap: 10, gridTemplateColumns: '1fr 1fr', marginTop: 18 }}>

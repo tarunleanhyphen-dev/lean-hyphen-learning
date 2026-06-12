@@ -4,37 +4,52 @@
  * the others render an app-styled message screen (Instagram / SMS / WhatsApp
  * / BGMI). Display-only — all interaction lives in the narrator panel.
  */
-import { Suspense } from 'react';
+import { useState } from 'react';
 import { CheckCircle2, Volume2 } from 'lucide-react';
-import { hasWebGL } from '../BgFx.jsx';
-import CricketerScene3D from './CricketerScene3D.jsx';
+import InstagramScreen from './InstagramScreen.jsx';
+import HomeNotifScreen from './HomeNotifScreen.jsx';
+import WhatsAppMsgScreen from './WhatsAppMsgScreen.jsx';
+import BgmiScreen from './BgmiScreen.jsx';
+import PressScene2D from './PressScene2D.jsx';
 
-/* CSS-only cricket scene used when WebGL is unavailable. */
-function CricketerCSS() {
+/**
+ * The "video" inside the fake giveaway. Plays a REAL clip if one is dropped
+ * at public/videos/giveaway.mp4 (drop in your own / licensed / AI-generated
+ * footage — NOT a real person's deepfake); otherwise shows the animated 3D
+ * cricket scene. Either way it's wrapped in YouTube-style chrome so it reads
+ * as a real player.
+ */
+function GiveawayVideo() {
+  const [noVideo, setNoVideo] = useState(false);
   return (
-    <div className="cric" aria-hidden>
-      <div className="cric__cloud" /><div className="cric__cloud" />
-      <div className="cric__stand" />
-      <div className="cric__pitch" />
-      <div className="cric__player">🏏🧍</div>
+    <div className="yt__media">
+      {!noVideo ? (
+        <video
+          className="yt__video"
+          src="/videos/giveaway.mp4"
+          autoPlay muted loop playsInline preload="auto"
+          onError={() => setNoVideo(true)}
+        />
+      ) : (
+        <div className="yt__canvas"><PressScene2D /></div>
+      )}
+      {/* caption + YouTube-style scrubber to sell the "real video" look */}
+      <div className="yt__vcap">“Register your UPI now to claim your ₹10,000…”</div>
+      <div className="yt__scrub"><i /></div>
     </div>
   );
 }
 
 function YouTubeScreen({ body, onSpeak }) {
   const c = body.channel || {};
-  const canUse3D = hasWebGL();
   return (
     <div className="yt">
       <div className="yt__top">
         <span className="yt__logo">▶</span> YouTube
       </div>
       <div className="yt__player">
-        <div className="yt__canvas">
-          {canUse3D ? <Suspense fallback={<CricketerCSS />}><CricketerScene3D /></Suspense> : <CricketerCSS />}
-        </div>
+        <GiveawayVideo />
         {c.live && <span className="yt__live">● LIVE</span>}
-        <span className="yt__aibadge">AI-GENERATED</span>
         {c.viewers && <span className="yt__viewers">👁 {c.viewers}</span>}
         {onSpeak && <button className="yt__sound" onClick={onSpeak} title="Play audio"><Volume2 size={14} /></button>}
       </div>
@@ -87,5 +102,18 @@ function AppScreen({ s }) {
 
 export default function ScamScreen({ scenario, onSpeak }) {
   if (scenario.app === 'youtube') return <YouTubeScreen body={scenario.body} onSpeak={onSpeak} />;
+  if (scenario.app === 'instagram') return <InstagramScreen scenario={scenario} />;
+  if (scenario.app === 'sms') {
+    return (
+      <HomeNotifScreen
+        notifs={[
+          { app: 'Garena', icon: '🎮', bg: '#e8462e', text: scenario.body.otp },
+          { app: 'Messages', icon: '💬', bg: '#34c759', text: scenario.body.caption },
+        ]}
+      />
+    );
+  }
+  if (scenario.app === 'whatsapp') return <WhatsAppMsgScreen scenario={scenario} />;
+  if (scenario.app === 'bgmi') return <BgmiScreen scenario={scenario} />;
   return <AppScreen s={scenario} />;
 }

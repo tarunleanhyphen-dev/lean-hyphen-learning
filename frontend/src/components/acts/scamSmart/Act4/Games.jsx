@@ -8,8 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, Clock, CheckCircle2, XCircle } from 'lucide-react';
 import { AppCard } from '../parts.jsx';
-import PhoneStage from '../Act2/PhoneStage.jsx';
-import Narrator from '../Act2/Narrator.jsx';
+import PhoneShell from '../shell/PhoneShell.jsx';
 
 /* Lightweight countdown. Calls onExpire() once when it hits 0. Pausable. */
 function useCountdown(seconds, onExpire, deps = []) {
@@ -303,16 +302,18 @@ export function BossLevel({ data, onDone }) {
   return (
     <div>
       <h2 className="ss__h2" style={{ marginBottom: 4 }}>{data.title}</h2>
-      <p className="ss__lead" style={{ marginBottom: 16 }}>{data.sub}</p>
+      <p className="ss__lead" style={{ marginBottom: 14 }}>{data.sub}</p>
+      <p className="ssh__help" style={{ marginBottom: 14 }}>{data.setup}</p>
 
-      <div className="ss__split">
-        <PhoneStage><BossScreen messages={data.messages} /></PhoneStage>
+      <PhoneShell screenClass="ssh__screen--scam"><BossScreen messages={data.messages} /></PhoneShell>
 
-        <div>
-          <Narrator name="Priya" role="Final test — no hints" text={data.setup} streamKey="boss" />
-          <p className="ss__thought" style={{ marginTop: 14 }}>{data.thought}</p>
+      <div>
+        <div className="ssh__thought" style={{ marginTop: 16 }}>
+          <div className="ssh__thought-label">Internal thought</div>
+          <div className="ssh__thought-text">{data.thought}</div>
+        </div>
 
-          {!graded ? (
+        {!graded ? (
             <>
               <label className="ss__eyebrow" style={{ display: 'block', marginBottom: 8 }}>{data.question}</label>
               <textarea className="ss__textarea" value={text} placeholder={data.placeholder} onChange={(e) => setText(e.target.value)} />
@@ -328,7 +329,6 @@ export function BossLevel({ data, onDone }) {
               <button className="ss__btn ss__btn--full" style={{ marginTop: 14 }} onClick={() => onDone({ points, correct: groupsHit, total: data.keywords.length })}>See my scoreboard <ArrowRight size={18} /></button>
             </>
           )}
-        </div>
       </div>
     </div>
   );

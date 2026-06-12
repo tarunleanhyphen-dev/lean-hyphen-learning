@@ -130,15 +130,15 @@ export const scenarios = [
     activityId: 'a2-s1',
     n: 1,
     title: 'The Famous Face',
-    narrate: "Watch this one closely. It looks like Virat Kohli is giving away ₹10,000 — live, right now. The face, the voice, everything feels real. So… what do you do?",
+    narrate: "Watch this one closely. It looks like Vihaan Kapoor is giving away ₹10,000 — live, right now. The face, the voice, everything feels real. So… what do you do?",
     app: 'youtube',
-    header: { channel: 'Virat Kohli Official', tag: '🔴 LIVE', meta: '87 spots left' },
+    header: { channel: 'Vihaan Kapoor Official', tag: '🔴 LIVE', meta: '87 spots left' },
     body: {
       // Channel chrome — looks real at a glance, but the subscriber/age numbers
       // are the quiet tell for anyone who actually checks.
       channel: {
-        name: 'Virat Kohli Official',
-        handle: '@virat.official.live',
+        name: 'Vihaan Kapoor Official',
+        handle: '@vihaan.official.live',
         subs: '200 subscribers',
         videos: '3 videos',
         created: 'Created 4 days ago',
@@ -150,17 +150,17 @@ export const scenarios = [
       thumb: '🏏',
       caption:
         "To celebrate 100M subscribers, I'm giving back to my fans. Click the link, register with your UPI ID, and receive ₹10,000 directly. First 100 fans only.",
-      link: 'virat-kohli-giveaway.in/claim',
+      link: 'vihaan-kapoor-giveaway.in/claim',
     },
     thought:
-      "That's actually him. The voice. The face. Everything. But... Virat Kohli doing a UPI giveaway on a random link? And why does the channel only have 3 videos?",
+      "That's actually him. The voice. The face. Everything. But... Vihaan Kapoor doing a UPI giveaway on a random link? And why does the channel only have 3 videos?",
     choices: [
       {
         key: 'A',
         label: 'Click the link — 87 spots left, I need to be fast',
         verdict: 'fail',
         feedback:
-          "That video was AI-generated. Virat Kohli never made it. Scammers used deepfake technology — AI that can copy anyone's face and voice from existing videos. The channel was created 4 days ago. Real celebrities don't do giveaways through random links. Your UPI PIN was the only thing they needed.",
+          "That video was AI-generated. Vihaan Kapoor never made it. Scammers used deepfake technology — AI that can copy anyone's face and voice from existing videos. The channel was created 4 days ago. Real celebrities don't do giveaways through random links. Your UPI PIN was the only thing they needed.",
         loss: '₹4,500 debited from your account.',
       },
       {
@@ -168,7 +168,7 @@ export const scenarios = [
         label: 'Check the channel details before doing anything',
         verdict: 'win',
         feedback:
-          "Channel created 4 days ago. 3 videos. 200 subscribers. Virat Kohli's real channel has been active for years with tens of millions of subscribers. This was a deepfake — an AI-generated video designed to look and sound exactly like a real person. One check. Entire scam exposed.",
+          "Channel created 4 days ago. 3 videos. 200 subscribers. Vihaan Kapoor's real channel has been active for years with tens of millions of subscribers. This was a deepfake — an AI-generated video designed to look and sound exactly like a real person. One check. Entire scam exposed.",
         redFlags: [
           'New channel with very few videos',
           'Asking for UPI ID or PIN through an external link',
@@ -395,7 +395,7 @@ export const act3 = {
         'Urgency — "only X spots left," "expires in 10 minutes"',
         'Threatening messages claiming to have photos or videos of you',
       ],
-      example: 'Fake Dhoni video on YouTube: "Invest ₹500, I\'ll send ₹2,000 back. Tap the link below." Channel created 6 days ago. 2 videos.',
+      example: 'Fake Arjun Nair video on YouTube: "Invest ₹500, I\'ll send ₹2,000 back. Tap the link below." Channel created 6 days ago. 2 videos.',
       doThis: [
         'Check the channel or account age before trusting any video',
         'Real celebrities never do giveaways through random links or ask for your PIN',
@@ -511,7 +511,7 @@ export const act4 = {
       { id: 'm4', from: 'Swiggy (Automated)', text: 'Your order #4821 is out for delivery. Track at swiggy.com/track', answer: 'REAL', explain: 'Real domain, no login requested, no urgency.' },
       { id: 'm5', from: 'FREE_FIRE_ADMIN_2024', text: 'Your account has been selected for 10,000 Diamond reward. Login to claim: ff-diamonds-real.com', answer: 'SCAM', explain: 'Fake admin name, external link, free diamonds don\'t exist.' },
       { id: 'm6', from: 'HDFC Bank (Automated)', text: 'OTP for your transaction: 294817. Valid for 10 minutes. Do NOT share with anyone.', answer: 'REAL', explain: 'Automated OTP to the account owner. No link. No request. This is what a real OTP looks like.' },
-      { id: 'm7', from: '@cricket_virat_official_gifts', text: 'Birthday gift! ₹5,000 to 500 fans! Claim here → virat-bday-gift.in/claim ⏰ Only 43 spots left!', answer: 'SCAM', explain: 'Deepfake giveaway. New account, external link, fake urgency, asks for UPI details.' },
+      { id: 'm7', from: '@cricket_vihaan_official_gifts', text: 'Birthday gift! ₹5,000 to 500 fans! Claim here → vihaan-bday-gift.in/claim ⏰ Only 43 spots left!', answer: 'SCAM', explain: 'Deepfake giveaway. New account, external link, fake urgency, asks for UPI details.' },
     ],
   },
 
@@ -576,8 +576,8 @@ export const act4 = {
     points: 50,
     setup: 'Late evening. You\'re studying. Two messages arrive at once.',
     messages: [
-      { app: 'youtube', from: 'MS Dhoni Fans Official', tag: '🔴 LIVE', text: 'Surprise! Giving ₹8,000 to 200 subscribers RIGHT NOW to celebrate retirement anniversary!' },
-      { app: 'whatsapp', from: '+91 94827 10293 (Unknown)', tag: 'Not saved', text: 'Bro did you see this Dhoni giveaway?? I already registered and it\'s asking for a friend referral — use my link and we BOTH get extra. hurry only 12 spots → dhoni-fan-gift.in/refer' },
+      { app: 'youtube', from: 'Arjun Nair Fans Official', tag: '🔴 LIVE', text: 'Surprise! Giving ₹8,000 to 200 subscribers RIGHT NOW to celebrate retirement anniversary!' },
+      { app: 'whatsapp', from: '+91 94827 10293 (Unknown)', tag: 'Not saved', text: 'Bro did you see this Arjun Nair giveaway?? I already registered and it\'s asking for a friend referral — use my link and we BOTH get extra. hurry only 12 spots → arjun-nair-gift.in/refer' },
     ],
     thought: 'Two messages at once. A "friend" I don\'t recognise pushing the same link. A countdown. Something about this feels coordinated.',
     question: 'What are the red flags here, and what do you do? (2 sentences)',
@@ -589,7 +589,7 @@ export const act4 = {
       ['verify', 'check', 'real channel', 'report', 'directly'],
     ],
     model:
-      'This is a coordinated scam — a deepfake celebrity giveaway backed by a fake "friend" account to create extra pressure and urgency. Red flags: unknown YouTube channel, external link, unknown number pushing the same link, countdown timer, UPI registration. You ignore both messages, check the real Dhoni channel directly, and report both accounts.',
+      'This is a coordinated scam — a deepfake celebrity giveaway backed by a fake "friend" account to create extra pressure and urgency. Red flags: unknown YouTube channel, external link, unknown number pushing the same link, countdown timer, UPI registration. You ignore both messages, check the real Arjun Nair channel directly, and report both accounts.',
   },
 
   // ── Scoreboard tiers (by total points; mg + boss ≈ 0–200) ──

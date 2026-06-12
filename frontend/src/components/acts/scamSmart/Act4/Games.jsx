@@ -110,11 +110,17 @@ export function SpeedRound({ data, onDone }) {
   const resolved = useRef(false);
   const pointsRef = useRef(0);
   const correctRef = useRef(0);
+  const holdTimer = useRef(null);
   const msg = data.messages[i];
 
+  // Hold the answer + explanation on screen for 10s, then move on. A "Next"
+  // button lets a fast reader advance early; whichever fires first wins.
   const advance = () => {
+    if (holdTimer.current) { clearTimeout(holdTimer.current); holdTimer.current = null; }
+    if (!resolved.current) return; // guard against double-advance
+    resolved.current = false;
     if (i + 1 >= data.messages.length) onDone({ points: Math.max(0, pointsRef.current), correct: correctRef.current, total: data.messages.length });
-    else { resolved.current = false; setI((n) => n + 1); setPicked(null); }
+    else { setI((n) => n + 1); setPicked(null); }
   };
   const answer = (val) => {
     if (resolved.current) return;
@@ -124,8 +130,9 @@ export function SpeedRound({ data, onDone }) {
     if (right) { pointsRef.current += data.correctPoints; correctRef.current += 1; }
     else if (val) { pointsRef.current += data.wrongPoints; }
     setPoints(Math.max(0, pointsRef.current)); setCorrect(correctRef.current);
-    setTimeout(advance, 1300);
+    holdTimer.current = setTimeout(advance, 10000);
   };
+  useEffect(() => () => { if (holdTimer.current) clearTimeout(holdTimer.current); }, []);
   const left = useCountdown(data.secondsEach, () => answer(null), [i]);
 
   return (
@@ -147,6 +154,9 @@ export function SpeedRound({ data, onDone }) {
           <div className={`mg__result mg__result--${picked === msg.answer ? 'win' : 'fail'}`}>
             <h4>{picked === msg.answer ? <><CheckCircle2 size={18} /> Correct (+{data.correctPoints})</> : <><XCircle size={18} /> It was {msg.answer}</>}</h4>
             <p>{msg.explain}</p>
+            <button className="mg__next" onClick={advance}>
+              {i + 1 >= data.messages.length ? 'See results' : 'Next'} <ArrowRight size={16} />
+            </button>
           </div>
         )}
       </motion.div>

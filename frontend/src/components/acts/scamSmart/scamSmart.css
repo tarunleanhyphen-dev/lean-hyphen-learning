@@ -646,6 +646,20 @@
 }
 .ss__textarea:focus { outline: none; border-color: rgba(168, 85, 247, 0.6); }
 
+/* Speed Round — "Next" button shown with the answer (auto-advances in 10s) */
+.mg__next {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 12px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff; font-size: 13px; font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.mg__next:hover { background: rgba(255, 255, 255, 0.14); border-color: rgba(255, 255, 255, 0.3); }
+
 /* Boss-level task prompt + hint */
 .mg__task {
   display: flex; flex-direction: column; gap: 6px;

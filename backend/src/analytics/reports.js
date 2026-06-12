@@ -186,6 +186,12 @@ const ACT_TITLES = {
     act2: 'Act 2 — The 50/30/20 Rule',
     act3: 'Act 3 — Test Your Understanding',
   },
+  'scam-smart': {
+    act1: 'Act 1 — The Hook',
+    act2: 'Act 2 — The Scenarios',
+    act3: 'Act 3 — The Patterns',
+    act4: 'Act 4 — The Challenge',
+  },
 };
 
 function prettyActTitle(actId, lessonId) {

@@ -512,7 +512,7 @@ export const act4 = {
     activityId: 'a4-mg2',
     title: 'Real or Scam? — Speed Round',
     prompt: '7 messages flash by one at a time. Tap REAL or SCAM.',
-    secondsEach: 8,
+    secondsEach: 15,
     correctPoints: 15,
     wrongPoints: -10,
     messages: [

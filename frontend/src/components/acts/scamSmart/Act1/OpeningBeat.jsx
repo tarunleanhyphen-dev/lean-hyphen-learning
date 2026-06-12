@@ -19,10 +19,10 @@ const GROUP = '🔥 Squad Goals';
 const DB = 'https://api.dicebear.com/9.x/avataaars/svg';
 const FRIENDS = [
   { name: 'Aryan', tag: 'The skeptic',     color: '#0a8754', av: `${DB}?seed=AryanIN&skinColor=d08b5b&top=theCaesar&hairColor=2c1b18&facialHairProbability=0&backgroundColor=c0aede` },
-  { name: 'Diya',  tag: 'Feels everything', color: '#c2389a', av: `${DB}?seed=DiyaGirl7&skinColor=d08b5b&top=straight02&hairColor=2c1b18&accessoriesProbability=0&backgroundColor=ffd5dc` },
-  { name: 'Priya', tag: 'Knows the tricks', color: '#16a34a', av: `${DB}?seed=PriyaIN&skinColor=d08b5b&top=longButNotTooLong&hairColor=2c1b18&accessoriesProbability=0&backgroundColor=d1f4d9`, guide: true },
+  { name: 'Diya',  tag: 'Feels everything', color: '#c2389a', av: `${DB}?seed=DiyaGirl7&skinColor=d08b5b&top=straight02&hairColor=2c1b18&accessoriesProbability=0&facialHairProbability=0&backgroundColor=ffd5dc` },
+  { name: 'Priya', tag: 'Knows the tricks', color: '#16a34a', av: `${DB}?seed=PriyaGirl3&skinColor=d08b5b&top=longButNotTooLong&hairColor=2c1b18&accessoriesProbability=0&facialHairProbability=0&backgroundColor=d1f4d9`, guide: true },
   { name: 'Kabir', tag: 'Raised the alarm', color: '#2b7de9', av: `${DB}?seed=KabirIN&skinColor=d08b5b&top=shortFlat&hairColor=2c1b18&facialHairProbability=0&backgroundColor=b6e3f4` },
-  { name: 'Meera', tag: 'Always online',    color: '#d97706', av: `${DB}?seed=MeeraIN&skinColor=d08b5b&top=bob&hairColor=2c1b18&accessoriesProbability=0&backgroundColor=ffeaa7` },
+  { name: 'Meera', tag: 'Always online',    color: '#d97706', av: `${DB}?seed=MeeraGirl5&skinColor=d08b5b&top=bob&hairColor=2c1b18&accessoriesProbability=0&facialHairProbability=0&backgroundColor=ffeaa7` },
 ];
 const YOU = { name: 'You', tag: "yes — you", color: '#a855f7', you: true };
 

@@ -35,8 +35,9 @@ const POST_MSG_PAUSE = 380;
 const AVATAR = {
   Kabir: ['/avatars/kabir.jpg', 'https://api.dicebear.com/9.x/avataaars/svg?seed=KabirIN&skinColor=d08b5b&top=shortFlat&hairColor=2c1b18&facialHairProbability=0&backgroundColor=b6e3f4'],
   Aryan: ['/avatars/aryan.jpg', 'https://api.dicebear.com/9.x/avataaars/svg?seed=AryanIN&skinColor=d08b5b&top=theCaesar&hairColor=2c1b18&facialHairProbability=0&backgroundColor=c0aede'],
-  Diya:  ['/avatars/diya.jpg',  'https://api.dicebear.com/9.x/avataaars/svg?seed=DiyaGirl7&skinColor=d08b5b&top=straight02&hairColor=2c1b18&accessoriesProbability=0&backgroundColor=ffd5dc'],
-  Priya: ['/avatars/priya.jpg', 'https://api.dicebear.com/9.x/avataaars/svg?seed=PriyaIN&skinColor=d08b5b&top=longButNotTooLong&hairColor=2c1b18&accessoriesProbability=0&backgroundColor=d1f4d9'],
+  Diya:  ['/avatars/diya.jpg',  'https://api.dicebear.com/9.x/avataaars/svg?seed=DiyaGirl7&skinColor=d08b5b&top=straight02&hairColor=2c1b18&accessoriesProbability=0&facialHairProbability=0&backgroundColor=ffd5dc'],
+  Priya: ['/avatars/priya.jpg', 'https://api.dicebear.com/9.x/avataaars/svg?seed=PriyaGirl3&skinColor=d08b5b&top=longButNotTooLong&hairColor=2c1b18&accessoriesProbability=0&facialHairProbability=0&backgroundColor=d1f4d9'],
+  Meera: ['/avatars/meera.jpg', 'https://api.dicebear.com/9.x/avataaars/svg?seed=MeeraGirl5&skinColor=d08b5b&top=bob&hairColor=2c1b18&accessoriesProbability=0&facialHairProbability=0&backgroundColor=ffeaa7'],
 };
 
 function reducedMotion() {

@@ -41,6 +41,10 @@ const router = Router();
 //                                    and it overrides Edge entirely.
 const VOICES = {
   shanaya:  { neural: 'hi-IN-SwaraNeural',    googleTl: 'en-IN' },
+  // Priya — guide voice for the "Scam Smart" lesson (Lesson 3). Uses a
+  // dedicated ElevenLabs voice; edge fallback mirrors Shanaya if ElevenLabs
+  // is unavailable.
+  priya:    { neural: 'hi-IN-SwaraNeural',    googleTl: 'en-IN' },
   narrator: { neural: 'te-IN-MohanNeural',    googleTl: 'en-IN', pitch: '+18%', rate: 1.0 },
   // Kabir — host of the "Where Does My Money Go?" lesson. Uses a dedicated
   // ElevenLabs voice so it stays distinct from the shared narrator. Edge
@@ -74,6 +78,15 @@ const ELEVEN_PROFILES = {
       stability: 0.42,
       similarity_boost: 0.78,
       style: 0.20,
+      use_speaker_boost: true,
+    },
+  },
+  priya: {
+    model_id: 'eleven_turbo_v2_5',
+    voice_settings: {
+      stability: 0.42,
+      similarity_boost: 0.80,
+      style: 0.18,
       use_speaker_boost: true,
     },
   },
@@ -150,6 +163,8 @@ router.get('/', async (req, res, next) => {
       // supplied for the bedroom lesson.
       kabir: process.env.ELEVENLABS_VOICE_KABIR || 'iae6jJUCSBOtTkBXKD65',
       shanaya: process.env.ELEVENLABS_VOICE_SHANAYA,
+      // Priya (Lesson 3) — env override wins; otherwise the requested voice id.
+      priya: process.env.ELEVENLABS_VOICE_PRIYA || 'Zjz30d9v1e5xCxNVTni6',
     })[voiceKey] || process.env.ELEVENLABS_VOICE_SHANAYA;
     const elevenProfile = ELEVEN_PROFILES[voiceKey] || ELEVEN_PROFILES.shanaya;
 

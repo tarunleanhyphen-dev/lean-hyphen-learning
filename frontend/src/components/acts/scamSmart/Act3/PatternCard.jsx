@@ -144,7 +144,7 @@ export default function PatternCard({ card, isLast, onNext }) {
             <div className="pcard__example-body">{card.example}</div>
             <div className="pcard__example-warn"><Ban size={14} /> This is a scam pattern.</div>
           </div>
-          <button className="ss__btn ss__btn--full" style={{ marginTop: 14 }} onClick={() => { try { speak(card.doThis.join('. '), { who: 'shanaya' }); } catch { /* noop */ } setStep('dothis'); }}>
+          <button className="ss__btn ss__btn--full" style={{ marginTop: 14 }} onClick={() => { try { speak(card.doThis.join('. '), { who: 'priya' }); } catch { /* noop */ } setStep('dothis'); }}>
             What you should do <ArrowRight size={18} />
           </button>
         </div>
@@ -154,7 +154,7 @@ export default function PatternCard({ card, isLast, onNext }) {
         <div className="ss__fade">
           <h4 className="pcard__h">
             <ShieldCheck size={15} /> What you do
-            <button className="pcard__voice" onClick={() => { try { speak(card.doThis.join('. '), { who: 'shanaya' }); } catch { /* noop */ } }} title="Hear this"><Volume2 size={14} /></button>
+            <button className="pcard__voice" onClick={() => { try { speak(card.doThis.join('. '), { who: 'priya' }); } catch { /* noop */ } }} title="Hear this"><Volume2 size={14} /></button>
           </h4>
           <div className="pcard__dolist">
             {card.doThis.map((d, i) => (

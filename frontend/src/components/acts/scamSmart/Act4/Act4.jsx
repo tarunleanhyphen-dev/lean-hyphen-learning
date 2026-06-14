@@ -138,7 +138,7 @@ function RuleCard({ card, index }) {
   const toggle = () => {
     setFlipped((f) => {
       const next = !f;
-      try { cancelSpeech(); if (next) speak(card.back, { who: 'shanaya' }); } catch { /* noop */ }
+      try { cancelSpeech(); if (next) speak(card.back, { who: 'priya' }); } catch { /* noop */ }
       return next;
     });
   };

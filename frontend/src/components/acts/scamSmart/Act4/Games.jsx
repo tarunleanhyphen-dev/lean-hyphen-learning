@@ -17,14 +17,14 @@ import { speak, cancelSpeech } from '../../../../utils/sounds.js';
 /* Speak a game's prompt on mount (and stop on unmount). */
 function useGameVoice(text) {
   useEffect(() => {
-    const t = setTimeout(() => { try { speak(text, { who: 'shanaya' }); } catch { /* noop */ } }, 350);
+    const t = setTimeout(() => { try { speak(text, { who: 'priya' }); } catch { /* noop */ } }, 350);
     return () => { clearTimeout(t); try { cancelSpeech(); } catch { /* noop */ } };
   }, [text]);
 }
 
 /* Centered game container with an icon badge, title + voiced prompt, and hud. */
 function GameShell({ Icon, title, prompt, hud, children }) {
-  const replay = () => { try { cancelSpeech(); speak(prompt, { who: 'shanaya' }); } catch { /* noop */ } };
+  const replay = () => { try { cancelSpeech(); speak(prompt, { who: 'priya' }); } catch { /* noop */ } };
   return (
     <div className="mg">
       <div className="mg__head">

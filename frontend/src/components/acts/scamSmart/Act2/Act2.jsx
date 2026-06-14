@@ -58,7 +58,7 @@ export default function ScamSmartAct2({ onComplete, onGoHome }) {
   // Once the learner opens/reads the phone message, reveal + voice the question.
   const openQuestion = () => {
     setOpened(true);
-    try { speak(s.thought, { who: 'shanaya' }); } catch { /* noop */ }
+    try { speak(s.thought, { who: 'priya' }); } catch { /* noop */ }
   };
 
   // Deep-link from the sidebar SHOW SCENES list.
@@ -72,7 +72,7 @@ export default function ScamSmartAct2({ onComplete, onGoHome }) {
   // synthetic "narrator" — NOT a clone of any real person).
   const speakGiveaway = () => { try { speak(s.body?.caption || s.narrate, { who: 'narrator' }); } catch { /* noop */ } };
   // The learner's INTERNAL THOUGHT is read in a different (teen) voice.
-  const speakThought = () => { try { speak(s.thought, { who: 'shanaya' }); } catch { /* noop */ } };
+  const speakThought = () => { try { speak(s.thought, { who: 'priya' }); } catch { /* noop */ } };
   // On scenario load: play the giveaway pitch, then the internal thought.
   useEffect(() => {
     try { cancelSpeech(); } catch { /* noop */ }
